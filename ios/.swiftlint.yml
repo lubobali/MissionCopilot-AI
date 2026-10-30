@@ -1,0 +1,30 @@
+# SwiftLint rules for MissionCopilot. Run with --strict: any warning fails.
+included:
+  - MissionCopilot
+  - MissionCopilotTests
+
+opt_in_rules:
+  - force_unwrapping          # "!" crashes apps in the field; handle the nil case
+  - implicitly_unwrapped_optional
+  - fatal_error_message
+  - empty_count
+  - first_where
+  - sorted_first_last
+  - closure_spacing
+  - explicit_init
+
+line_length:
+  warning: 120
+  error: 160
+file_length:
+  warning: 300                # same cap as scripts/check_file_size.py
+  error: 300
+type_body_length:
+  warning: 200
+  error: 250
+function_body_length:
+  warning: 40
+  error: 60
+cyclomatic_complexity:
+  warning: 10                 # same as Ruff C90 on the backend
+  error: 15
