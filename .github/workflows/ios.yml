@@ -1,0 +1,88 @@
+name: iOS
+
+# Runs only when iOS code or this workflow changes. macOS runners can queue for minutes,
+# so docs and backend changes skip this workflow and get feedback from ci.yml in seconds.
+
+permissions: {}
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios.yml"
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    name: iOS lint and tests (simulator)
+    # Pinned image: "latest" moves, pinned stays reproducible.
+    runs-on: macos-15
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      XCODEGEN_VERSION: "2.46.0"
+      XCODEGEN_SHA256: "4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806"
+      SWIFTLINT_VERSION: "0.65.1"
+      SWIFTLINT_SHA256: "c1e429b0599cf1b516f369a2d9ec04eaf0e436f3c12b637df8851fa52ff694d0"
+      TOOLS_DIR: ${{ github.workspace }}/../ios-tools
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Cache the downloaded zips by version. They are SHA-256 verified on every run,
+      # whether they came from the cache or from GitHub, so a bad cache cannot slip through.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.TOOLS_DIR }}
+          key: ios-tools-xcodegen-${{ env.XCODEGEN_VERSION }}-swiftlint-${{ env.SWIFTLINT_VERSION }}
+
+      - name: Install XcodeGen and SwiftLint (pinned, SHA-256 verified)
+        run: |
+          set -euo pipefail
+          mkdir -p "$TOOLS_DIR"
+          cd "$TOOLS_DIR"
+          [ -f xcodegen.zip ] || curl -fsSLo xcodegen.zip "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+          echo "${XCODEGEN_SHA256}  xcodegen.zip" | shasum -a 256 --check
+          [ -f swiftlint.zip ] || curl -fsSLo swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/portable_swiftlint.zip"
+          echo "${SWIFTLINT_SHA256}  swiftlint.zip" | shasum -a 256 --check
+          unzip -qo xcodegen.zip -d "$RUNNER_TEMP/xcodegen"
+          unzip -qo swiftlint.zip -d "$RUNNER_TEMP/swiftlint"
+          echo "$RUNNER_TEMP/xcodegen/xcodegen/bin" >> "$GITHUB_PATH"
+          echo "$RUNNER_TEMP/swiftlint" >> "$GITHUB_PATH"
+
+      - name: Tool versions
+        run: |
+          xcodebuild -version
+          xcodegen --version
+          swiftlint version
+
+      - name: SwiftLint (strict)
+        working-directory: ios
+        run: swiftlint lint --strict --quiet
+
+      - name: Generate Xcode project from project.yml
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Test on an iPhone simulator
+        working-directory: ios
+        run: |
+          set -euo pipefail
+          # The runner's simulator list changes over time, so pick the first available iPhone.
+          udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for r,v in d.items() if 'iOS' in r for x in v if x['name'].startswith('iPhone')))")
+          echo "Simulator: $udid"
+          xcodebuild test \
+            -project MissionCopilot.xcodeproj \
+            -scheme MissionCopilot \
+            -destination "id=${udid}" \
+            CODE_SIGNING_ALLOWED=NO
