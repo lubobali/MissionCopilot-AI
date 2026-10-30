@@ -18,4 +18,6 @@ keeps sensitive notes on the phone, and only shares a report after a human appro
 (Phase 0.2 onward)
 
 ## License
-(decided in step 0.4)
+Code: MIT (see LICENSE).
+AI models are not stored in this repo. Each model keeps its own license, listed in the
+architecture decision records.
