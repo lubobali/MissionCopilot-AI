@@ -29,7 +29,7 @@ issue, with CI green.
 (filled in as features ship)
 
 ## Architecture
-(diagrams and decision records in docs/, Iteration 1)
+See [docs/architecture.md](docs/architecture.md): system context, containers, trust boundaries and the offline line. Decisions in [docs/adr/](docs/adr/).
 
 ## How to run
 (filled in as components ship)
