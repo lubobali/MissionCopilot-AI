@@ -26,6 +26,15 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         CODE_SIGN_STYLE: Automatic
+        INFOPLIST_KEY_NSCameraUsageDescription: Scan documents and take site photos as signed evidence.
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: Record a short voice debrief after a meeting.
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: Turn your voice debrief into notes on this phone.
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: Attach the site location to photos you take as evidence.
+      configs:
+        Debug:
+          # Debug only: lets Finder copy large model files into the app (spikes).
+          INFOPLIST_FILE: Config/Info-Debug.plist
+          INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: YES
   MissionCopilotTests:
     type: bundle.unit-test
     platform: iOS

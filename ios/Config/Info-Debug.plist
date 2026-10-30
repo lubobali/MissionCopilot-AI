@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Debug builds only. Merged into the generated Info.plist so Finder can copy model files
+     into the app for spikes. UIFileSharingEnabled has no INFOPLIST_KEY_ build setting. -->
+<plist version="1.0">
+<dict>
+    <key>UIFileSharingEnabled</key>
+    <true/>
+</dict>
+</plist>
