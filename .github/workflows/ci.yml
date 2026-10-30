@@ -20,7 +20,8 @@ env:
 jobs:
   backend:
     name: Quality gate (same hooks as local commits)
-    runs-on: ubuntu-latest
+    # Pinned OS image: "latest" moves (Ubuntu 26 migration), pinned stays reproducible.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
