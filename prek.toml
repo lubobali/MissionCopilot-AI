@@ -1,0 +1,27 @@
+# Quality gate: runs on every commit. A commit is blocked if any hook fails.
+#:schema https://www.schemastore.org/prek.json
+
+[[repos]]
+repo = "builtin"
+hooks = [
+    { id = "trailing-whitespace" },
+    { id = "end-of-file-fixer" },
+    { id = "check-merge-conflict" },
+    { id = "check-toml" },
+    { id = "check-yaml" },
+    { id = "detect-private-key" },
+    # Model files are 700 MB+, they must never land in git.
+    { id = "check-added-large-files", args = ["--maxkb=1024"] },
+]
+
+[[repos]]
+repo = "local"
+hooks = [
+    # Secrets: scan exactly what is being committed.
+    { id = "gitleaks", name = "gitleaks (secret scan)", entry = "gitleaks git --staged --redact --no-banner", language = "system", pass_filenames = false },
+    # Backend: lint, format, types, tests (only when backend files change).
+    { id = "ruff-check", name = "ruff lint", entry = "uv run --directory backend ruff check .", language = "system", pass_filenames = false, files = "^backend/" },
+    { id = "ruff-format", name = "ruff format", entry = "uv run --directory backend ruff format --check .", language = "system", pass_filenames = false, files = "^backend/" },
+    { id = "ty", name = "ty (types)", entry = "uv run --directory backend ty check", language = "system", pass_filenames = false, files = "^backend/" },
+    { id = "pytest", name = "pytest (backend)", entry = "uv run --directory backend pytest -q", language = "system", pass_filenames = false, files = "^backend/" },
+]

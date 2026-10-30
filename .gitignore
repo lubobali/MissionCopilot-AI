@@ -1,0 +1,51 @@
+# --- Secrets (never commit) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.mobileprovision
+
+# --- AI model files (too big, and license: the app downloads them) ---
+*.gguf
+*.safetensors
+*.mlpackage
+*.mlmodelc
+*.bin
+models/
+
+# --- Python / uv ---
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# --- Xcode / Swift ---
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.build/
+.swiftpm/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# --- macOS / editors ---
+.DS_Store
+.idea/
+.vscode/
+
+# --- Real data never goes in (synthetic only) ---
+data/real/
+
+# --- Private planning notes: local only ---
+IDEA.md
+PLAN.md
+private/
