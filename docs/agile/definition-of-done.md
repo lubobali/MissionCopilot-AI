@@ -16,6 +16,7 @@ A story is **Done** only when every line below is true.
 ## Product
 - Acceptance criteria in the issue are all checked.
 - App work is shown running on the real iPhone (offline when the story says offline).
+- UI work is accessible: VoiceOver labels on every control, Dynamic Type supported, contrast checked.
 - Docs updated: ADR changed if a decision changed, README if the way to run it changed.
 
 ## Delivery

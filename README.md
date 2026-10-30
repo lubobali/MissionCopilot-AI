@@ -7,7 +7,7 @@ Small, offline AI for evidence-first field supervision. It runs on the iPhone in
 keeps sensitive notes on the phone, links every fact to its evidence, and only shares a report
 after a human approves it. **An untraceable claim cannot be approved.**
 
-> Status: in development (Iteration 1 · Architecture). Portfolio project. Synthetic data only.
+> Status: in development (Iteration 2 · Feasibility spikes). Architecture complete. Portfolio project. Synthetic data only.
 
 ## How this project is run
 
@@ -29,7 +29,7 @@ issue, with CI green.
 (filled in as features ship)
 
 ## Architecture
-See [docs/architecture.md](docs/architecture.md): system context, containers, trust boundaries and the offline line. [docs/data-classification.md](docs/data-classification.md): labels, lifecycle and the data map. [docs/domain-model.md](docs/domain-model.md): the shared objects and their rules. Decisions in [docs/adr/](docs/adr/).
+**One-page summary: [docs/architecture-summary.md](docs/architecture-summary.md).** See [docs/architecture.md](docs/architecture.md): system context, containers, trust boundaries and the offline line. [docs/data-classification.md](docs/data-classification.md): labels, lifecycle and the data map. [docs/domain-model.md](docs/domain-model.md): the shared objects and their rules. Decisions in [docs/adr/](docs/adr/).
 
 ## How to run
 (filled in as components ship)
