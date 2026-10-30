@@ -36,7 +36,7 @@ CONTRACTOR PROGRESS REPORT, September 2026. Road section 1 to 3, total length 64
 
 ## T3: Draft one report paragraph
 ```
-Write one short paragraph for a World Bank style Aide-Memoire, section "Implementation Progress", formal and neutral tone, using only these facts:
+Write one short paragraph for a development-finance mission report (Aide-Memoire style), section "Implementation Progress", formal and neutral tone, using only these facts:
 - Contractor about 3 months behind schedule (rains, fuel shortages)
 - 32 of 64 km built (50%), bridge at section 3 not started
 - 85% of the contract value paid (USD 8.5M of 10M)
