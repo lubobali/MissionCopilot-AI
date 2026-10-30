@@ -24,6 +24,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Mission Copilot
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         CODE_SIGN_STYLE: Automatic
   MissionCopilotTests:
     type: bundle.unit-test
