@@ -1,0 +1,659 @@
+openapi: 3.1.0
+info:
+  title: MissionCopilot-AI API
+  version: 1.0.0
+  description: >
+    Contract between the iPhone app and the backend. The organization is taken from the
+    authentication token, never from the request body. Only approved, device-signed items are
+    uploaded. Errors use Problem Details (RFC 9457).
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: https://api.example.org
+    description: Placeholder; real host set at deployment
+security:
+  - bearerAuth: []
+tags:
+  - name: health
+  - name: missions
+  - name: sync
+  - name: review
+  - name: reporting
+paths:
+  /v1/health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: Liveness check
+      security: []
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    const: ok
+  /v1/missions/{missionId}/pack:
+    get:
+      tags: [missions]
+      operationId: getMissionPack
+      summary: Download the mission pack before going offline
+      parameters:
+        - $ref: "#/components/parameters/MissionId"
+      responses:
+        "200":
+          description: The mission and its pack
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [mission, pack]
+                properties:
+                  mission:
+                    $ref: "#/components/schemas/Mission"
+                  pack:
+                    $ref: "#/components/schemas/MissionPack"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/missions/{missionId}/sync:
+    post:
+      tags: [sync]
+      operationId: uploadSyncBatch
+      summary: Upload approved, signed items from the phone outbox (idempotent)
+      parameters:
+        - $ref: "#/components/parameters/MissionId"
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Stable id of this batch; retries with the same key are applied once
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncBatch"
+      responses:
+        "200":
+          description: Batch stored; the receipt starts the retention clock on the phone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Signature or hash chain does not verify
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "422":
+          description: An item breaks an invariant (for example a sentence without facts)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/missions/{missionId}/submit:
+    post:
+      tags: [review]
+      operationId: submitForReview
+      summary: Officer submits the approved report to the manager
+      parameters:
+        - $ref: "#/components/parameters/MissionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Approval"
+      responses:
+        "202":
+          description: Submitted for manager review
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          description: Report has untraceable sentences
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/missions/{missionId}/review:
+    post:
+      tags: [review]
+      operationId: reviewMission
+      summary: Manager approves or rejects the mission report
+      parameters:
+        - $ref: "#/components/parameters/MissionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Approval"
+      responses:
+        "200":
+          description: Decision recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Approval"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /v1/missions/{missionId}/audit:
+    get:
+      tags: [reporting]
+      operationId: getAuditTrail
+      summary: Read the hash-chained audit trail of a mission
+      parameters:
+        - $ref: "#/components/parameters/MissionId"
+      responses:
+        "200":
+          description: Audit events in order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditEvent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /v1/missions/{missionId}/export:
+    get:
+      tags: [reporting]
+      operationId: exportMission
+      summary: Export an approved mission, shaped like OC4IDS with risk flags and lineage
+      parameters:
+        - $ref: "#/components/parameters/MissionId"
+      responses:
+        "200":
+          description: OC4IDS-shaped project document (see ADR 0011)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardsExport"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /v1/dashboard/metrics:
+    get:
+      tags: [reporting]
+      operationId: getDashboardMetrics
+      summary: Leadership metrics for the caller's organization
+      responses:
+        "200":
+          description: Metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  missionsApproved:
+                    type: integer
+                  flagsRaised:
+                    type: integer
+                  flagsByRule:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                  medianDaysToApproval:
+                    type: number
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Organization and user come from the token (details in Iteration 3)
+  parameters:
+    MissionId:
+      name: missionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    BadRequest:
+      description: Malformed request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthorized:
+      description: Missing or invalid token
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Forbidden:
+      description: Not a member of this mission's team
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Not found in the caller's organization
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+  schemas:
+    Problem:
+      type: object
+      description: RFC 9457 Problem Details
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+    Classification:
+      type: string
+      enum: [strictly_confidential, official_use_only, public]
+    Base:
+      type: object
+      required: [id, createdAt, classification]
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        classification:
+          $ref: "#/components/schemas/Classification"
+    Mission:
+      allOf:
+        - $ref: "#/components/schemas/Base"
+        - type: object
+          required: [projectRef, site, status]
+          properties:
+            projectRef:
+              type: string
+            site:
+              type: string
+            startDate:
+              type: string
+              format: date
+            endDate:
+              type: string
+              format: date
+            team:
+              type: array
+              items:
+                type: string
+            status:
+              type: string
+              enum: [preparing, in_field, drafting, approved, synced, confirmed, shredded]
+    MissionPack:
+      allOf:
+        - $ref: "#/components/schemas/Base"
+        - type: object
+          properties:
+            budget:
+              type: number
+            contractValue:
+              type: number
+            payments:
+              type: array
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  amount:
+                    type: number
+                  reference:
+                    type: string
+            milestones:
+              type: array
+              items:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  dueDate:
+                    type: string
+                    format: date
+                  dateMet:
+                    type: [string, "null"]
+                    format: date
+            lastReportSummary:
+              type: string
+            checklist:
+              type: object
+              description: Site checklist in XLSForm structure
+    SourceDocument:
+      allOf:
+        - $ref: "#/components/schemas/Base"
+        - type: object
+          required: [kind]
+          properties:
+            kind:
+              type: string
+              enum: [invoice, progress_report, letter, other]
+            title:
+              type: string
+            language:
+              type: string
+            pageCount:
+              type: integer
+    Page:
+      allOf:
+        - $ref: "#/components/schemas/Base"
+        - type: object
+          required: [documentId, number]
+          properties:
+            documentId:
+              type: string
+              format: uuid
+            number:
+              type: integer
+            text:
+              type: string
+            evidenceId:
+              type: string
+              format: uuid
+    Evidence:
+      allOf:
+        - $ref: "#/components/schemas/Base"
+        - type: object
+          required: [kind, contentHash, prevHash, signature, capturedAt]
+          description: Immutable. Content travels separately; this is the signed record.
+          properties:
+            kind:
+              type: string
+              enum: [photo, scan, audio]
+            contentHash:
+              type: string
+              description: SHA-256, hex
+            prevHash:
+              type: string
+            signature:
+              type: string
+              description: Secure Enclave P-256 signature, base64
+            capturedAt:
+              type: string
+              format: date-time
+            clockSource:
+              type: string
+            location:
+              type: object
+              properties:
+                lat:
+                  type: number
+                lon:
+                  type: number
+    FieldNote:
+      allOf:
+        - $ref: "#/components/schemas/Base"
+        - type: object
+          required: [source, text]
+          properties:
+            source:
+              type: string
+              enum: [typed, debrief]
+            text:
+              type: string
+            audioEvidenceId:
+              type: string
+              format: uuid
+            consent:
+              type: boolean
+    RuleVersion:
+      type: object
+      required: [ruleId, version, source, threshold]
+      description: Immutable
+      properties:
+        ruleId:
+          type: string
+          examples: [R068, MC-01]
+        version:
+          type: string
+        source:
+          type: string
+        formula:
+          type: string
+        threshold:
+          type: number
+    Fact:
+      allOf:
+        - $ref: "#/components/schemas/Base"
+        - type: object
+          required: [name, value, sourceEvidenceIds, ruleVersion]
+          description: Immutable. Created only by the rule engine, never by the model.
+          properties:
+            name:
+              type: string
+            value:
+              type: [number, string]
+            unit:
+              type: string
+            sourceEvidenceIds:
+              type: array
+              minItems: 1
+              items:
+                type: string
+                format: uuid
+            region:
+              type: string
+            ruleVersion:
+              $ref: "#/components/schemas/RuleVersion"
+    RiskFlag:
+      allOf:
+        - $ref: "#/components/schemas/Base"
+        - type: object
+          required: [ruleVersion, inputFactIds, computedValues, status]
+          properties:
+            ruleVersion:
+              $ref: "#/components/schemas/RuleVersion"
+            inputFactIds:
+              type: array
+              items:
+                type: string
+                format: uuid
+            computedValues:
+              type: object
+              additionalProperties:
+                type: number
+            status:
+              type: string
+              enum: [raised, not_checked, dismissed]
+            dismissalReason:
+              type: string
+    ReportSentence:
+      allOf:
+        - $ref: "#/components/schemas/Base"
+        - type: object
+          required: [section, text, factIds]
+          properties:
+            section:
+              type: string
+            text:
+              type: string
+            factIds:
+              type: array
+              minItems: 1
+              description: A sentence without facts cannot be approved
+              items:
+                type: string
+                format: uuid
+    ReportDraft:
+      allOf:
+        - $ref: "#/components/schemas/Base"
+        - type: object
+          required: [template, version, sentences]
+          properties:
+            template:
+              type: string
+            version:
+              type: integer
+            sentences:
+              type: array
+              items:
+                $ref: "#/components/schemas/ReportSentence"
+    Approval:
+      allOf:
+        - $ref: "#/components/schemas/Base"
+        - type: object
+          required: [target, decision, signature]
+          description: Immutable
+          properties:
+            target:
+              type: string
+              enum: [report_draft, label_change, flag_dismissal, mission_review]
+            targetId:
+              type: string
+              format: uuid
+            approverId:
+              type: string
+            decision:
+              type: string
+              enum: [approve, reject]
+            reason:
+              type: string
+            signature:
+              type: string
+    AuditEvent:
+      allOf:
+        - $ref: "#/components/schemas/Base"
+        - type: object
+          required: [actor, action, prevHash]
+          description: Immutable, hash-chained
+          properties:
+            actor:
+              type: string
+            action:
+              type: string
+            targetId:
+              type: string
+            details:
+              type: object
+            prevHash:
+              type: string
+    SyncBatch:
+      type: object
+      required: [deviceId, items]
+      properties:
+        deviceId:
+          type: string
+        items:
+          type: object
+          properties:
+            evidence:
+              type: array
+              items:
+                $ref: "#/components/schemas/Evidence"
+            documents:
+              type: array
+              items:
+                $ref: "#/components/schemas/SourceDocument"
+            pages:
+              type: array
+              items:
+                $ref: "#/components/schemas/Page"
+            notes:
+              type: array
+              items:
+                $ref: "#/components/schemas/FieldNote"
+            facts:
+              type: array
+              items:
+                $ref: "#/components/schemas/Fact"
+            flags:
+              type: array
+              items:
+                $ref: "#/components/schemas/RiskFlag"
+            report:
+              $ref: "#/components/schemas/ReportDraft"
+            approvals:
+              type: array
+              items:
+                $ref: "#/components/schemas/Approval"
+            audit:
+              type: array
+              items:
+                $ref: "#/components/schemas/AuditEvent"
+    SyncReceipt:
+      type: object
+      required: [batchId, receivedAt, itemCount]
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        receivedAt:
+          type: string
+          format: date-time
+        itemCount:
+          type: integer
+        alreadyApplied:
+          type: boolean
+          description: True when the same Idempotency-Key was seen before
+    StandardsExport:
+      type: object
+      description: Shaped like OC4IDS (ADR 0011), plus riskFlags and lineage extensions
+      required: [id, metrics]
+      properties:
+        id:
+          type: string
+        metrics:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                enum: [physicalProgress, financialProgress]
+              observations:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    measure:
+                      type: number
+                    unit:
+                      type: string
+        milestones:
+          type: array
+          items:
+            type: object
+        documents:
+          type: array
+          items:
+            type: object
+        riskFlags:
+          type: array
+          items:
+            $ref: "#/components/schemas/RiskFlag"
+        lineage:
+          type: array
+          items:
+            type: object
