@@ -56,8 +56,9 @@ jobs:
         run: gitleaks git --redact --no-banner .
 
       - name: All commit hooks on every file (lint, format, types, tests, size guard)
-        # The staged-only gitleaks hook is skipped here; the full-history scan above covers it.
-        run: prek run --all-files --skip gitleaks
+        # Skipped here and covered elsewhere: gitleaks (full-history scan above),
+        # swiftlint + ios-tests (need a Mac; the ios job below runs them).
+        run: prek run --all-files --skip gitleaks --skip swiftlint --skip ios-tests
 
       - name: App startup check
         run: uv run --directory backend python ../scripts/startup_check.py
