@@ -16,3 +16,18 @@ ADR 0001 (native iOS + Python backend) and ADR 0002 (XcodeGen).
 - Hooks must match CI exactly, or local and CI drift apart.
 
 **Next:** Iteration 1 · Architecture.
+
+## Iteration 1 · Architecture (done Oct 30 2026)
+**Done:** system context and container diagrams with trust boundaries; data classification with
+inherited labels; ADRs 0003-0011; domain model; OpenAPI 3.1 contract with tests; fictional demo dataset
+with tests; architecture summary and review; Agile setup (board, Definition of Done, reviews).
+
+**Learned:**
+- Guards beat manual checks: the ADR guard caught a heading a manual check missed, and a hook gap would
+  have let contract-only changes skip the contract tests.
+- CI speed matters: docs-only PRs waited up to 12 minutes for a macOS runner; path filters cut that to
+  about 15 seconds.
+- Mutation checks (break the data on purpose) prove that tests really protect what they claim.
+- The review found an accessibility gap; it is now in the Definition of Done.
+
+**Next:** Iteration 2 · Feasibility spikes on the real iPhone.
