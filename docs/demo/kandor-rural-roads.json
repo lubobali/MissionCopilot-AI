@@ -1,0 +1,74 @@
+{
+  "fictional": true,
+  "disclaimer": "Entirely fictional demo data. Kandor is not a real country; all names, amounts and documents are invented.",
+  "mission": {
+    "id": "6f1d2c3a-0000-4000-8000-000000000001",
+    "projectRef": "KRRP-P1",
+    "project": "Kandor Rural Roads Project, Package 1",
+    "site": "Kandor, Package 1, km 0 to 64",
+    "startDate": "2026-11-10",
+    "endDate": "2026-11-14",
+    "team": ["field-officer-01", "program-manager-01"]
+  },
+  "pack": {
+    "budget": 12000000,
+    "contractValue": 10000000,
+    "currency": "USD",
+    "contractor": "Kandor Roadworks Ltd",
+    "payments": [
+      {"date": "2025-02-15", "reference": "Advance payment", "amount": 1000000},
+      {"date": "2025-09-30", "reference": "Invoice 6", "amount": 1500000},
+      {"date": "2026-01-31", "reference": "Invoice 9", "amount": 1800000},
+      {"date": "2026-05-31", "reference": "Invoice 11", "amount": 2000000},
+      {"date": "2026-08-31", "reference": "Invoice 13", "amount": 1720000},
+      {"date": "2026-10-12", "reference": "Invoice 14", "amount": 480000}
+    ],
+    "physicalProgress": {"asOf": "2026-09-30", "kmBuilt": 32, "kmTotal": 64, "unit": "km of asphalt"},
+    "milestones": [
+      {"title": "Mobilisation", "dueDate": "2025-03-01", "dateMet": "2025-02-20"},
+      {"title": "Sections 1 and 2 paved", "dueDate": "2026-06-30", "dateMet": "2026-07-20"},
+      {"title": "Section 3 bridge complete", "dueDate": "2026-09-30", "dateMet": null},
+      {"title": "Practical completion", "dueDate": "2026-12-15", "dateMet": null}
+    ],
+    "lastReportSummary": "Previous mission (May 2026): the contractor committed to start the Section 3 bridge by July 2026 and to submit a revised work plan. The ministry agreed to review payment certification before the next invoice.",
+    "checklist": {
+      "format": "XLSForm-style",
+      "survey": [
+        {"type": "select_one yes_no", "name": "bridge_started", "label": "Has work on the Section 3 bridge started?"},
+        {"type": "decimal", "name": "road_width_m", "label": "Measured carriageway width at the sample point (m)"},
+        {"type": "select_one yes_no", "name": "drainage_present", "label": "Are side drains built at the sample point?"},
+        {"type": "geopoint", "name": "sample_point", "label": "Location of the sample point"},
+        {"type": "image", "name": "sample_photo", "label": "Photo of the road at the sample point"}
+      ]
+    }
+  },
+  "documents": [
+    {
+      "kind": "invoice",
+      "language": "en",
+      "title": "Invoice No. 14, Package 1",
+      "fields": {"invoiceNumber": "14", "date": "2026-10-12", "amount": 480000, "contractor": "Kandor Roadworks Ltd", "cumulativePaid": 8500000, "contractValue": 10000000}
+    },
+    {
+      "kind": "progress_report",
+      "language": "en",
+      "title": "Contractor progress report, September 2026",
+      "fields": {"kmCompleted": 32, "kmTotal": 64, "bridgeSection3": "not started", "plannedCompletion": "2026-12-15", "reasonGiven": "rains and fuel shortages"}
+    },
+    {
+      "kind": "letter",
+      "language": "fr",
+      "title": "Lettre du Ministère des Travaux publics de Kandor",
+      "fields": {"date": "2026-10-20", "summary": "Le ministère accepte de prolonger le délai jusqu'au 15 mars 2027, à condition qu'un nouveau plan de travail soit présenté sous deux semaines."}
+    }
+  ],
+  "fieldFindings": {
+    "roadWidth": {"specM": 7.0, "measuredM": 4.9, "where": "km 18, sample point", "evidence": "photo and tape measurement"}
+  },
+  "plannedRisks": [
+    {"rule": "MC-01", "expected": "raised", "why": "85% paid vs 50% built: 35 points above physical progress"},
+    {"rule": "R067", "expected": "raised", "why": "Section 3 bridge milestone past due and not met"},
+    {"rule": "R068", "expected": "clear", "why": "payments (8.5M) do not exceed the contract value (10M)"},
+    {"rule": "field", "expected": "finding", "why": "road about 30% narrower than specified at km 18"}
+  ]
+}
