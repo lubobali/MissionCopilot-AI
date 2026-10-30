@@ -23,7 +23,7 @@ hooks = [
     { id = "ruff-check", name = "ruff lint", entry = "uv run --directory backend ruff check .", language = "system", pass_filenames = false, files = "^backend/" },
     { id = "ruff-format", name = "ruff format", entry = "uv run --directory backend ruff format --check .", language = "system", pass_filenames = false, files = "^backend/" },
     { id = "ty", name = "ty (types)", entry = "uv run --directory backend ty check", language = "system", pass_filenames = false, files = "^backend/" },
-    { id = "pytest", name = "pytest (backend + API contract)", entry = "uv run --directory backend pytest -q", language = "system", pass_filenames = false, files = "^(backend/|docs/api/)" },
+    { id = "pytest", name = "pytest (backend + API contract)", entry = "uv run --directory backend pytest -q", language = "system", pass_filenames = false, files = "^(backend/|docs/api/|docs/demo/)" },
     # Repo-wide guards (same commands as CI, so local and CI never drift).
     { id = "file-size", name = "file size guard (300 lines)", entry = "python3 scripts/check_file_size.py", language = "system", pass_filenames = false, always_run = true },
     { id = "adr-guard", name = "ADR guard (required sections)", entry = "python3 scripts/check_adrs.py", language = "system", pass_filenames = false, files = "^docs/adr/" },
