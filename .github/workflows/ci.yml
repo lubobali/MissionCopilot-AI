@@ -1,0 +1,65 @@
+name: CI
+
+# Least privilege: the workflow gets no permissions; each job asks for the minimum.
+permissions: {}
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GITLEAKS_VERSION: "8.30.1"
+  PREK_VERSION: "0.5.9"
+
+jobs:
+  backend:
+    name: Quality gate (same hooks as local commits)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      # Actions pinned to a commit SHA, not a moving tag. No token left in git config.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # full history for the secret scan
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install backend dependencies (exact versions from the lockfile)
+        run: uv sync --locked --directory backend
+
+      - name: Install gitleaks (checksum verified) and prek
+        run: |
+          set -euo pipefail
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSLO "${base}/${tarball}"
+          curl -fsSLO "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " ${tarball}\$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum --check
+          tar -xzf "${tarball}" gitleaks
+          sudo mv gitleaks /usr/local/bin/
+          uv tool install "prek==${PREK_VERSION}"
+
+      - name: Secret scan (full git history)
+        run: gitleaks git --redact --no-banner .
+
+      - name: All commit hooks on every file (lint, format, types, tests, size guard)
+        # The staged-only gitleaks hook is skipped here; the full-history scan above covers it.
+        run: prek run --all-files --skip gitleaks
+
+      - name: App startup check
+        run: uv run --directory backend python ../scripts/startup_check.py
+
+      - name: Workflow security lint (zizmor)
+        run: uvx zizmor@1.31.1 --offline .github/workflows
