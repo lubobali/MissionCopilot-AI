@@ -1,0 +1,3 @@
+// Shared build settings. Personal values (signing team ID) go in Local.xcconfig,
+// which is git-ignored. The "?" makes the include optional, so CI builds without it.
+#include? "Local.xcconfig"

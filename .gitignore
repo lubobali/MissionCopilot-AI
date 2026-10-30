@@ -49,3 +49,8 @@ data/real/
 IDEA.md
 PLAN.md
 private/
+
+# --- Xcode project is generated from ios/project.yml (ADR 0002) ---
+ios/*.xcodeproj/
+# Personal signing team ID: local only
+ios/Config/Local.xcconfig

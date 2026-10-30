@@ -1,0 +1,43 @@
+name: MissionCopilot
+options:
+  bundleIdPrefix: com.lubobali
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  MissionCopilot:
+    type: application
+    platform: iOS
+    sources: [MissionCopilot]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lubobali.missioncopilot
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Mission Copilot
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+  MissionCopilotTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [MissionCopilotTests]
+    dependencies:
+      - target: MissionCopilot
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  MissionCopilot:
+    build:
+      targets:
+        MissionCopilot: all
+    test:
+      targets: [MissionCopilotTests]
