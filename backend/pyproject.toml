@@ -33,7 +33,7 @@ dev = [
 minversion = "9.0"
 testpaths = ["tests"]
 # Strict: typo'd markers/config fail at collection. Slow and e2e are opt-in.
-addopts = ["-ra", "--strict-markers", "--strict-config", "-m", "not slow and not e2e"]
+addopts = ["-ra", "--strict-markers", "--strict-config", "-m", "not slow and not e2e", "--durations=5"]
 xfail_strict = true
 markers = [
     # Category: exactly ONE per test module
