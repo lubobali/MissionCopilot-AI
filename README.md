@@ -29,7 +29,7 @@ issue, with CI green.
 (filled in as features ship)
 
 ## Architecture
-See [docs/architecture.md](docs/architecture.md): system context, containers, trust boundaries and the offline line. Decisions in [docs/adr/](docs/adr/).
+See [docs/architecture.md](docs/architecture.md): system context, containers, trust boundaries and the offline line. [docs/data-classification.md](docs/data-classification.md): labels, lifecycle and the data map. Decisions in [docs/adr/](docs/adr/).
 
 ## How to run
 (filled in as components ship)
