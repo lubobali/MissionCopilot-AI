@@ -29,6 +29,11 @@ Option 3.
 - Each evidence item stores: content hash (SHA-256), the previous item's hash, capture time, location
   if allowed, and a signature by a Secure Enclave P-256 signing key over all of it.
 - Changing one byte of any item, or removing one, breaks the chain and is detected, offline.
+- A **signed head** (item count + last link, per mission) is re-signed after every item, so cutting off
+  the last item is detected too.
+- Verifiers check the **exact signed bytes** and never rebuild the JSON, so the phone (Swift) and the
+  server (Python) always agree. Proven in spike #16/#17: a chain signed by the iPhone's Secure Enclave
+  verifies in Python with only the public key (docs/spikes/04-signed-evidence.md).
 
 ### Approval gate
 - **An untraceable claim cannot be approved:** a report sentence with no linked fact, or a fact with no
@@ -44,6 +49,8 @@ Option 3.
   not proof. The hash chain still proves order.
 - Lineage adds storage and code to every feature, which is why it is built first (Iteration 4).
 - Not a standard format for outside tools until C2PA is added.
+- **Known limit:** on the phone alone, an older signed head with the chain cut back to it still verifies.
+  The server's sync receipt of the latest head (ADR 0006) is what catches a rollback.
 
 ## Revisit when
 - Official C2PA mobile libraries become stable, or a partner requires content credentials.
