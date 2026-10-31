@@ -131,21 +131,39 @@ final class EncryptionLabModel {
 
     func speedTest() {
         step("speed") {
+            for key in results.keys where key.hasPrefix("speed:") { results[key] = nil }
             guard let folder else { return log("Run 1. Set up first.") }
-            let plainPath = folder.appendingPathComponent("speed-plain.sqlite").path
-            let cipherPath = folder.appendingPathComponent("speed-cipher.sqlite").path
-            for path in [plainPath, cipherPath] { removeDatabase(at: path) }
-            let plain = try SpeedTest.insertMilliseconds(into: EncryptedDatabase.openUnencrypted(at: plainPath), rows: 1000)
-            let cipher = try SpeedTest.insertMilliseconds(
-                into: EncryptedDatabase.open(at: cipherPath, key: DatabaseKey.random()), rows: 1000)
-            record("speed: 1000 inserts plain ms", String(format: "%.1f", plain))
-            record("speed: 1000 inserts SQLCipher ms", String(format: "%.1f", cipher))
+            // 5 rounds, order swapped each round so warm-up does not favour one side; report the median.
+            var plain: [Double] = []
+            var cipher: [Double] = []
+            for round in 0..<5 {
+                let plainPath = folder.appendingPathComponent("speed-plain.sqlite").path
+                let cipherPath = folder.appendingPathComponent("speed-cipher.sqlite").path
+                let runPlain = {
+                    plain.append(try SpeedTest.insertMilliseconds(
+                        into: EncryptedDatabase.openUnencrypted(at: plainPath), rows: 5000))
+                }
+                let runCipher = {
+                    cipher.append(try SpeedTest.insertMilliseconds(
+                        into: EncryptedDatabase.open(at: cipherPath, key: DatabaseKey.random()), rows: 5000))
+                }
+                if round.isMultiple(of: 2) { try runPlain(); try runCipher() } else { try runCipher(); try runPlain() }
+                for path in [plainPath, cipherPath] { removeDatabase(at: path) }
+            }
+            record("speed: 5000 inserts plain ms (median of 5)", String(format: "%.1f", median(plain)))
+            record("speed: 5000 inserts SQLCipher ms (median of 5)", String(format: "%.1f", median(cipher)))
+            record("speed: all rounds plain / SQLCipher", plain.map { String(format: "%.0f", $0) }.joined(separator: ",")
+                   + " / " + cipher.map { String(format: "%.0f", $0) }.joined(separator: ","))
             let chip = try SpeedTest.unwrapMilliseconds(vault: vault, mission: "speed-probe", runs: 20)
             let soft = try SpeedTest.unwrapMilliseconds(vault: SoftwareKeyVault(), mission: "speed-probe", runs: 20)
             record("speed: chip unwrap avg ms", String(format: "%.2f", chip))
             record("speed: software unwrap avg ms", String(format: "%.2f", soft))
-            for path in [plainPath, cipherPath] { removeDatabase(at: path) }
         }
+    }
+
+    private func median(_ values: [Double]) -> Double {
+        let sorted = values.sorted()
+        return sorted[sorted.count / 2]
     }
 
     func resetAll() {
