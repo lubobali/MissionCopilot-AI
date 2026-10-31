@@ -12,6 +12,11 @@ public enum EncryptedDatabase {
         return try DatabasePool(path: path, configuration: config)
     }
 
+    /// No key at all: only for the before/after demo and the speed baseline, never for real data.
+    public static func openUnencrypted(at path: String) throws -> DatabasePool {
+        try DatabasePool(path: path)
+    }
+
     /// Empty when plain SQLite is linked instead of SQLCipher.
     public static func cipherVersion() throws -> String {
         try DatabaseQueue().read { db in
