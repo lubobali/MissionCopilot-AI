@@ -1,0 +1,54 @@
+{
+  "spike": 16,
+  "device": "iPhone 13 Pro Max (A15), iOS 27.2, free Apple ID signing",
+  "date": "2026-10-31",
+  "note": "Values copied from the app's encryption-results.json after each Lab run (the app keeps results per run). Outside check run on the Mac against files copied off the phone with devicectl.",
+  "setup": {
+    "cipher_version": "4.20.0 community",
+    "secure_enclave_available": "true",
+    "entitlement_in_signed_app": "com.apple.developer.default-data-protection = NSFileProtectionComplete",
+    "sqlite_libraries_in_app": "1 (SQLCipher.framework, sqlite3_key present, no system libsqlite3)"
+  },
+  "wrong_key": "rejected: SQLite error 26: file is not a database - while executing `SELECT count(*) FROM sqlite_master`",
+  "file_protection": {
+    "user.sqlite": "NSFileProtectionComplete",
+    "user.sqlite-wal": "NSFileProtectionComplete",
+    "user.sqlite-shm": "NSFileProtectionComplete",
+    "folder excluded from backup": "true"
+  },
+  "crypto_shred": {
+    "shred kandor-roads": "chip key deleted, 1 sealed notes left",
+    "kandor-roads on screen": "Cannot be read (shredded)",
+    "kandor-bridges on screen": "Readable: Bridge 3 deck cracked"
+  },
+  "lock_test": {
+    "lock: test valid": "yes, data locked 12.1 s after tap",
+    "lock: raw database file": "blocked: NSCocoaErrorDomain Code=257, Operation not permitted",
+    "lock: database key in Keychain": "blocked: KeychainError(status: -25308)",
+    "lock: chip unwrap": "blocked: KeychainError(status: -25308)",
+    "lock: database read": "blocked: SQLite error 10: disk I/O error",
+    "invalid runs before this one": [
+      "run 1: fixed 20 s wait, phone not yet locked (protected data available = true), all READABLE: test invalid, not a security result",
+      "run 2: app outlived its ~30 s background time and was killed before saving",
+      "run 3: Complete protection blocked the app's own results file while locked; results now saved on unlock"
+    ]
+  },
+  "speed": {
+    "5000 inserts plain ms (median of 5)": 50.6,
+    "5000 inserts SQLCipher ms (median of 5)": 50.7,
+    "all rounds plain / SQLCipher": "80,51,51,50,50 / 51,51,51,51,51",
+    "chip unwrap avg ms (20 runs)": 5.00,
+    "software unwrap avg ms (20 runs)": 0.13,
+    "discarded single run": "1000 inserts plain 27.1 / SQLCipher 16.7 ms: warm-up noise, plain ran first"
+  },
+  "outside_check": {
+    "plain twin header": "SQLite format 3",
+    "plain twin sqlite3": "kandor-roads|Kandor rural roads",
+    "plain twin 'Kandor' in bytes": 1,
+    "encrypted header (hex, first 15 bytes)": "fbfdcaec6d7e64b1675266fc92591a",
+    "encrypted sqlite3": "file is not a database (26)",
+    "encrypted 'Kandor' in db+wal+shm bytes": 0,
+    "encrypted 'culvert' in db+wal+shm bytes": 0,
+    "encrypted 'CREATE TABLE' in db+wal bytes": 0
+  }
+}
