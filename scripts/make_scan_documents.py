@@ -111,7 +111,7 @@ def progress_report_page(data: dict) -> Page:
 
 
 def answer_key(data: dict) -> dict:
-    """What the phone must read back: the 8 facts of spike #13 and every table row."""
+    """What the phone must read back: the 8 facts of spike #13, every printed line and table row."""
     invoice = _document(data, "invoice")["fields"]
     report = _document(data, "progress_report")["fields"]
     pages = [invoice_page(data), progress_report_page(data)]
@@ -126,6 +126,7 @@ def answer_key(data: dict) -> dict:
             "kmTotal": report["kmTotal"],
             "bridgeStatus": report["bridgeSection3"].replace(" ", "_"),
         },
+        "pages": {p.name: {"title": p.title, "lines": p.lines} for p in pages},
         "tables": {p.name: {"headers": p.table.headers, "rows": p.table.rows} for p in pages},
     }
 

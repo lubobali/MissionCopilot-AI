@@ -68,6 +68,7 @@ def test_answer_key_holds_the_eight_facts_and_both_tables():
         "kmTotal": 64,
         "bridgeStatus": "not_started",
     }
+    assert key["pages"]["invoice-14"]["lines"] == invoice_page(DATA).lines
     assert key["tables"]["invoice-14"]["rows"] == invoice_page(DATA).table.rows
     assert key["tables"]["progress-report-2026-09"]["rows"] == progress_report_page(DATA).table.rows
 

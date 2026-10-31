@@ -33,5 +33,7 @@ hooks = [
     { id = "swiftlint", name = "swiftlint (strict)", entry = "bash -c 'cd ios && swiftlint lint --strict --quiet'", language = "system", pass_filenames = false, files = "^ios/" },
     { id = "ios-tests", name = "iOS tests (simulator)", entry = "bash -c 'cd ios && xcodegen generate -q && xcodebuild test -project MissionCopilot.xcodeproj -scheme MissionCopilot -destination \"platform=iOS Simulator,name=iPhone 13 Pro Max\" -quiet'", language = "system", pass_filenames = false, files = "^ios/" },
     # Spike #16 encryption package: SQLCipher tests plus Keychain tests in a signed simulator host.
+    # Spike #15 document package: Vision reads the committed scan documents, scored against the answer key.
+    { id = "document-lab-tests", name = "document lab tests (simulator)", entry = "ios/AILab/DocumentLab/test.sh", language = "system", pass_filenames = false, files = "^(ios/AILab/DocumentLab/|docs/demo/scans/)" },
     { id = "encryption-lab-tests", name = "encryption lab tests (simulator)", entry = "ios/AILab/EncryptionLab/test.sh", language = "system", pass_filenames = false, files = "^ios/AILab/EncryptionLab/" },
 ]
