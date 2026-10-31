@@ -1,0 +1,82 @@
+{
+  "facts": {
+    "invoiceNumber": "14",
+    "invoiceDate": "2026-10-12",
+    "amountDue": 480000,
+    "cumulativePaid": 8500000,
+    "contractValue": 10000000,
+    "kmCompleted": 32,
+    "kmTotal": 64,
+    "bridgeStatus": "not_started"
+  },
+  "tables": {
+    "invoice-14": {
+      "headers": [
+        "Date",
+        "Reference",
+        "Amount (USD)"
+      ],
+      "rows": [
+        [
+          "15 Feb 2025",
+          "Advance payment",
+          "1,000,000"
+        ],
+        [
+          "30 Sep 2025",
+          "Invoice 6",
+          "1,500,000"
+        ],
+        [
+          "31 Jan 2026",
+          "Invoice 9",
+          "1,800,000"
+        ],
+        [
+          "31 May 2026",
+          "Invoice 11",
+          "2,000,000"
+        ],
+        [
+          "31 Aug 2026",
+          "Invoice 13",
+          "1,720,000"
+        ],
+        [
+          "12 Oct 2026",
+          "Invoice 14",
+          "480,000"
+        ]
+      ]
+    },
+    "progress-report-2026-09": {
+      "headers": [
+        "Milestone",
+        "Due",
+        "Met"
+      ],
+      "rows": [
+        [
+          "Mobilisation",
+          "1 Mar 2025",
+          "20 Feb 2025"
+        ],
+        [
+          "Sections 1 and 2 paved",
+          "30 Jun 2026",
+          "20 Jul 2026"
+        ],
+        [
+          "Section 3 bridge complete",
+          "30 Sep 2026",
+          ""
+        ],
+        [
+          "Practical completion",
+          "15 Dec 2026",
+          ""
+        ]
+      ]
+    }
+  }
+}
