@@ -1,6 +1,6 @@
 # ADR 0004: On-device model choice
 
-- Status: accepted (engine choice pending the Iteration 2 spike)
+- Status: accepted (engine chosen in spike #12; confirmed after spike #13)
 - Date: 2026-10-30
 
 ## Context
@@ -33,6 +33,21 @@ settings.
   organizations; Qwen3 is Apache 2.0. A large organization adopting this should check the terms and can
   switch to the backup with no design change.
 - Model files are not stored in the repo; the app downloads them.
+
+## Engine decision (spike #12, Oct 30 2026)
+Both engines ran LFM2.5 1.2B inside our own app on the iPhone 13 Pro Max in airplane mode, 12 runs each,
+no crash (docs/spikes/01-model-engine.md):
+
+| | llama.cpp b11960 | MLX 3.32.3 |
+|---|---|---|
+| Decode speed | 35.7 tok/s | 43.6 tok/s |
+| First token | 338 ms | 601 ms |
+| Load | 12.9 s | 0.9 s |
+| Report wording | softened facts | stayed accurate |
+
+**Engine: MLX** (faster, near-instant load, more faithful wording, runtime JSON-schema constraints, a normal
+Swift package). **Backup: llama.cpp.** Final confirmation after spike #13 (constrained output, fixed seed).
+Both engines are device-only (no iOS Simulator), so production code uses a protocol with a fake in tests.
 
 ## Revisit when
 - A newer small model beats LFM2.5 on the same four tests on the same phone, or licensing requires the switch.

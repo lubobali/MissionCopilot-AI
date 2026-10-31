@@ -1,0 +1,131 @@
+{
+  "date" : "2026-10-31T04:15:51Z",
+  "device" : "iPhone 13 Pro Max",
+  "engine" : "mlx",
+  "freeMemoryAfterLoadMB" : 2286,
+  "freeMemoryBeforeLoadMB" : 2939,
+  "loadSeconds" : 0.8628449440002441,
+  "model" : "LFM2.5-1.2B-Instruct-4bit",
+  "runs" : [
+    {
+      "engine" : "mlx",
+      "freeMemoryAfterMB" : 2262,
+      "generatedTokens" : 135,
+      "output" : "**DECISIONS**  \n- Extend contractor deadline to 15 March pending new work plan.  \n- Address contractor’s 3-month delay due to rains and fuel shortages.  \n- No-objection letter requested by Friday.  \n\n**ACTION ITEMS**  \n- [ ] Confirm new work plan by 2 weeks.  \n- [ ] Arrange engineer visit in January.  \n- [ ] Review invoice 14 for payment adjustments.  \n\n**RISKS**  \n- Potential delays due to ongoing weather and supply issues.  \n- Invoice discrepancies affecting payments.  \n- Procurement stuck awaiting no-objection confirmation.",
+      "run" : 1,
+      "test" : "T1",
+      "timeToFirstTokenMs" : 5449.432015419006,
+      "tokensPerSecond" : 43.813074514549385
+    },
+    {
+      "engine" : "mlx",
+      "freeMemoryAfterMB" : 2261,
+      "generatedTokens" : 163,
+      "output" : "**DECISIONS**  \n- Prolongation de délai jusqu'au 15 mars.  \n- Nouvelle plan de travail à présenter dans deux semaines.  \n- Demande d'un ingénieur à la Banque en janvier.\n\n**ACTION ITEMS**  \n- Confirmer l'arrivée d'un ingénieur à la Banque.  \n- Présenter un nouveau plan de travail dans deux semaines.  \n- Vérifier la facture 14 pour justifier des paiements élevés.\n\n**RISKS**  \n- Retard dû aux pluies et pénuries de carburant.  \n- Problème d'achèvement du pont de la section 3.  \n- Risque de non-respect des délais si le nouveau plan n'est pas livré.",
+      "run" : 1,
+      "test" : "T1-FR",
+      "timeToFirstTokenMs" : 553.7480115890503,
+      "tokensPerSecond" : 43.74859413318907
+    },
+    {
+      "engine" : "mlx",
+      "freeMemoryAfterMB" : 2271,
+      "generatedTokens" : 41,
+      "output" : "[14, 480000, 85000000, 10000, 64, 32, 3]\n\nRisk: The project is at risk due to incomplete work and upcoming delays.",
+      "run" : 1,
+      "test" : "T2",
+      "timeToFirstTokenMs" : 621.0960149765015,
+      "tokensPerSecond" : 44.11514605409905
+    },
+    {
+      "engine" : "mlx",
+      "freeMemoryAfterMB" : 2270,
+      "generatedTokens" : 110,
+      "output" : "The implementation progress indicates that the project is currently three months behind schedule, primarily due to adverse weather conditions and fuel shortages. Construction has reached 50% completion, with the bridge at section 3 not yet started. Payment of 85% of the contract value, amounting to USD 8.5 million, has been achieved. The government has agreed to extend the deadline to 15 March 2027 if a revised work plan is submitted within two weeks. A technical audit of invoice 14 is recommended to ensure compliance and efficiency.",
+      "run" : 1,
+      "test" : "T3",
+      "timeToFirstTokenMs" : 473.749041557312,
+      "tokensPerSecond" : 43.5571820525016
+    },
+    {
+      "engine" : "mlx",
+      "freeMemoryAfterMB" : 2260,
+      "generatedTokens" : 130,
+      "output" : "**DECISIONS**  \n- Extend contractor deadline to 15 March pending new work plan.  \n- Provide updated work plan within two weeks.  \n- Request contractor to submit revised plan by [date].  \n\n**ACTION ITEMS**  \n- Deputy Minister: send no-objection by Friday.  \n- Road Agency: monitor progress on second package.  \n- Bank: dispatch engineer in January.  \n\n**RISKS**  \n- Delays due to rains and fuel shortages.  \n- Procurement stuck awaiting no-objection from the agency.  \n- Invoice 14 requires review for payment accuracy.",
+      "run" : 2,
+      "test" : "T1",
+      "timeToFirstTokenMs" : 620.8679676055908,
+      "tokensPerSecond" : 43.14393141844879
+    },
+    {
+      "engine" : "mlx",
+      "freeMemoryAfterMB" : 2260,
+      "generatedTokens" : 135,
+      "output" : "**DECISIONS**  \n- Prolongation de délai jusqu'au 15 mars.  \n- Requirement d'un nouveau plan dans deux semaines.  \n\n**ACTION ITEMS**  \n- Contact avec le vice-ministre des transports (M. Okafor).  \n- Suivi du directeur de l'agence routière.  \n\n**RISKS**  \n- Retard dû aux pluies et pénuries de carburant.  \n- Pont de la section 3 non commencé.  \n- Besoin d'un ingénieur envoyé par la Banque en janvier.  \n- Factures élevées par rapport aux travaux effectués.",
+      "run" : 2,
+      "test" : "T1-FR",
+      "timeToFirstTokenMs" : 556.6420555114746,
+      "tokensPerSecond" : 43.057531579051826
+    },
+    {
+      "engine" : "mlx",
+      "freeMemoryAfterMB" : 2266,
+      "generatedTokens" : 46,
+      "output" : "[14, 480000, 85000000, 10000, 64, 32, 3]\n\nRisk: The project is at risk due to incomplete work on section 3 bridge and delayed completion.",
+      "run" : 2,
+      "test" : "T2",
+      "timeToFirstTokenMs" : 623.1579780578613,
+      "tokensPerSecond" : 43.776797714434295
+    },
+    {
+      "engine" : "mlx",
+      "freeMemoryAfterMB" : 2269,
+      "generatedTokens" : 114,
+      "output" : "The implementation progress indicates that the project is currently three months behind schedule, primarily due to adverse weather conditions and fuel shortages. Construction has reached 50% of the total work, with the bridge at section 3 still unstarted. Payment of 85% of the contract value, amounting to USD 8.5 million, has been achieved. The government has agreed to extend the deadline to 15 March 2027 if a revised work plan is submitted within two weeks. A technical audit of invoice 14 is recommended to ensure compliance and efficiency.",
+      "run" : 2,
+      "test" : "T3",
+      "timeToFirstTokenMs" : 495.3420162200928,
+      "tokensPerSecond" : 43.77646357522158
+    },
+    {
+      "engine" : "mlx",
+      "freeMemoryAfterMB" : 2260,
+      "generatedTokens" : 129,
+      "output" : "**DECISIONS**  \n- Extend contractor deadline to 15 March pending new work plan.  \n- Provide updated work plan within two weeks.  \n- Request contractor to submit revised plan by [date].  \n\n**ACTION ITEMS**  \n- Deputy Minister: send no-objection by Friday.  \n- Road Agency: monitor progress on second package.  \n- Bank: dispatch engineer in January.  \n\n**RISKS**  \n- Delays due to rains and fuel shortages.  \n- Procurement stuck awaiting no-objection from the agency.  \n- Invoice 14 requires review for payment accuracy.",
+      "run" : 3,
+      "test" : "T1",
+      "timeToFirstTokenMs" : 651.0039567947388,
+      "tokensPerSecond" : 43.548420449322066
+    },
+    {
+      "engine" : "mlx",
+      "freeMemoryAfterMB" : 2260,
+      "generatedTokens" : 148,
+      "output" : "**DECISIONS**  \n- Prolongation de délai jusqu'au 15 mars.  \n- Requirement d'un nouveau plan dans deux semaines.  \n- Retard de trois mois dû aux intempéries et pénuries.  \n- Pont section 3 non commencé.  \n\n**ACTION ITEMS**  \n- Contact avec le vice-ministre des transports (M. Okafor).  \n- Demande d'un ingénieur à la Banque en janvier.  \n- Vérification de la facture 14.  \n\n**RISKS**  \n- Retards liés aux intempéries et carburant.  \n- Problèmes de financement et paiements élevés.",
+      "run" : 3,
+      "test" : "T1-FR",
+      "timeToFirstTokenMs" : 581.7739963531494,
+      "tokensPerSecond" : 43.44026904321742
+    },
+    {
+      "engine" : "mlx",
+      "freeMemoryAfterMB" : 2270,
+      "generatedTokens" : 51,
+      "output" : "[14, 480000, 85000000, 10000, 64, 32, 3]\n\nRisk: The project is at risk due to incomplete work on section 3 and the planned completion date being in the future.",
+      "run" : 3,
+      "test" : "T2",
+      "timeToFirstTokenMs" : 700.1229524612427,
+      "tokensPerSecond" : 43.597794281972256
+    },
+    {
+      "engine" : "mlx",
+      "freeMemoryAfterMB" : 2259,
+      "generatedTokens" : 124,
+      "output" : "The implementation progress indicates that the project remains slightly behind schedule, with approximately three months lag due to adverse weather conditions and fuel shortages. Construction has reached 50% of the total work, with the bridge at section 3 still unstarted. Payment of 85% of the contract value, amounting to USD 8.5 million out of a total 10 million, reflects strong financial commitment. The government has agreed to extend the deadline to 15 March 2027 if a revised work plan is submitted within two weeks. A technical audit of invoice 14 is recommended to ensure compliance and transparency.",
+      "run" : 3,
+      "test" : "T3",
+      "timeToFirstTokenMs" : 548.9840507507324,
+      "tokensPerSecond" : 42.03632164876195
+    }
+  ]
+}

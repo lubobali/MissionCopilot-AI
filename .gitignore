@@ -54,3 +54,6 @@ private/
 ios/*.xcodeproj/
 # Personal signing team ID: local only
 ios/Config/Local.xcconfig
+
+# AI Lab project is generated from ios/AILab/project.yml; its resolved package versions are copied to ios/AILab/Package.resolved
+ios/AILab/*.xcodeproj/

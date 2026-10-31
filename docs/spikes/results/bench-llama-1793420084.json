@@ -1,0 +1,131 @@
+{
+  "date" : "2026-10-31T04:14:44Z",
+  "device" : "iPhone 13 Pro Max",
+  "engine" : "llama",
+  "freeMemoryAfterLoadMB" : 2945,
+  "freeMemoryBeforeLoadMB" : 3049,
+  "loadSeconds" : 12.87121295928955,
+  "model" : "LFM2.5-1.2B-Instruct-Q4_0.gguf",
+  "runs" : [
+    {
+      "engine" : "llama",
+      "freeMemoryAfterMB" : 2940,
+      "generatedTokens" : 137,
+      "output" : "**DECISIONS**  \n- Extend contractor deadline to 15th March if new work plan submitted.  \n- Address delays due to rains and fuel shortages.  \n- No-objection letter to be sent by Friday.  \n\n**ACTION ITEMS**  \n- Submit new work plan by [date].  \n- Contact bank for engineer in January.  \n- Review invoice 14 for payment adjustments.  \n- Follow up on procurement for second package.  \n\n**RISKS**  \n- Contractor remains 3 months late.  \n- Potential payment issues due to high payments vs. actual work.  \n- Delay in second package procurement.",
+      "run" : 1,
+      "test" : "T1",
+      "timeToFirstTokenMs" : 577.0779848098755,
+      "tokensPerSecond" : 35.17047389861316
+    },
+    {
+      "engine" : "llama",
+      "freeMemoryAfterMB" : 2939,
+      "generatedTokens" : 120,
+      "output" : "**DECISIONS**  \n- Accepted to extend the deadline to 15 March.  \n- New plan due in two weeks.  \n- Minister requested Bank to send an engineer in January.  \n\n**ACTION ITEMS**  \n- Review and submit revised work plan by 2 weeks.  \n- Investigate cause of three-month delay.  \n- Verify invoice 14 for accuracy.  \n\n**RISKS**  \n- Weather and fuel shortages causing delays.  \n- Unresolved issues at the bridge section 3.  \n- Potential financial impact from high payments.",
+      "run" : 1,
+      "test" : "T1-FR",
+      "timeToFirstTokenMs" : 315.9019947052002,
+      "tokensPerSecond" : 36.2787292091632
+    },
+    {
+      "engine" : "llama",
+      "freeMemoryAfterMB" : 2939,
+      "generatedTokens" : 42,
+      "output" : "[14, 480000, 85000000, 1000, 64, 2026-10]\n\nRisk: The project is at risk due to incomplete road construction and delayed completion.",
+      "run" : 1,
+      "test" : "T2",
+      "timeToFirstTokenMs" : 435.5219602584839,
+      "tokensPerSecond" : 35.39783376529171
+    },
+    {
+      "engine" : "llama",
+      "freeMemoryAfterMB" : 2939,
+      "generatedTokens" : 120,
+      "output" : "The implementation progress of the development-finance mission indicates that the project remains slightly behind schedule, with delays attributed to adverse weather conditions and fuel shortages. Construction has reached 50% completion, with the bridge at section 3 still under development. Financially, 85% of the contract value has been paid (USD 8.5M of the total 10M). In response to the government’s extension of the deadline, a new work plan is required within two weeks to secure approval. A technical audit of invoice 14 is recommended to ensure compliance and address any discrepancies.",
+      "run" : 1,
+      "test" : "T3",
+      "timeToFirstTokenMs" : 259.85002517700195,
+      "tokensPerSecond" : 36.20277381728051
+    },
+    {
+      "engine" : "llama",
+      "freeMemoryAfterMB" : 2938,
+      "generatedTokens" : 137,
+      "output" : "**DECISIONS**  \n- Extend contractor deadline to 15th March if new work plan submitted.  \n- Address delays due to rains and fuel shortages.  \n- No-objection letter to be sent by Friday.  \n\n**ACTION ITEMS**  \n- Submit new work plan by [date].  \n- Contact bank for engineer in January.  \n- Review invoice 14 for payment adjustments.  \n- Follow up on procurement for second package.  \n\n**RISKS**  \n- Contractor remains 3 months late.  \n- Potential payment issues due to high payments vs. actual work.  \n- Delay in second package procurement.",
+      "run" : 2,
+      "test" : "T1",
+      "timeToFirstTokenMs" : 360.76390743255615,
+      "tokensPerSecond" : 36.27645616011121
+    },
+    {
+      "engine" : "llama",
+      "freeMemoryAfterMB" : 2938,
+      "generatedTokens" : 120,
+      "output" : "**DECISIONS**  \n- Accepted to extend the deadline to 15 March.  \n- New plan due in two weeks.  \n- Minister requested Bank to send an engineer in January.  \n\n**ACTION ITEMS**  \n- Review and submit revised work plan by 2 weeks.  \n- Investigate cause of three-month delay.  \n- Verify invoice 14 for accuracy.  \n\n**RISKS**  \n- Weather and fuel shortages causing delays.  \n- Unresolved issues at the bridge section 3.  \n- Potential financial impact from high payments.",
+      "run" : 2,
+      "test" : "T1-FR",
+      "timeToFirstTokenMs" : 314.4540786743164,
+      "tokensPerSecond" : 35.69966124379218
+    },
+    {
+      "engine" : "llama",
+      "freeMemoryAfterMB" : 2938,
+      "generatedTokens" : 42,
+      "output" : "[14, 480000, 85000000, 1000, 64, 2026-10]\n\nRisk: The project is at risk due to incomplete road construction and delayed completion.",
+      "run" : 2,
+      "test" : "T2",
+      "timeToFirstTokenMs" : 361.1830472946167,
+      "tokensPerSecond" : 34.386480838145964
+    },
+    {
+      "engine" : "llama",
+      "freeMemoryAfterMB" : 2938,
+      "generatedTokens" : 120,
+      "output" : "The implementation progress of the development-finance mission indicates that the project remains slightly behind schedule, with delays attributed to adverse weather conditions and fuel shortages. Construction has reached 50% completion, with the bridge at section 3 still under development. Financially, 85% of the contract value has been paid (USD 8.5M of the total 10M). In response to the government’s extension of the deadline, a new work plan is required within two weeks to secure approval. A technical audit of invoice 14 is recommended to ensure compliance and address any discrepancies.",
+      "run" : 2,
+      "test" : "T3",
+      "timeToFirstTokenMs" : 259.93597507476807,
+      "tokensPerSecond" : 36.23514979330874
+    },
+    {
+      "engine" : "llama",
+      "freeMemoryAfterMB" : 2937,
+      "generatedTokens" : 137,
+      "output" : "**DECISIONS**  \n- Extend contractor deadline to 15th March if new work plan submitted.  \n- Address delays due to rains and fuel shortages.  \n- No-objection letter to be sent by Friday.  \n\n**ACTION ITEMS**  \n- Submit new work plan by [date].  \n- Contact bank for engineer in January.  \n- Review invoice 14 for payment adjustments.  \n- Follow up on procurement for second package.  \n\n**RISKS**  \n- Contractor remains 3 months late.  \n- Potential payment issues due to high payments vs. actual work.  \n- Delay in second package procurement.",
+      "run" : 3,
+      "test" : "T1",
+      "timeToFirstTokenMs" : 360.353946685791,
+      "tokensPerSecond" : 35.79167709812169
+    },
+    {
+      "engine" : "llama",
+      "freeMemoryAfterMB" : 2937,
+      "generatedTokens" : 120,
+      "output" : "**DECISIONS**  \n- Accepted to extend the deadline to 15 March.  \n- New plan due in two weeks.  \n- Minister requested Bank to send an engineer in January.  \n\n**ACTION ITEMS**  \n- Review and submit revised work plan by 2 weeks.  \n- Investigate cause of three-month delay.  \n- Verify invoice 14 for accuracy.  \n\n**RISKS**  \n- Weather and fuel shortages causing delays.  \n- Unresolved issues at the bridge section 3.  \n- Potential financial impact from high payments.",
+      "run" : 3,
+      "test" : "T1-FR",
+      "timeToFirstTokenMs" : 315.4160976409912,
+      "tokensPerSecond" : 35.59836698409927
+    },
+    {
+      "engine" : "llama",
+      "freeMemoryAfterMB" : 2937,
+      "generatedTokens" : 42,
+      "output" : "[14, 480000, 85000000, 1000, 64, 2026-10]\n\nRisk: The project is at risk due to incomplete road construction and delayed completion.",
+      "run" : 3,
+      "test" : "T2",
+      "timeToFirstTokenMs" : 361.18805408477783,
+      "tokensPerSecond" : 35.560491248190225
+    },
+    {
+      "engine" : "llama",
+      "freeMemoryAfterMB" : 2937,
+      "generatedTokens" : 120,
+      "output" : "The implementation progress of the development-finance mission indicates that the project remains slightly behind schedule, with delays attributed to adverse weather conditions and fuel shortages. Construction has reached 50% completion, with the bridge at section 3 still under development. Financially, 85% of the contract value has been paid (USD 8.5M of the total 10M). In response to the government’s extension of the deadline, a new work plan is required within two weeks to secure approval. A technical audit of invoice 14 is recommended to ensure compliance and address any discrepancies.",
+      "run" : 3,
+      "test" : "T3",
+      "timeToFirstTokenMs" : 260.5290412902832,
+      "tokensPerSecond" : 36.25191704090877
+    }
+  ]
+}
