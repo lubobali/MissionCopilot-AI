@@ -21,6 +21,12 @@ struct DocumentView: View {
                 Button("Re-score saved scans") { model.rescoreSavedScans() }
             }
             .disabled(model.running)
+            #if !NO_MLX
+            Section("3. Scan -> AI -> 8 facts, checked by code (offline)") {
+                Button("Run scan -> facts (clean x3 + saved photos)") { model.runScanToFacts() }
+            }
+            .disabled(model.running)
+            #endif
             Section("Log") {
                 ForEach(Array(model.log.enumerated()), id: \.offset) { Text($0.element).font(.footnote.monospaced()) }
             }

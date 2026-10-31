@@ -22,7 +22,7 @@ final class DocumentLabModel {
     }
 
     private(set) var log: [String] = ["Start with: Read built-in pages."]
-    private(set) var running = false
+    var running = false
     private var results: [String: String] = [:]
 
     func readBuiltInPages() {
@@ -88,17 +88,24 @@ final class DocumentLabModel {
 
     @available(iOS 26.0, *)
     private func readPhoto(_ image: UIImage, label: String) async {
-        guard let cgImage = image.cgImage else { return log("\(label): no image data") }
         do {
-            let result = try await DocumentReader.read(cgImage: cgImage, orientation: Self.orientation(image))
-            let page = try PageName.allCases.max { a, b in
-                try OCRScore.score(result.page, against: Self.expected(a)).linesFound
-                    < OCRScore.score(result.page, against: Self.expected(b)).linesFound
-            } ?? .invoice
+            let (result, page) = try await readAndDetect(image)
             try score(result, page: page, label: "\(label), detected \(page.rawValue)")
         } catch {
             log("\(label) FAILED: \(error)")
         }
+    }
+
+    /// Reads a photo and picks the page whose answer key it matches best (no human picker).
+    @available(iOS 26.0, *)
+    func readAndDetect(_ image: UIImage) async throws -> (DocumentReader.Timed, PageName) {
+        guard let cgImage = image.cgImage else { throw CocoaError(.fileReadCorruptFile) }
+        let result = try await DocumentReader.read(cgImage: cgImage, orientation: Self.orientation(image))
+        let page = try PageName.allCases.max { a, b in
+            try OCRScore.score(result.page, against: Self.expected(a)).linesFound
+                < OCRScore.score(result.page, against: Self.expected(b)).linesFound
+        } ?? .invoice
+        return (result, page)
     }
 
     @available(iOS 26.0, *)
@@ -112,18 +119,23 @@ final class DocumentLabModel {
         }
     }
 
-    private struct AnswerKey: Decodable {
+    struct AnswerKey: Decodable {
         struct Page: Decodable { let lines: [String] }
         struct Table: Decodable { let headers: [String]; let rows: [[String]] }
+        let facts: ExtractedFacts
         let pages: [String: Page]
         let tables: [String: Table]
     }
 
-    private static func expected(_ page: PageName) throws -> ExpectedPage {
+    static func answerKey() throws -> AnswerKey {
         guard let url = Bundle.main.url(forResource: "answer-key", withExtension: "json") else {
             throw CocoaError(.fileNoSuchFile)
         }
-        let key = try JSONDecoder().decode(AnswerKey.self, from: Data(contentsOf: url))
+        return try JSONDecoder().decode(AnswerKey.self, from: Data(contentsOf: url))
+    }
+
+    private static func expected(_ page: PageName) throws -> ExpectedPage {
+        let key = try answerKey()
         guard let lines = key.pages[page.rawValue]?.lines, let table = key.tables[page.rawValue] else {
             throw CocoaError(.coderValueNotFound)
         }
@@ -143,14 +155,14 @@ final class DocumentLabModel {
         }
     }
 
-    private func record(_ name: String, _ value: String) {
+    func record(_ name: String, _ value: String) {
         results[name] = value
         log(name + ": " + value)
     }
 
-    private func log(_ line: String) { log.append(line) }
+    func log(_ line: String) { log.append(line) }
 
-    private func save() {
+    func save() {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let url = DeviceInfo.documents.appendingPathComponent("document-results.json")
