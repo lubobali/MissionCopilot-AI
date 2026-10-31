@@ -1,4 +1,6 @@
+import CoreGraphics
 import Foundation
+import ImageIO
 import Testing
 @testable import DocumentLab
 
@@ -38,6 +40,18 @@ struct DocumentReaderTests {
         for miss in score.missing { print("MISS \(name): \(miss)") }
         // Clean, computer-made pages must read perfectly; photos are scored on the phone, not here.
         #expect(score.linesFound == score.linesTotal)
+        #expect(score.cellsMatched == score.cellsTotal)
+    }
+
+    @Test func cameraImagePathReadsTheSameWithOrientation() async throws {
+        guard #available(iOS 26.0, macOS 26.0, *) else { return }
+        let data = try Data(contentsOf: Self.scans.appendingPathComponent("invoice-14.png"))
+        let source = try #require(CGImageSourceCreateWithData(data as CFData, nil))
+        let image = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
+
+        let result = try await DocumentReader.read(cgImage: image, orientation: .up)
+        let score = OCRScore.score(result.page, against: try expected("invoice-14"))
+
         #expect(score.cellsMatched == score.cellsTotal)
     }
 }
