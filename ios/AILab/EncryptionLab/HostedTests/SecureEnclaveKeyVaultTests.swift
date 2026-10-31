@@ -42,7 +42,7 @@ struct SecureEnclaveKeyVaultTests {
 struct SecureEnclaveAccessTests {
     @Test func chipKeyRequiresUnlockAndThisDeviceOnly() {
         // Guard against weakening it by accident; the phone-lock proof checks the real behaviour.
-        #expect(SecureEnclaveKeyVault.chipKeyAccessibility as String
+        #expect(ChipKeyAccess.accessibility as String
             == kSecAttrAccessibleWhenUnlockedThisDeviceOnly as String)
     }
 }

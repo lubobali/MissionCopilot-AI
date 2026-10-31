@@ -6,8 +6,6 @@ import Security
 /// encrypted blob that only this phone's chip can use, kept in the Keychain (this device only).
 /// Destroy = delete that blob: every wrapped mission key made with it can no longer be opened.
 public struct SecureEnclaveKeyVault: MissionKeyVault {
-    public struct AccessControlFailed: Error {}
-
     private let items: KeychainItems
 
     public init(service: String = "com.lubobali.missioncopilot.missionkey") {
@@ -15,10 +13,6 @@ public struct SecureEnclaveKeyVault: MissionKeyVault {
     }
 
     public static var isAvailable: Bool { SecureEnclave.isAvailable }
-
-    /// Apple's default is "after first unlock"; we require "when unlocked, this device only".
-    /// iOS cannot report this back from a chip key, so a test pins the value and the phone proves the behaviour.
-    static var chipKeyAccessibility: CFString { kSecAttrAccessibleWhenUnlockedThisDeviceOnly }
 
     public func wrap(_ missionKey: SymmetricKey, for mission: String) throws -> WrappedMissionKey {
         let chipKey = try loadOrCreateChipKey(for: mission)
@@ -43,11 +37,7 @@ public struct SecureEnclaveKeyVault: MissionKeyVault {
         if let blob = try items.load(mission) {
             return try SecureEnclave.P256.KeyAgreement.PrivateKey(dataRepresentation: blob)
         }
-        guard let access = SecAccessControlCreateWithFlags(nil, Self.chipKeyAccessibility,
-                                                           .privateKeyUsage, nil) else {
-            throw AccessControlFailed()
-        }
-        let chipKey = try SecureEnclave.P256.KeyAgreement.PrivateKey(accessControl: access)
+        let chipKey = try SecureEnclave.P256.KeyAgreement.PrivateKey(accessControl: ChipKeyAccess.make())
         try items.add(chipKey.dataRepresentation, account: mission)
         return chipKey
     }
