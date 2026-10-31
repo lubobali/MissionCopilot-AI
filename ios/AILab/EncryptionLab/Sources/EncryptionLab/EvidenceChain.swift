@@ -28,9 +28,14 @@ public struct EvidenceChain: Sendable {
         case badSignature, unreadablePayload, wrongSeq, wrongPrevHash
     }
 
+    public enum HeadProblem: Equatable, Sendable {
+        case badSignature, unreadable, countMismatch, hashMismatch, wrongMission
+    }
+
     public enum Verification: Equatable, Sendable {
         case valid(count: Int)
         case broken(at: Int, reason: BreakReason)
+        case brokenHead(HeadProblem)
     }
 
     static let genesisHash = String(repeating: "0", count: 64)
@@ -79,7 +84,7 @@ public struct EvidenceChain: Sendable {
         hex(SHA256.hash(data: record.payload + record.signature))
     }
 
-    private static let encoder: JSONEncoder = {
+    static let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         return encoder
