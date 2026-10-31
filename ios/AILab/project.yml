@@ -1,4 +1,4 @@
-# AI Lab: device-only spike app for on-device model engines (spike #12, #13).
+# AI Lab: device-only spike app for on-device model engines (spike #12, #13) and encryption (#16).
 # Separate project on purpose: the engines have no iOS Simulator support, and keeping them out of
 # the main project keeps the main app, its tests and CI fast and simulator-friendly.
 name: MissionCopilotAILab
@@ -19,9 +19,16 @@ packages:
   Transformers:
     url: https://github.com/huggingface/swift-transformers
     exactVersion: 1.3.5
+  EncryptionLab:
+    path: EncryptionLab
 targets:
   MissionCopilotAILab:
     type: application
+    entitlements:
+      path: Entitlements/AILab.entitlements
+      properties:
+        # ADR 0008 layer 1: every file the app creates is unreadable while the phone is locked.
+        com.apple.developer.default-data-protection: NSFileProtectionComplete
     platform: iOS
     sources: [Sources]
     dependencies:
@@ -36,6 +43,7 @@ targets:
         product: MLXGuidedGeneration
       - package: Transformers
         product: Tokenizers
+      - package: EncryptionLab
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lubobali.missioncopilot.ailab
@@ -51,6 +59,11 @@ targets:
   # Same lab without MLX (no Metal Toolchain needed): runs the llama.cpp half on its own.
   MissionCopilotAILabLlama:
     type: application
+    entitlements:
+      path: Entitlements/AILabLlama.entitlements
+      properties:
+        # ADR 0008 layer 1: every file the app creates is unreadable while the phone is locked.
+        com.apple.developer.default-data-protection: NSFileProtectionComplete
     platform: iOS
     sources:
       - path: Sources
@@ -60,6 +73,7 @@ targets:
     dependencies:
       - framework: ../../models/llama.xcframework
         embed: true
+      - package: EncryptionLab
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lubobali.missioncopilot.ailab

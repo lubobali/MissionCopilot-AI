@@ -31,6 +31,11 @@ issue, with CI green.
 ## Architecture
 **One-page summary: [docs/architecture-summary.md](docs/architecture-summary.md).** See [docs/architecture.md](docs/architecture.md): system context, containers, trust boundaries and the offline line. [docs/data-classification.md](docs/data-classification.md): labels, lifecycle and the data map. [docs/domain-model.md](docs/domain-model.md): the shared objects and their rules. Decisions in [docs/adr/](docs/adr/).
 
+## Security
+How field data is protected on the phone (three encryption layers, per-mission crypto-shred, honest limits):
+**[docs/security.md](docs/security.md)**. Proven on a real iPhone in [spike #16](docs/spikes/03-encryption.md),
+including a check you can repeat yourself. Not independently audited.
+
 ## How to run
 (filled in as components ship)
 

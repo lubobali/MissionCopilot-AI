@@ -1,0 +1,44 @@
+# Simulator host for the Keychain tests of spike #16 (bare package tests get error -34018, no entitlement).
+name: EncryptionLabHost
+options:
+  bundleIdPrefix: com.lubobali
+  deploymentTarget:
+    iOS: "18.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+packages:
+  EncryptionLab:
+    path: ..
+targets:
+  EncryptionLabHost:
+    type: application
+    platform: iOS
+    sources: [HostApp.swift]
+    dependencies:
+      - package: EncryptionLab
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lubobali.missioncopilot.encryptionhost
+        GENERATE_INFOPLIST_FILE: YES
+        # Ad-hoc signing (no certificate): unsigned apps get no Keychain on the Simulator.
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+  EncryptionLabHostedTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [../HostedTests]
+    dependencies:
+      - target: EncryptionLabHost
+      - package: EncryptionLab
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  EncryptionLabHost:
+    build:
+      targets:
+        EncryptionLabHost: all
+    test:
+      targets: [EncryptionLabHostedTests]
