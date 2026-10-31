@@ -1,0 +1,11 @@
+{
+  "spike": 17,
+  "device": "iPhone 13 Pro Max (A15), iOS 27.2, free Apple ID signing",
+  "date": "2026-10-31",
+  "note": "Values from the app's evidence-results.json (Lab screen 'Evidence proofs (#17)'). The exported chain is evidence-chain-iphone13promax.json and is verified in Python by backend/tests/unit/test_evidence_chain.py.",
+  "chip sign avg ms (3 items)": "20.0",
+  "verify original": "✅ Valid: 3 items, head matches (1.8 ms)",
+  "verify tamper item 2": "❌ Item 2 broke: badSignature (11.0 ms)",
+  "verify cut last item": "❌ Chain head: countMismatch (11.1 ms)",
+  "verify restored": "✅ Valid: 3 items, head matches (13.2 ms)"
+}

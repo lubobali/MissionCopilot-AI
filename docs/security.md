@@ -30,6 +30,13 @@ Precisely: CryptoKit does not store the key inside the chip. The chip gives back
 this phone's chip can use, and the app keeps it in the Keychain. Shredding deletes that blob. A copy surviving
 anywhere else is useless without this phone's chip.
 
+## Evidence that shows tampering
+Every photo and scan is signed by the phone's Secure Enclave and linked to the item before it, with a signed
+count and last link per mission. Changing one byte, removing an item or cutting off the last one is
+detected offline, and the server verifies the phone's signatures with only the public key
+([spike #17](spikes/04-signed-evidence.md)). Limit: on the phone alone, rolling back to an older chain needs
+the server's sync receipt to be caught.
+
 ## Check it yourself
 The code is open source. The [spike report](spikes/03-encryption.md) shows how to copy the database off a phone
 you own and try to read it with standard tools. The same check runs automatically in CI.
