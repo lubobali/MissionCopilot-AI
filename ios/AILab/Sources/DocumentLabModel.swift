@@ -50,23 +50,54 @@ final class DocumentLabModel {
         }
     }
 
-    func scanned(_ images: [UIImage], page: PageName, condition: Condition) {
+    /// The page is detected by code (best match against the answer key), so nobody can pick the wrong one.
+    func scanned(_ images: [UIImage], condition: Condition) {
         guard #available(iOS 26.0, *) else { return log("Needs iOS 26 or later.") }
-        guard let image = images.first, let cgImage = image.cgImage else { return log("No page scanned.") }
-        running = true
-        let stamp = Int(Date().timeIntervalSince1970)
+        guard let image = images.first else { return log("No page scanned.") }
+        let name = "scan-\(Int(Date().timeIntervalSince1970)).jpg"
         if let jpeg = image.jpegData(compressionQuality: 0.8) {
-            try? jpeg.write(to: DeviceInfo.documents.appendingPathComponent("scan-\(page.rawValue)-\(stamp).jpg"))
+            try? jpeg.write(to: DeviceInfo.documents.appendingPathComponent(name))
         }
+        running = true
         Task {
-            do {
-                let result = try await DocumentReader.read(cgImage: cgImage, orientation: Self.orientation(image))
-                try score(result, page: page, label: "scan \(page.rawValue), \(condition.rawValue), \(stamp)")
-            } catch {
-                log("scan FAILED: \(error)")
+            await readPhoto(image, label: "scan \(name), \(condition.rawValue)")
+            save()
+            running = false
+        }
+    }
+
+    /// Reads every saved scan photo again, with the page detected by code.
+    func rescoreSavedScans() {
+        guard #available(iOS 26.0, *) else { return log("Needs iOS 26 or later.") }
+        let files = ((try? FileManager.default.contentsOfDirectory(atPath: DeviceInfo.documents.path)) ?? [])
+            .filter { $0.hasPrefix("scan-") && $0.hasSuffix(".jpg") }.sorted()
+        guard !files.isEmpty else { return log("No saved scans.") }
+        running = true
+        Task {
+            for file in files {
+                guard let image = UIImage(contentsOfFile: DeviceInfo.documents.appendingPathComponent(file).path) else {
+                    log("\(file): cannot open")
+                    continue
+                }
+                await readPhoto(image, label: "re-score \(file)")
             }
             save()
             running = false
+        }
+    }
+
+    @available(iOS 26.0, *)
+    private func readPhoto(_ image: UIImage, label: String) async {
+        guard let cgImage = image.cgImage else { return log("\(label): no image data") }
+        do {
+            let result = try await DocumentReader.read(cgImage: cgImage, orientation: Self.orientation(image))
+            let page = try PageName.allCases.max { a, b in
+                try OCRScore.score(result.page, against: Self.expected(a)).linesFound
+                    < OCRScore.score(result.page, against: Self.expected(b)).linesFound
+            } ?? .invoice
+            try score(result, page: page, label: "\(label), detected \(page.rawValue)")
+        } catch {
+            log("\(label) FAILED: \(error)")
         }
     }
 
