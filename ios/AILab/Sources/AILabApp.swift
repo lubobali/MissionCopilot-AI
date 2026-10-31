@@ -21,6 +21,20 @@ struct BenchView: View {
                     Button("Run llama.cpp (4 tests x \(BenchSettings.repeats))") { start(.llama) }
                     #if !NO_MLX
                     Button("Run MLX (4 tests x \(BenchSettings.repeats))") { start(.mlx) }
+                    Button("Diagnose constrained (x3)") {
+                        running = true
+                        Task {
+                            await StructuredRunner.run(modes: ["constrained"], runs: 3) { line in log.append(line) }
+                            running = false
+                        }
+                    }
+                    Button("Run structured output (#13: 20 + 20)") {
+                        running = true
+                        Task {
+                            await StructuredRunner.run { line in log.append(line) }
+                            running = false
+                        }
+                    }
                     #endif
                 }
                 .disabled(running)

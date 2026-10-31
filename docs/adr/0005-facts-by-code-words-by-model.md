@@ -28,5 +28,11 @@ Option 3.
 - The model gets less freedom; reports read slightly more formal.
 - Iteration 2 must prove constrained output works on the phone.
 
+## Evidence (spikes #12 and #13, on an iPhone 13 Pro Max, offline)
+- Free text, both engines: numbers wrong (8.5M written as 85,000,000), risk never found.
+- Constrained extraction (JSON Schema grammar) + code checks: **20/20 valid, 20/20 all fields correct, MC-01
+  raised 20/20**, 3.1 s each, deterministic. Free-text JSON on the same task: 0/20 valid.
+- A whitespace bias is required: without it the greedy loop looped on tabs (docs/spikes/02-structured-output.md).
+
 ## Revisit when
 - Never for arithmetic. Revisit the extraction split if document types multiply beyond what rules handle.

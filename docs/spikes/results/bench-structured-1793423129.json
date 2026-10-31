@@ -1,0 +1,29 @@
+[
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "constrained",
+    "raw" : "INCOMPLETE(incompleteOutput): {\n  \"invoiceNumber\": \"14\",\n \"invoiceDate\": \"2026-10-12\",\n \"amountDue\": 480000,\n \"cumulativePaid\": 8500000,\n \"contractValue\": 10000000,\n \"kmCompleted\": 32,\n \t\"kmTotal\": 64,\n \t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t",
+    "run" : 1,
+    "seconds" : 7.43047297000885,
+    "thermalState" : "nominal",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "constrained",
+    "raw" : "INCOMPLETE(incompleteOutput): {\n  \"invoiceNumber\": \"14\",\n \"invoiceDate\": \"2026-10-12\",\n \"amountDue\": 480000,\n \"cumulativePaid\": 8500000,\n \"contractValue\": 10000000,\n \"kmCompleted\": 32,\n \t\"kmTotal\": 64,\n \t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t",
+    "run" : 2,
+    "seconds" : 7.291803002357483,
+    "thermalState" : "nominal",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "constrained",
+    "raw" : "INCOMPLETE(incompleteOutput): {\n  \"invoiceNumber\": \"14\",\n \"invoiceDate\": \"2026-10-12\",\n \"amountDue\": 480000,\n \"cumulativePaid\": 8500000,\n \"contractValue\": 10000000,\n \"kmCompleted\": 32,\n \t\"kmTotal\": 64,\n \t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t",
+    "run" : 3,
+    "seconds" : 7.393694996833801,
+    "thermalState" : "nominal",
+    "validJSON" : false
+  }
+]
