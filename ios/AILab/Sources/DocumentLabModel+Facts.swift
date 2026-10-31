@@ -3,6 +3,7 @@ import DocumentLab
 import Foundation
 import MLXLLM
 import MLXLMCommon
+import Network
 import UIKit
 
 /// Spike #15 end to end, offline: Vision reads the pages, the #13 constrained model fills the 8 facts, and
@@ -13,6 +14,8 @@ extension DocumentLabModel {
         guard #available(iOS 26.0, *) else { return log("Needs iOS 26 or later.") }
         running = true
         Task {
+            // Evidence, not a claim: record whether any network path existed during the run.
+            record("network during facts run", await Self.networkStatus())
             do {
                 try await scanToFacts()
             } catch {
@@ -101,6 +104,22 @@ extension DocumentLabModel {
             newest[read.1] = read
         }
         return PageName.allCases.compactMap { newest[$0] }
+    }
+
+    /// "offline (no network path)" in airplane mode with Wi-Fi off; otherwise the interfaces in use.
+    static func networkStatus() async -> String {
+        await withCheckedContinuation { continuation in
+            let monitor = NWPathMonitor()
+            monitor.pathUpdateHandler = { path in
+                monitor.cancel()
+                let kinds = [(NWInterface.InterfaceType.wifi, "wifi"), (.cellular, "cellular"), (.wiredEthernet, "wired")]
+                    .filter { path.usesInterfaceType($0.0) }.map(\.1)
+                continuation.resume(returning: path.status == .satisfied
+                    ? "ONLINE via \(kinds.isEmpty ? "other" : kinds.joined(separator: ", "))"
+                    : "offline (no network path)")
+            }
+            monitor.start(queue: DispatchQueue(label: "network-status"))
+        }
     }
 
     // MARK: - Pure helpers
