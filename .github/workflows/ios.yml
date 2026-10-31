@@ -86,3 +86,9 @@ jobs:
             -scheme MissionCopilot \
             -destination "id=${udid}" \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Encryption lab tests (spike 16, SQLCipher + Keychain)
+        run: |
+          set -euo pipefail
+          udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for r,v in d.items() if 'iOS' in r for x in v if x['name'].startswith('iPhone')))")
+          ios/AILab/EncryptionLab/test.sh "id=${udid}"

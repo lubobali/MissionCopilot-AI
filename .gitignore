@@ -57,3 +57,4 @@ ios/Config/Local.xcconfig
 
 # AI Lab project is generated from ios/AILab/project.yml; its resolved package versions are copied to ios/AILab/Package.resolved
 ios/AILab/*.xcodeproj/
+ios/AILab/EncryptionLab/Host/*.xcodeproj/
