@@ -24,6 +24,11 @@ packages:
 targets:
   MissionCopilotAILab:
     type: application
+    entitlements:
+      path: Entitlements/AILab.entitlements
+      properties:
+        # ADR 0008 layer 1: every file the app creates is unreadable while the phone is locked.
+        com.apple.developer.default-data-protection: NSFileProtectionComplete
     platform: iOS
     sources: [Sources]
     dependencies:
@@ -54,6 +59,11 @@ targets:
   # Same lab without MLX (no Metal Toolchain needed): runs the llama.cpp half on its own.
   MissionCopilotAILabLlama:
     type: application
+    entitlements:
+      path: Entitlements/AILabLlama.entitlements
+      properties:
+        # ADR 0008 layer 1: every file the app creates is unreadable while the phone is locked.
+        com.apple.developer.default-data-protection: NSFileProtectionComplete
     platform: iOS
     sources:
       - path: Sources
