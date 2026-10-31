@@ -32,6 +32,8 @@ targets:
         product: MLXLLM
       - package: MLXSwiftLM
         product: MLXLMCommon
+      - package: MLXSwiftLM
+        product: MLXGuidedGeneration
       - package: Transformers
         product: Tokenizers
     settings:

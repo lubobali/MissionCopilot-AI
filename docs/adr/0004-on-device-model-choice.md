@@ -1,6 +1,6 @@
 # ADR 0004: On-device model choice
 
-- Status: accepted (engine chosen in spike #12; confirmed after spike #13)
+- Status: accepted (engine MLX chosen in spike #12, CONFIRMED by spike #13)
 - Date: 2026-10-30
 
 ## Context

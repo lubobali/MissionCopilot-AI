@@ -1,0 +1,182 @@
+[
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"contractor\":\"Sahel Build Ltd.\"}, \"date\":\"2026-09-??\", \"plannedCompletion\":\"2026-12-15\", \"section\":1-3,lengthkm\":64}}",
+    "run" : 1,
+    "seconds" : 251.6506519317627,
+    "thermalState" : "nominal",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}, \"contractorProgressReport\":{\"section1_to_3\":64, \"section3Bridge\":0, \"plannedCompletion\":\"2026-12-15\"}}",
+    "run" : 2,
+    "seconds" : 3.795279026031494,
+    "thermalState" : "nominal",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-09-01\", \"amountDue\":0, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":0, \"kmTotal\":64, \"bridgeStatus\":\"in_progress\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"completed\"}}",
+    "run" : 3,
+    "seconds" : 6.679013013839722,
+    "thermalState" : "nominal",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"contractor\":\"Sahel Build Ltd.\"}, \"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"date\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\": \"not_started\"}",
+    "run" : 4,
+    "seconds" : 5.755169987678528,
+    "thermalState" : "nominal",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}, \"contractorProgressReport\":{\"section1_to_3\":64, \"section3Bridge\":0, \"plannedCompletion\":\"2026-12-15\"}}",
+    "run" : 5,
+    "seconds" : 3.7933989763259888,
+    "thermalState" : "nominal",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}, \"contractorProgressReport\":{\"section1_to_3\":64, \"section3Bridge\":0, \"plannedCompletion\":\"2026-12-15\"}}",
+    "run" : 6,
+    "seconds" : 3.7883729934692383,
+    "thermalState" : "nominal",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-09-01\", \"amountDue\":0, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":64, \"kmTotal\":64, \"bridgeStatus\":\"in_progress\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"completed\"}}",
+    "run" : 7,
+    "seconds" : 6.550979971885681,
+    "thermalState" : "nominal",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"contractor\":\"Sahel Build Ltd.\"}, \"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"date\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}",
+    "run" : 8,
+    "seconds" : 5.793110013008118,
+    "thermalState" : "nominal",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-09-01\", \"amountDue\":0, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":64, \"kmTotal\":64, \"bridgeStatus\":\"in_progress\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"completed\"}}",
+    "run" : 9,
+    "seconds" : 6.55131995677948,
+    "thermalState" : "fair",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"contractor\":\"Sahel Build Ltd.\"}, \"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"date\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\": \"not_started\"}",
+    "run" : 10,
+    "seconds" : 5.80164098739624,
+    "thermalState" : "fair",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}, \"contractorProgressReport\":{\"section1_to_3\":64, \"section3Bridge\":0, \"plannedCompletion\":\"2026-12-15\"}}\n{\"type\":\"object\", \"additionalProperties\":false, \"properties\": {\"invoiceNumber\": \"14\", \"invoiceDate\": \"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\": \"not_started\"}}}",
+    "run" : 11,
+    "seconds" : 5.867420077323914,
+    "thermalState" : "serious",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}, \"contractorProgressReport\":{\"section1_to_3\":64, \"section3Bridge\":0, \"plannedCompletion\":\"2026-12-15\"}}",
+    "run" : 12,
+    "seconds" : 3.9819819927215576,
+    "thermalState" : "serious",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}, \"contractorProgressReport\":{\"section1_to_3\":64, \"section3Bridge\":0, \"plannedCompletion\":\"2026-12-15\"}}",
+    "run" : 13,
+    "seconds" : 4.0971440076828,
+    "thermalState" : "serious",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}, \"contractorProgressReport\":{\"section1_to_3\":64, \"section3Bridge\":0, \"plannedCompletion\":\"2026-12-15\"}}",
+    "run" : 14,
+    "seconds" : 4.1178929805755615,
+    "thermalState" : "serious",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-09-01\", \"amountDue\":0, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":0, \"kmTotal\":64, \"bridgeStatus\":\"in_progress\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"completed\"}}",
+    "run" : 15,
+    "seconds" : 7.116923093795776,
+    "thermalState" : "serious",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"contractor\":\"Sahel Build Ltd.\"}, \"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"date\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\": \"not_started\"}",
+    "run" : 16,
+    "seconds" : 7.15050995349884,
+    "thermalState" : "serious",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"14\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}, \"contractorProgressReport\":{\"section1_to_3\":64, \"section3Bridge\":0, \"plannedCompletion\":\"2026-12-15\"}}",
+    "run" : 17,
+    "seconds" : 5.082328915596008,
+    "thermalState" : "serious",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"contractor\":\"Sahel Build Ltd.\"}, \"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"date\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\": \"not_started\"}",
+    "run" : 18,
+    "seconds" : 6.8681880235672,
+    "thermalState" : "serious",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"contractor\":\"Sahel Build Ltd.\"}, \"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"date\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\": \"not_started\"}",
+    "run" : 19,
+    "seconds" : 7.201796054840088,
+    "thermalState" : "serious",
+    "validJSON" : false
+  },
+  {
+    "fieldsCorrect" : 0,
+    "mode" : "free",
+    "raw" : "{\"type\":{\"type\":\"object\", \"properties\":{\"invoiceNumber\":\"INVOICE No. 14 - Kandor Rural Roads Project, Package 1\"}, \"invoiceDate\":\"2026-10-12\", \"amountDue\":800000, \"cumulativePaid\":8500000, \"contractValue\":10000000, \"kmCompleted\":32, \"kmTotal\":64, \"bridgeStatus\":\"not_started\"}}  \n{\"type\":{\"type\":\"object\", \"properties\":{\"contractor\":\"Sahel Build Ltd.\"}, \"date\":\"2026-09-??\", \"plannedCompletion\":\"2026-12-15\", \"section\":1-3,lengthkm\":64}}",
+    "run" : 20,
+    "seconds" : 5.898384928703308,
+    "thermalState" : "serious",
+    "validJSON" : false
+  }
+]

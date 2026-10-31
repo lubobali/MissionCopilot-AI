@@ -1,0 +1,38 @@
+[
+  {
+    "fieldsCorrect" : 8,
+    "financialPct" : 85,
+    "mc01Raised" : true,
+    "mode" : "constrained",
+    "physicalPct" : 50,
+    "raw" : "{\n  \"invoiceNumber\": \"14\",\n \"invoiceDate\": \"2026-10-12\",\n \"amountDue\": 480000,\n \"cumulativePaid\": 8500000,\n \"contractValue\": 10000000,\n \"kmCompleted\": 32,\n \t\"kmTotal\": 64,\n \t\t\"bridgeStatus\": \"not_started\"\n}",
+    "run" : 1,
+    "seconds" : 3.144366979598999,
+    "thermalState" : "nominal",
+    "validJSON" : true
+  },
+  {
+    "fieldsCorrect" : 8,
+    "financialPct" : 85,
+    "mc01Raised" : true,
+    "mode" : "constrained",
+    "physicalPct" : 50,
+    "raw" : "{\n  \"invoiceNumber\": \"14\",\n \"invoiceDate\": \"2026-10-12\",\n \"amountDue\": 480000,\n \"cumulativePaid\": 8500000,\n \"contractValue\": 10000000,\n \"kmCompleted\": 32,\n \t\"kmTotal\": 64,\n \t\t\"bridgeStatus\": \"not_started\"\n}",
+    "run" : 2,
+    "seconds" : 2.9726669788360596,
+    "thermalState" : "nominal",
+    "validJSON" : true
+  },
+  {
+    "fieldsCorrect" : 8,
+    "financialPct" : 85,
+    "mc01Raised" : true,
+    "mode" : "constrained",
+    "physicalPct" : 50,
+    "raw" : "{\n  \"invoiceNumber\": \"14\",\n \"invoiceDate\": \"2026-10-12\",\n \"amountDue\": 480000,\n \"cumulativePaid\": 8500000,\n \"contractValue\": 10000000,\n \"kmCompleted\": 32,\n \t\"kmTotal\": 64,\n \t\t\"bridgeStatus\": \"not_started\"\n}",
+    "run" : 3,
+    "seconds" : 2.993162989616394,
+    "thermalState" : "nominal",
+    "validJSON" : true
+  }
+]
