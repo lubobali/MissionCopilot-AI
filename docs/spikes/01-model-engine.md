@@ -1,6 +1,6 @@
 # Spike #12: model engine, llama.cpp vs MLX
 
-Status: in progress. Device: iPhone 13 Pro Max (A15, 6 GB, iOS 27.2), wired, Debug, free provisioning.
+Status: GO (both engines pass). Engine: MLX, to be confirmed by spike #13. Device: iPhone 13 Pro Max (A15, 6 GB, iOS 27.2), wired, Debug, free provisioning.
 Baseline free memory for an app: 2.98 GB (00-device-baseline.md).
 
 ## Pinned inputs (reproducible)
@@ -34,8 +34,29 @@ temperature 0.1, top-k 50, repetition penalty 1.05, max 400 new tokens; fresh co
    Rule for production: no third-party build-time macros.
 6. **Xcode 27 needs the Metal Toolchain** as a separate download for MLX's GPU shaders.
 
-## Results
-(pending: tokens/s, time to first token, memory, crashes, output quality per engine)
+## Results (airplane mode, 12 runs per engine, raw data in results/)
+| | llama.cpp b11960 | MLX 3.32.3 |
+|---|---|---|
+| Runs completed | 12/12, no crash | 12/12, no crash |
+| Decode speed (median) | 35.7 tok/s (34.4-36.3) | **43.6 tok/s** (42.0-44.1) |
+| Time to first token (median) | **338 ms** | 601 ms (first run 5.4 s warm-up) |
+| Model load | 12.9 s | **0.9 s** |
+| Free memory used by loading | **104 MB** (model is memory-mapped, so iOS counts it differently) | 653 MB |
+| Lowest free memory during runs | 2937 MB | 2259 MB |
+| Same output on every repeat | Yes (fixed sampler seed) | No (seed not set in this test: our test's fault) |
+
+### Output quality (same prompts)
+- **Numbers (T2):** both wrong in the same way (8.5M written as 85,000,000; contract value 1,000 or 10,000)
+  and neither found the 85% paid vs 50% built risk. Confirms ADR 0005 again, inside our own app:
+  numbers come from code, never from the model.
+- **Report wording (T3):** llama.cpp **softened the facts** ("slightly behind schedule", "bridge still under
+  development" when the facts say three months late and not started). MLX stayed accurate ("three months
+  behind", "not yet started", kept 15 March 2027). For a tool that exists to close the candor gap, this matters most.
+- **Instruction following (T1-FR):** llama.cpp answered in English as asked; MLX answered in French.
 
 ## Decision
-(pending: GO / NO-GO, engine choice -> ADR 0004)
+- **GO:** both engines meet the bar (>= 15 tok/s, < 2 GB, no crash in 10+ runs), fully offline.
+- **Engine: MLX** (faster, near-instant load, more faithful wording, runtime JSON-schema constraints, normal
+  Swift package), **confirmed only after spike #13** proves constrained output and a fixed seed.
+  **Backup: llama.cpp** (deterministic, lighter memory pressure, better at the language instruction).
+- Caveats: quality judged on a small sample; MLX seed to be fixed for reproducibility; both device-only.
