@@ -40,6 +40,7 @@ struct BenchView: View {
                 .disabled(running)
                 Section("Encryption") {
                     NavigationLink("Encryption proofs (#16)") { EncryptionView() }
+                    NavigationLink("Evidence proofs (#17)") { EvidenceView() }
                 }
                 Section("Free memory: \(DeviceInfo.freeMemoryMB()) MB") {
                     ForEach(Array(log.enumerated()), id: \.offset) { Text($0.element).font(.footnote.monospaced()) }
