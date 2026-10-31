@@ -22,9 +22,18 @@ final class EncryptionLabModel {
     private var store: MissionStore?
     private var folder: URL?
     private var results: [String: String] = [:]
+    private var pendingSave = false
 
     private var databaseURL: URL? { folder?.appendingPathComponent("user.sqlite") }
     private var plainTwinURL: URL { DeviceInfo.documents.appendingPathComponent("plain-twin.sqlite") }
+
+    /// Reopens existing data when the screen appears, so leaving and coming back keeps the missions.
+    func reopenIfSetUp() {
+        guard store == nil, let base = try? FileManager.default.url(
+            for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false),
+            FileManager.default.fileExists(atPath: base.appendingPathComponent(user).path) else { return }
+        setUp()
+    }
 
     func setUp() {
         step("setup") {
@@ -80,26 +89,40 @@ final class EncryptionLabModel {
         }
     }
 
-    /// Lock the phone right after tapping; checks run while it is locked, results show after unlock.
+    /// Lock the phone right after tapping. The checks run the moment iOS locks the data (about 10 s after
+    /// the side button), not after a guessed delay, and the timeline is recorded with the results.
     func lockTest() {
         guard let store, let databaseURL else { return log("Run 1. Set up first.") }
         let probe: WrappedMissionKey
         do {
+            try vault.destroy(mission: "lock-probe")  // left over from the last run (cannot delete while locked)
             probe = try vault.wrap(SymmetricKey(size: .bits256), for: "lock-probe")
         } catch {
             return log("lock test FAILED to start: \(error)")
         }
+        for key in results.keys where key.hasPrefix("lock:") { results[key] = nil }
         running = true
-        log("Lock the phone NOW (side button). Wait 25 s, then unlock.")
-        let task = UIApplication.shared.beginBackgroundTask(withName: "lock-test")
+        log("Lock the phone NOW (side button), face down. Wait 30 s, then unlock.")
+        // iOS gives about 30 s in the background once locked: save before that, or the app is killed first.
+        var task = UIBackgroundTaskIdentifier.invalid
+        task = UIApplication.shared.beginBackgroundTask(withName: "lock-test") {
+            UIApplication.shared.endBackgroundTask(task)
+        }
+        let start = Date()
         Task {
-            try? await Task.sleep(for: .seconds(20))
-            record("lock: protected data available", "\(UIApplication.shared.isProtectedDataAvailable)")
-            check("lock: raw database file") { _ = try Data(contentsOf: databaseURL) }
-            check("lock: database key in Keychain") { _ = try self.keyStore.loadOrCreate(for: self.user) }
-            check("lock: chip unwrap") { _ = try self.vault.unwrap(probe, for: "lock-probe") }
-            check("lock: database read") { _ = try store.missionIDs() }
-            try? vault.destroy(mission: "lock-probe")
+            while UIApplication.shared.isProtectedDataAvailable, Date().timeIntervalSince(start) < 45 {
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+            let seconds = String(format: "%.1f s after tap", Date().timeIntervalSince(start))
+            if UIApplication.shared.isProtectedDataAvailable {
+                record("lock: test valid", "NO, data still unlocked \(seconds) (app may have been paused); run it again")
+            } else {
+                record("lock: test valid", "yes, data locked \(seconds)")
+                check("lock: raw database file") { _ = try Data(contentsOf: databaseURL) }
+                check("lock: database key in Keychain") { _ = try self.keyStore.loadOrCreate(for: self.user) }
+                check("lock: chip unwrap") { _ = try self.vault.unwrap(probe, for: "lock-probe") }
+                check("lock: database read") { _ = try store.missionIDs() }
+            }
             save()
             running = false
             UIApplication.shared.endBackgroundTask(task)
@@ -194,6 +217,18 @@ final class EncryptionLabModel {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let url = DeviceInfo.documents.appendingPathComponent("encryption-results.json")
-        do { try encoder.encode(results).write(to: url) } catch { log("save FAILED: \(error)") }
+        do {
+            try encoder.encode(results).write(to: url)
+            pendingSave = false
+        } catch {
+            // Expected while locked: Complete protection blocks writes too, even for this app's own files.
+            pendingSave = true
+            log("save waits for unlock: \(error)")
+        }
+    }
+
+    /// Called when the app is active again after the lock test.
+    func saveIfPending() {
+        if pendingSave { save() }
     }
 }

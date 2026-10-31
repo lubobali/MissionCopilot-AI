@@ -4,6 +4,7 @@ import SwiftUI
 struct EncryptionView: View {
     @State private var model = EncryptionLabModel()
     @State private var missionToShred: String?
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         List {
@@ -35,6 +36,10 @@ struct EncryptionView: View {
             }
         }
         .navigationTitle("Encryption #16")
+        .onAppear { model.reopenIfSetUp() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { model.saveIfPending() }
+        }
         .confirmationDialog("Shred \(missionToShred ?? "")? Its data can never be read again.",
                             isPresented: Binding(get: { missionToShred != nil }, set: { if !$0 { missionToShred = nil } }),
                             titleVisibility: .visible) {
