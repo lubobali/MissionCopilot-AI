@@ -146,3 +146,15 @@ extension ModelSignatureTests {
         #expect(failure { try verify(try modelCopy(), bundle: "wrong-subject.sig") } == .wrongStatement)
     }
 }
+
+extension ModelSignatureTests {
+    /// Found on the iPhone: iOS app folders live under /private/var, and resolving the folder's path
+    /// drops "/private" while the file listing keeps it, which once cut every file name short.
+    @Test func aModelUnderAPrivatePathVerifies() throws {
+        let model = URL(fileURLWithPath: "/private/tmp/\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.copyItem(at: try modelCopy(), to: model)
+        defer { try? FileManager.default.removeItem(at: model) }
+
+        #expect(try verify(model) == ["config.json", "model.safetensors", "tokenizer.json"])
+    }
+}

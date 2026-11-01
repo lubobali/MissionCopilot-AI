@@ -1,0 +1,6 @@
+{
+  "network during run" : "offline (no network path)",
+  "run 1" : "verified 9 files in 0.59 s, free memory 2415 MB",
+  "run 2" : "verified 9 files in 0.37 s, free memory 2417 MB",
+  "run 3" : "verified 9 files in 0.37 s, free memory 2416 MB"
+}

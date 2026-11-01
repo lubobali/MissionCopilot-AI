@@ -89,18 +89,17 @@ enum ModelSignature {
     }
 
     /// Every regular file under the folder, as paths relative to it. A symlink is refused.
+    /// The listing gives relative paths itself: cutting a base path off full paths broke on the
+    /// iPhone, where resolving the folder's path drops a leading /private that the listing keeps.
     private static func regularFiles(in folder: URL) throws -> Set<String> {
-        let base = folder.resolvingSymlinksInPath()
-        let keys: [URLResourceKey] = [.isRegularFileKey, .isSymbolicLinkKey]
-        guard let walk = FileManager.default.enumerator(at: base, includingPropertiesForKeys: keys) else {
-            throw Failure.missingFile(".")
-        }
+        let manager = FileManager.default
+        guard let walk = manager.enumerator(atPath: folder.path) else { throw Failure.missingFile(".") }
         var files = Set<String>()
-        for case let url as URL in walk {
-            let relative = String(url.path.dropFirst(base.path.count + 1))
-            let values = try url.resourceValues(forKeys: Set(keys))
-            if values.isSymbolicLink == true { throw Failure.symlink(relative) }
-            if values.isRegularFile == true { files.insert(relative) }
+        for case let relative as String in walk {
+            // attributesOfItem does not follow a symlink: it describes the link itself.
+            let kind = try manager.attributesOfItem(atPath: folder.appendingPathComponent(relative).path)[.type]
+            if kind as? FileAttributeType == .typeSymbolicLink { throw Failure.symlink(relative) }
+            if kind as? FileAttributeType == .typeRegular { files.insert(relative) }
         }
         return files
     }
