@@ -62,6 +62,13 @@ Both engines ran in airplane mode on the iPhone 13 Pro Max, scored by code (docs
 **Engine: Apple SpeechTranscriber.** **Option: WhisperKit**, behind the same interface, for speakers it
 serves better; re-tested in Hardening. Neither is trusted for numbers on its own (ADR 0005).
 
+## Apple's language-model API with our model (spike #18, Nov 1 2026)
+iOS 27's `LanguageModel` protocol ran our MLX model through `LanguageModelSession` on the iPhone 13 Pro Max,
+offline, although Apple's own model is not available on this phone (about 0.2 s overhead after the first
+call; docs/spikes/07-platform-options.md). **Not adopted now:** the API is beta and our constrained JSON
+output would need rebuilding. Our own engine protocol stays.
+
 ## Revisit when
 - A newer small model beats LFM2.5 on the same four tests on the same phone, or licensing requires the switch.
+- Apple's `LanguageModel` API leaves beta and supports constrained JSON output for custom models.
 - Speech: Apple stops supporting a needed language or device, or a smaller Whisper-class model is repeatable.

@@ -1,0 +1,37 @@
+{
+  "spike": 18,
+  "device": "iPhone 13 Pro Max (A15), iOS 27.2, free Apple ID signing",
+  "date": "2026-11-01",
+  "note": "Values copied from the app's translation-results.json and custom-model-results.json. Both runs in airplane mode, recorded by the app as 'offline (no network path)'. LiDAR answered from published studies, not measured on this phone.",
+  "translation": {
+    "supported languages (21)": "ar-AE de en en-GB es fr hi id it ja ko nl pl pt ru th tr uk vi zh zh-TW",
+    "status before download": "fr, es, pt, ar -> en: supported (not installed)",
+    "install": "in-app download (translationTask + prepareTranslation) logged nothing; French installed from Settings > Apps > Translate",
+    "status after": "fr->en installed, en->fr installed",
+    "input": "the #14 French debrief script (17 sentences), translated sentence by sentence",
+    "default": "facts 10/11, 17 of 17 sentences, 1.26 s (first run)",
+    "lowLatency": "facts 10/11, 17 of 17 sentences, 0.45 s",
+    "highFidelity": "facts 10/11, 17 of 17 sentences, 0.46 s, text identical to lowLatency",
+    "the one miss": "kmBuilt: '32 out of 64 kilometers' vs the key's '32 of 64' (wording; both numbers right)",
+    "numbers": "all correct: km 18, 4.9 m, 7 m, 32 and 64 km, invoice 14, $480,000, $8.5 million, 85 percent, 50 percent, 35 points, December 15 2026, March 15 2027"
+  },
+  "custom_model": {
+    "Apple's own model on this phone": "unavailable (deviceNotEligible)",
+    "model": "LFM2.5 1.2B 4-bit via MLX (spike #12), wrapped as LanguageModel + LanguageModelExecutor",
+    "mlx load": "0.72 s",
+    "run 1": "direct 3.64 s (128 tokens), through LanguageModelSession 4.84 s",
+    "run 2": "direct 3.70 s (134 tokens), through LanguageModelSession 3.88 s",
+    "run 3": "direct 4.06 s (146 tokens), through LanguageModelSession 4.04 s",
+    "answer": "a normal decisions + action items summary (first 400 characters kept by the app)"
+  },
+  "lidar": {
+    "device": "LiDAR present and working (Apple Measure app tried); no tape comparison made",
+    "published": "1-2 cm held still at short range; up to ~10 cm on bigger spans; up to ±30 cm for lengths over 4 m when moving; range about 5 m",
+    "sources": [
+      "https://saemobilus.sae.org/articles/bias-repeatability-measurements-3d-scans-made-using-ios-based-lidar-2021-01-0891",
+      "https://dlib.si/URN:NBN:SI:doc-2N3WGJH4/EDM",
+      "https://isprs-archives.copernicus.org/articles/XLVIII-2-W8-2024/431/2024/",
+      "https://www.tandfonline.com/doi/full/10.1080/16874048.2024.2408839"
+    ]
+  }
+}
