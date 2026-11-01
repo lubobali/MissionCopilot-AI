@@ -26,9 +26,11 @@ Limits (in `Settings`): 120 requests a minute per client address, 1 MiB per requ
    no-store; HSTS in production).
 2. Host check, then rate and size limits (429 with Retry-After, 413).
 3. Browser origin check (CORS, no credentials).
-4. On every route except `/v1/health`: an ES256 bearer token from the configured issuer. The
+4. People (dashboard): an ES256 bearer token from the configured issuer, with roles; the
    organization and user come only from the token. Until an issuer is configured (Phase 8), every
-   secured route refuses every request.
+   token route refuses every request. Phones: no token at all; each request is signed by the
+   phone's enrolled Secure Enclave key (see docs/security.md). Only `/v1/health` and
+   `/v1/devices/enroll` (authenticated by its one-time code) need neither.
 5. Data only from the caller's organization's own store; another organization's mission answers
    exactly like a missing one.
 6. Errors as RFC 9457 Problem Details; a crash shows no stack trace; bad input is never echoed.

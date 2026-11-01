@@ -97,3 +97,49 @@ def test_every_operation_with_a_body_documents_the_size_limit(spec):
 
     assert with_body, "expected operations with a request body"
     assert [name for name, op in with_body if "413" not in op["responses"]] == []
+
+
+DEVICE_OPERATIONS = {
+    "POST /v1/devices/enrollment-codes": "issueEnrollmentCode",
+    "POST /v1/devices/enroll": "enrollDevice",
+    "GET /v1/devices": "listDevices",
+    "POST /v1/devices/{deviceId}/approve": "approveDevice",
+    "POST /v1/devices/{deviceId}/revoke": "revokeDevice",
+}
+PHONE_OPERATIONS = {"getMissionPack", "uploadSyncBatch", "submitForReview"}
+OPEN_OPERATIONS = {"getHealth", "enrollDevice"}  # enroll is authenticated by its one-time code
+
+
+def test_device_enrollment_operations_exist(spec):
+    found = {name: op["operationId"] for name, op in _operations(spec)}
+
+    assert {name: found.get(name) for name in DEVICE_OPERATIONS} == DEVICE_OPERATIONS
+
+
+def _security(spec, op):
+    return [name for requirement in op.get("security", spec["security"]) for name in requirement]
+
+
+def test_phones_sign_their_requests_and_never_hold_a_bearer_token(spec):
+    by_id = {op["operationId"]: _security(spec, op) for _, op in _operations(spec)}
+
+    assert {op: by_id[op] for op in PHONE_OPERATIONS} == dict.fromkeys(
+        PHONE_OPERATIONS, ["deviceSignature"]
+    )
+    assert {op for op, schemes in by_id.items() if not schemes} == OPEN_OPERATIONS
+    assert "deviceSignature" in spec["components"]["securitySchemes"]
+
+
+def test_role_restricted_operations_document_403(spec):
+    restricted = [n for n in DEVICE_OPERATIONS if n != "POST /v1/devices/enroll"]
+    ops = dict(_operations(spec))
+
+    assert [name for name in restricted if "403" not in ops[name]["responses"]] == []
+
+
+def test_a_device_is_pending_active_or_revoked(spec):
+    device = spec["components"]["schemas"]["Device"]
+    enrollment = spec["components"]["schemas"]["DeviceEnrollment"]
+
+    assert device["properties"]["status"]["enum"] == ["pending", "active", "revoked"]
+    assert set(enrollment["required"]) == {"code", "publicKeyDER", "proof"}

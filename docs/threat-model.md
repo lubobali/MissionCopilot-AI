@@ -111,8 +111,8 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 |---|---|---|---|---|---|
 | T24 | I | Sync traffic is read in transit | TLS 1.3 (iOS 27 requires modern TLS) plus signed payloads; HSTS already on every production answer | planned | Phase 8 |
 | T25 | T | A payload is changed in transit or at rest | Secure Enclave signatures and hash chain, verified by the backend | built | `backend/tests/unit/test_evidence_chain.py` |
-| T26 | S | A phone the organization never approved sends data | Enrollment: single-use admin code, manager approval, revocation | planned | #46 |
-| T27 | T | An old signed batch is replayed | Nonce or sequence number, plus idempotency key | planned | #46, Phase 8 |
+| T26 | S | A phone the organization never approved sends data | Enrollment: single-use hashed admin code, proof of key, manager approval (never their own), revocation; every request signed (trust on first use, see Limits) | built | `backend/tests/unit/test_enroll.py`, `backend/tests/unit/test_device_admin.py`, `backend/tests/unit/test_device_requests.py` |
+| T27 | T | An old signed batch is replayed | Strictly increasing signed sequence number and a 5-minute time window per request; the batch idempotency key arrives with sync in Phase 8 | built | `backend/tests/unit/test_device_requests.py` |
 | T28 | I | Unapproved data leaves the phone | The outbox holds approved, signed items only (ADR 0006) | planned | Phase 7, Phase 8 |
 | T29 | I | Key material crosses the network | The API contract never contains key references | built | `backend/tests/unit/test_openapi_contract.py` |
 
@@ -212,8 +212,8 @@ against the current release before quoting.
 
 ## 6. Limits we accept (and the production upgrade)
 - **Device identity is trust on first use.** With a free Apple ID there is no App Attest, so the server
-  cannot prove that a key lives in a Secure Enclave or that the app is unmodified. Enrollment (#46) is the
-  control. Production: a paid Apple developer team, App Attest and device management (MDM). Free signing
+  cannot prove that a key lives in a Secure Enclave or that the app is unmodified. Enrollment is the
+  control: a one-time code, proof of the key, and a manager's approval (see security.md). Production: a paid Apple developer team, App Attest and device management (MDM). Free signing
   also expires every 7 days, which a field deployment cannot accept.
 - **An unlocked, compromised or jailbroken phone** can read what the app can read (T17, T21).
 - **Unsynced data on a lost phone is gone** (T22), on purpose.

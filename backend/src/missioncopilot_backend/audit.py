@@ -13,7 +13,19 @@ from dataclasses import dataclass
 from typing import Literal
 
 GENESIS = "0" * 64
-Kind = Literal["auth_failed", "rate_limited", "body_too_large", "org_without_database"]
+Kind = Literal[
+    "auth_failed",
+    "role_denied",
+    "rate_limited",
+    "body_too_large",
+    "org_without_database",
+    "enrollment_code_issued",
+    "enrollment_failed",
+    "device_enrolled",
+    "device_approved",
+    "device_revoked",
+    "device_auth_failed",
+]
 
 
 @dataclass(frozen=True)
@@ -24,6 +36,7 @@ class AuditEvent:
     client: str | None
     org_id: str | None
     actor: str | None
+    subject: str | None  # what the event is about, for example a device id
     prev_hash: str
     hash: str = ""
 
@@ -48,9 +61,10 @@ class AuditLog:
         client: str | None = None,
         org_id: str | None = None,
         actor: str | None = None,
+        subject: str | None = None,
     ) -> AuditEvent:
         event = AuditEvent(
-            len(self._events), self._clock(), kind, client, org_id, actor, self.head()
+            len(self._events), self._clock(), kind, client, org_id, actor, subject, self.head()
         )
         event = event.replace(hash=event.content_hash())
         self._events.append(event)
