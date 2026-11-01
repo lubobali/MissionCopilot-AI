@@ -22,6 +22,7 @@ from missioncopilot_backend.tenancy import (
     mission_or_404,
     org_store,
 )
+from tests.unit.clients import local_client
 from tests.unit.route_listing import served_routes
 
 pytestmark = pytest.mark.unit
@@ -76,7 +77,7 @@ def build_app(signer) -> FastAPI:
 
 @pytest.fixture
 def client(signer) -> TestClient:
-    return TestClient(build_app(signer))
+    return local_client(build_app(signer))
 
 
 def test_a_store_holds_only_its_own_organization():
@@ -129,7 +130,7 @@ def test_a_token_for_an_organization_without_a_database_gets_404(client, signer)
 def cross_tenant_leaks(app: FastAPI, signer) -> list[str]:
     """Every route that takes a mission id, called by org A with org B's id, must answer exactly
     like a missing id. New routes are covered automatically."""
-    client, headers = TestClient(app), bearer(signer, "org-a")
+    client, headers = local_client(app), bearer(signer, "org-a")
     leaks = []
     for route in served_routes(app):
         if "{mission_id}" not in route.path:

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from missioncopilot_backend.app import create_app
 from missioncopilot_backend.models import StrictModel
 from missioncopilot_backend.settings import Settings
+from tests.unit.clients import local_client
 from tests.unit.route_listing import served_routes
 
 pytestmark = pytest.mark.unit
@@ -37,7 +38,7 @@ def build_app() -> FastAPI:
 
 @pytest.fixture
 def client() -> TestClient:
-    return TestClient(build_app(), raise_server_exceptions=False)
+    return local_client(build_app(), raise_server_exceptions=False)
 
 
 def assert_problem(response, status: int) -> dict:

@@ -3,9 +3,12 @@ import time
 from collections.abc import Callable
 
 from fastapi import APIRouter, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from missioncopilot_backend.auth import TokenVerifier
 from missioncopilot_backend.errors import install_error_handlers
+from missioncopilot_backend.headers import SecurityHeadersMiddleware
 from missioncopilot_backend.limits import LimitsMiddleware, RateLimiter
 from missioncopilot_backend.settings import Settings
 from missioncopilot_backend.tenancy import OrgDatabases
@@ -35,8 +38,25 @@ def create_app(
     app.state.verifier = verifier  # None: every secured route refuses (fail closed)
     app.state.databases = databases  # None: every organization's data answers 404
     install_error_handlers(app)
+    # Middleware runs outermost last-added: headers on every answer, then the host check, the
+    # limits, and browser origins closest to the routes.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(settings.allowed_origins),
+        allow_methods=["GET", "POST"],
+        allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
+        allow_credentials=False,  # bearer tokens, never cookies
+        max_age=600,
+    )
     limiter = RateLimiter(settings.rate_limit_per_minute, clock=clock)
     app.add_middleware(LimitsMiddleware, limiter=limiter, max_body_bytes=settings.max_body_bytes)
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.allowed_hosts))
+    docs_pages = frozenset({"/docs", "/redoc", "/openapi.json", "/docs/oauth2-redirect"})
+    app.add_middleware(
+        SecurityHeadersMiddleware,
+        hsts=settings.environment == "production",
+        policy_exempt_paths=docs_pages if docs else frozenset(),
+    )
     app.include_router(v1)
     return app
 

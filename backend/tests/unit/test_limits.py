@@ -6,11 +6,11 @@ import asyncio
 
 import pytest
 from fastapi import FastAPI, Request
-from fastapi.testclient import TestClient
 
 from missioncopilot_backend.app import create_app
 from missioncopilot_backend.limits import LimitsMiddleware, RateLimiter
 from missioncopilot_backend.settings import Settings
+from tests.unit.clients import local_client
 
 pytestmark = pytest.mark.unit
 
@@ -63,7 +63,7 @@ def build_app(per_minute: int = 1000, max_body_bytes: int = 1000) -> FastAPI:
 
 
 def test_too_many_requests_get_a_429_problem_with_retry_after():
-    client = TestClient(build_app(per_minute=2))
+    client = local_client(build_app(per_minute=2))
 
     statuses = [client.get("/v1/health").status_code for _ in range(3)]
     response = client.get("/v1/health")
@@ -74,13 +74,13 @@ def test_too_many_requests_get_a_429_problem_with_retry_after():
 
 
 def test_a_body_under_the_limit_passes():
-    client = TestClient(build_app(max_body_bytes=1000))
+    client = local_client(build_app(max_body_bytes=1000))
 
     assert client.post("/v1/test/upload", content=b"x" * 1000).json() == {"bytes": 1000}
 
 
 def test_a_declared_large_body_is_refused():
-    client = TestClient(build_app(max_body_bytes=1000))
+    client = local_client(build_app(max_body_bytes=1000))
 
     response = client.post("/v1/test/upload", content=b"x" * 1001)
 
@@ -89,7 +89,7 @@ def test_a_declared_large_body_is_refused():
 
 
 def test_a_chunked_large_body_is_refused():
-    client = TestClient(build_app(max_body_bytes=1000))
+    client = local_client(build_app(max_body_bytes=1000))
 
     def chunks():
         for _ in range(5):

@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient
 from missioncopilot_backend.app import create_app
 from missioncopilot_backend.auth import Principal, TokenVerifier, require_principal, secured_router
 from missioncopilot_backend.settings import Settings
+from tests.unit.clients import local_client
 from tests.unit.route_listing import served_routes
 
 pytestmark = pytest.mark.unit
@@ -65,7 +66,7 @@ def build_app(verifier: TokenVerifier | None) -> FastAPI:
 
 @pytest.fixture
 def client(signer) -> TestClient:
-    return TestClient(build_app(TokenVerifier(pem(signer), issuer=ISSUER, audience=AUDIENCE)))
+    return local_client(build_app(TokenVerifier(pem(signer), issuer=ISSUER, audience=AUDIENCE)))
 
 
 def b64(data: bytes) -> str:
@@ -156,13 +157,13 @@ def test_hmac_signed_with_the_public_key_is_refused(client, signer):
 
 
 def test_no_verifier_configured_refuses_everything(signer):
-    client = TestClient(build_app(verifier=None))
+    client = local_client(build_app(verifier=None))
 
     assert client.get("/v1/me", headers=bearer(token(signer))).status_code == 401
 
 
 def unprotected_routes(app: FastAPI) -> list[str]:
-    client = TestClient(app)
+    client = local_client(app)
     found = []
     for route in served_routes(app):
         if route.path not in PUBLIC_ROUTES:
