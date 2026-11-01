@@ -73,3 +73,27 @@ def test_errors_use_problem_details(spec):
     assert error_responses, "expected at least one error response in the contract"
     for path, code, response in error_responses:
         assert "application/problem+json" in response["content"], f"{path} {code}"
+
+
+def _operations(spec):
+    return [
+        (f"{method.upper()} {path}", operation)
+        for path, item in spec["paths"].items()
+        for method, operation in item.items()
+    ]
+
+
+def test_every_operation_documents_the_rate_limit(spec):
+    missing = [name for name, op in _operations(spec) if "429" not in op["responses"]]
+
+    assert missing == []
+    assert (
+        "Retry-After" in _deref(spec, {"$ref": "#/components/responses/TooManyRequests"})["headers"]
+    )
+
+
+def test_every_operation_with_a_body_documents_the_size_limit(spec):
+    with_body = [(name, op) for name, op in _operations(spec) if "requestBody" in op]
+
+    assert with_body, "expected operations with a request body"
+    assert [name for name, op in with_body if "413" not in op["responses"]] == []

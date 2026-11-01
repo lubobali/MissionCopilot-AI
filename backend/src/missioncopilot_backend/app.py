@@ -1,9 +1,12 @@
 import os
+import time
+from collections.abc import Callable
 
 from fastapi import APIRouter, FastAPI
 
 from missioncopilot_backend.auth import TokenVerifier
 from missioncopilot_backend.errors import install_error_handlers
+from missioncopilot_backend.limits import LimitsMiddleware, RateLimiter
 from missioncopilot_backend.settings import Settings
 from missioncopilot_backend.tenancy import OrgDatabases
 
@@ -19,6 +22,7 @@ def create_app(
     settings: Settings,
     verifier: TokenVerifier | None = None,
     databases: OrgDatabases | None = None,
+    clock: Callable[[], float] = time.monotonic,
 ) -> FastAPI:
     """Build the app for one set of settings; tests build their own instead of patching globals."""
     docs = settings.docs_enabled
@@ -31,6 +35,8 @@ def create_app(
     app.state.verifier = verifier  # None: every secured route refuses (fail closed)
     app.state.databases = databases  # None: every organization's data answers 404
     install_error_handlers(app)
+    limiter = RateLimiter(settings.rate_limit_per_minute, clock=clock)
+    app.add_middleware(LimitsMiddleware, limiter=limiter, max_body_bytes=settings.max_body_bytes)
     app.include_router(v1)
     return app
 

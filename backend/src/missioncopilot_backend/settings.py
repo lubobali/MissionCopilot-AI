@@ -12,6 +12,8 @@ ENVIRONMENTS: tuple[Environment, ...] = ("production", "development", "test")
 @dataclass(frozen=True)
 class Settings:
     environment: Environment = "production"
+    rate_limit_per_minute: int = 120  # per client address
+    max_body_bytes: int = 1_048_576  # 1 MiB; evidence files travel by their own upload later
 
     @property
     def docs_enabled(self) -> bool:
