@@ -20,6 +20,8 @@ Kind = Literal[
     "body_too_large",
     "org_without_database",
     "enrollment_code_issued",
+    "enrollment_failed",
+    "device_enrolled",
 ]
 
 

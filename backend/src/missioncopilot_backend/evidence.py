@@ -11,9 +11,9 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+
+from missioncopilot_backend.signatures import is_signed_by, load_p256_public_key
 
 GENESIS_HASH = "0" * 64
 
@@ -58,18 +58,11 @@ def link(record: Record) -> str:
 
 
 def _signed_by(key: ec.EllipticCurvePublicKey, record: Record) -> bool:
-    try:
-        key.verify(record.signature, record.payload, ec.ECDSA(hashes.SHA256()))
-    except InvalidSignature:
-        return False
-    return True
+    return is_signed_by(key, record.signature, record.payload)
 
 
 def _load_key(public_key_der: bytes) -> ec.EllipticCurvePublicKey | None:
-    key = serialization.load_der_public_key(public_key_der)
-    if not isinstance(key, ec.EllipticCurvePublicKey) or not isinstance(key.curve, ec.SECP256R1):
-        return None
-    return key
+    return load_p256_public_key(public_key_der)
 
 
 def verify_chain(records: Sequence[Record], public_key_der: bytes) -> Result:

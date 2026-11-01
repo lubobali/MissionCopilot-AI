@@ -9,7 +9,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from missioncopilot_backend.audit import AuditLog
 from missioncopilot_backend.auth import TokenVerifier
 from missioncopilot_backend.device_routes import device_routes
-from missioncopilot_backend.devices import EnrollmentCodes
+from missioncopilot_backend.devices import DeviceRegistry, EnrollmentCodes
 from missioncopilot_backend.errors import install_error_handlers
 from missioncopilot_backend.headers import SecurityHeadersMiddleware
 from missioncopilot_backend.limits import LimitsMiddleware, RateLimiter
@@ -31,6 +31,7 @@ def create_app(
     clock: Callable[[], float] = time.monotonic,
     audit: AuditLog | None = None,
     enrollment_codes: EnrollmentCodes | None = None,
+    devices: DeviceRegistry | None = None,
 ) -> FastAPI:
     """Build the app for one set of settings; tests build their own instead of patching globals."""
     docs = settings.docs_enabled
@@ -44,6 +45,7 @@ def create_app(
     app.state.databases = databases  # None: every organization's data answers 404
     app.state.audit = audit = audit or AuditLog()
     app.state.enrollment_codes = enrollment_codes or EnrollmentCodes()
+    app.state.devices = devices or DeviceRegistry()
     install_error_handlers(app)
     # Middleware runs outermost last-added: headers on every answer, then the host check, the
     # limits, and browser origins closest to the routes.
@@ -67,7 +69,8 @@ def create_app(
         policy_exempt_paths=docs_pages if docs else frozenset(),
     )
     app.include_router(v1)
-    app.include_router(device_routes())
+    for router in device_routes():
+        app.include_router(router)
     return app
 
 
