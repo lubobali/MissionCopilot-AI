@@ -34,5 +34,14 @@ Option 3.
   raised 20/20**, 3.1 s each, deterministic. Free-text JSON on the same task: 0/20 valid.
 - A whitespace bias is required: without it the greedy loop looped on tabs (docs/spikes/02-structured-output.md).
 
+## Evidence (spike #15: scanned documents to facts, offline)
+- Scan -> constrained extraction -> 8 facts -> MC-01: 8/8 correct on clean pages and on screen photos,
+  about 5 s, in airplane mode (docs/spikes/05-documents.md).
+- In the dark the model returned two wrong numbers (0 km of 0 km). **Grounding**, a code check that every
+  value appears in the scanned text, flagged both for review; MC-01 refused to compute. Zero wrong values
+  were presented as checked.
+- **Added rule:** every extracted fact must be grounded in its source document by code. An ungrounded fact
+  is "needs review" and cannot be used in a report until a person confirms it.
+
 ## Revisit when
 - Never for arithmetic. Revisit the extraction split if document types multiply beyond what rules handle.
