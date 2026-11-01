@@ -189,3 +189,14 @@ def test_the_route_guard_sees_an_open_route(signer):
         return {}
 
     assert unprotected_routes(app) == ["GET /v1/forgot-auth"]
+
+
+def test_the_real_apps_routes_need_a_token(signer):
+    app = create_app(
+        Settings(), verifier=TokenVerifier(pem(signer), issuer=ISSUER, audience=AUDIENCE)
+    )
+
+    assert ("POST", "/v1/devices/enrollment-codes") in {
+        (r.method, r.path) for r in served_routes(app)
+    }
+    assert unprotected_routes(app) == []

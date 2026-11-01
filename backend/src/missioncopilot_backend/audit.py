@@ -14,7 +14,12 @@ from typing import Literal
 
 GENESIS = "0" * 64
 Kind = Literal[
-    "auth_failed", "role_denied", "rate_limited", "body_too_large", "org_without_database"
+    "auth_failed",
+    "role_denied",
+    "rate_limited",
+    "body_too_large",
+    "org_without_database",
+    "enrollment_code_issued",
 ]
 
 
