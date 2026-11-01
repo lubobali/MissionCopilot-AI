@@ -1,8 +1,10 @@
 # Security policy
 
 ## Reporting a vulnerability
-Please report it privately: open the **Security** tab of this repository and choose
-**Report a vulnerability**. Do not open a public issue for a security problem.
+Please report it privately through GitHub:
+<https://github.com/lubobali/MissionCopilot-AI/security/advisories/new>
+(the **Security** tab, then **Report a vulnerability**). Do not open a public issue for a security
+problem.
 
 Please include what you found, how to reproduce it, and what an attacker could do with it.
 You can expect a first answer within 7 days. Fixes are tracked privately until they are released.
