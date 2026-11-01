@@ -12,13 +12,18 @@ struct SpeechView: View {
                 Button("3. Run Apple on both debriefs") { model.runApple() }
             }
             .disabled(model.running)
+            Section("Record your voice (read the script below)") {
+                recordButton(round: "quiet", title: "Record: quiet room")
+                recordButton(round: "noisy", title: "Record: noisy (TV or kitchen)")
+                Text(model.englishScript).font(.callout)
+            }
             Section("Real voice (Documents/voice, English)") {
                 Button("6. Run Apple on voice files") { model.runAppleOnVoice() }
                 #if canImport(WhisperKit)
                 Button("7. Run WhisperKit on voice files") { model.runWhisper(.voice) }
                 #endif
             }
-            .disabled(model.running)
+            .disabled(model.running || model.isRecording)
             #if canImport(WhisperKit)
             Section("WhisperKit large-v3 (626 MB, from Documents/whisperkit)") {
                 Button("4. Run WhisperKit on both debriefs") { model.runWhisper() }
@@ -31,5 +36,12 @@ struct SpeechView: View {
             }
         }
         .navigationTitle("Speech #14")
+    }
+
+    /// One recording at a time: while one round records, only its own button (now "Stop") is active.
+    private func recordButton(round: String, title: String) -> some View {
+        let mine = model.recordingRound == round
+        return Button(mine ? "Stop recording" : title) { model.toggleRecording(round: round) }
+            .disabled(model.running || (model.isRecording && !mine))
     }
 }

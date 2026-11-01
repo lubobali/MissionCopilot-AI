@@ -21,6 +21,7 @@ final class SpeechLabModel {
 
     var log: [String] = ["Start with: Apple status."]
     var running = false
+    var recorder: AVAudioRecorder?
     private var results: [String: String] = [:]
 
     // MARK: - Apple SpeechTranscriber
