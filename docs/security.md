@@ -38,6 +38,34 @@ detected offline, and the server verifies the phone's signatures with only the p
 ([spike #17](spikes/04-signed-evidence.md)). Limit: on the phone alone, rolling back to an older chain needs
 the server's sync receipt to be caught.
 
+## Which phones may send data (device enrollment)
+A phone never holds a password or a login token. It is known by a key made inside its Secure Enclave,
+and every request it sends is signed with that key.
+
+1. **An admin issues a one-time code** for one named person's phone. The code is 128 random bits, works
+   once, expires after 15 minutes, and the server keeps only its hash.
+2. **The phone enrolls** with the code, its public key, and a signature that proves it holds the private
+   key. It signs exactly `missioncopilot-enroll-v1\n` + code + `\n` + public key (DER). The phone is now
+   *pending*.
+3. **A manager approves it**, and never their own phone. A revoked phone can never be approved again.
+4. **Every request is signed** over exactly `missioncopilot-request-v1\n` + method, path and query, device
+   id, sequence number, Unix time and the body's SHA-256 (hex), one per line. The sequence number must
+   rise with every request, so a captured request cannot be sent again; the time must be within 5
+   minutes. A refused request never moves the sequence on, so forged requests cannot lock a phone out.
+5. **A manager or admin can revoke a phone** at any time; its next request is refused.
+
+**Limits (honest):**
+- **Trust on first use.** Without Apple's App Attest the server cannot prove that the key really lives in
+  a Secure Enclave, or that the request comes from our unmodified app. Enrollment is the control: a
+  short-lived code for one named person, and a manager who approves each phone.
+- **A stolen code** lets a thief enroll their own key, but only as a pending phone that a manager must
+  approve. A code is shown once and expires in 15 minutes.
+- **Production upgrade:** a paid Apple developer team, App Attest at enrollment, and device management
+  (MDM). Free signing, used for this prototype, also expires every 7 days, which a field deployment
+  cannot accept.
+- Devices, codes and sequence numbers are kept in memory until the database arrives (Phase 5); there the
+  sequence check becomes one transaction.
+
 ## Check it yourself
 The code is open source. The [spike report](spikes/03-encryption.md) shows how to copy the database off a phone
 you own and try to read it with standard tools. The same check runs automatically in CI on the spike package.
