@@ -6,6 +6,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from missioncopilot_backend.audit import AuditLog
 from missioncopilot_backend.auth import TokenVerifier
 from missioncopilot_backend.errors import install_error_handlers
 from missioncopilot_backend.headers import SecurityHeadersMiddleware
@@ -26,6 +27,7 @@ def create_app(
     verifier: TokenVerifier | None = None,
     databases: OrgDatabases | None = None,
     clock: Callable[[], float] = time.monotonic,
+    audit: AuditLog | None = None,
 ) -> FastAPI:
     """Build the app for one set of settings; tests build their own instead of patching globals."""
     docs = settings.docs_enabled
@@ -37,6 +39,7 @@ def create_app(
     )
     app.state.verifier = verifier  # None: every secured route refuses (fail closed)
     app.state.databases = databases  # None: every organization's data answers 404
+    app.state.audit = audit = audit or AuditLog()
     install_error_handlers(app)
     # Middleware runs outermost last-added: headers on every answer, then the host check, the
     # limits, and browser origins closest to the routes.
@@ -49,7 +52,9 @@ def create_app(
         max_age=600,
     )
     limiter = RateLimiter(settings.rate_limit_per_minute, clock=clock)
-    app.add_middleware(LimitsMiddleware, limiter=limiter, max_body_bytes=settings.max_body_bytes)
+    app.add_middleware(
+        LimitsMiddleware, limiter=limiter, max_body_bytes=settings.max_body_bytes, audit=audit
+    )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.allowed_hosts))
     docs_pages = frozenset({"/docs", "/redoc", "/openapi.json", "/docs/oauth2-redirect"})
     app.add_middleware(

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 from fastapi import Depends, HTTPException, Request
 
-from missioncopilot_backend.auth import Principal, require_principal
+from missioncopilot_backend.auth import Principal, audit, require_principal
 
 
 @dataclass(frozen=True)
@@ -56,6 +56,7 @@ def org_store(request: Request, principal: Principal = Depends(require_principal
     databases: OrgDatabases | None = getattr(request.app.state, "databases", None)
     store = databases.for_org(principal.org_id) if databases else None
     if store is None:
+        audit(request, "org_without_database", org_id=principal.org_id, actor=principal.user_id)
         raise NOT_FOUND
     return store
 

@@ -8,6 +8,8 @@ from dataclasses import dataclass
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from missioncopilot_backend.audit import AuditLog, Kind
+
 REQUIRED_CLAIMS = ["iss", "aud", "sub", "org", "iat", "exp"]
 
 
@@ -46,14 +48,25 @@ class TokenVerifier:
 UNAUTHORIZED = HTTPException(401, headers={"WWW-Authenticate": "Bearer"})
 
 
+def audit(
+    request: Request, kind: Kind, org_id: str | None = None, actor: str | None = None
+) -> None:
+    log: AuditLog | None = getattr(request.app.state, "audit", None)
+    if log is not None:
+        client = request.client.host if request.client else None
+        log.record(kind, client=client, org_id=org_id, actor=actor)
+
+
 def require_principal(request: Request) -> Principal:
     verifier: TokenVerifier | None = getattr(request.app.state, "verifier", None)
     scheme, _, token = request.headers.get("Authorization", "").partition(" ")
     if verifier is None or scheme != "Bearer" or not token:
+        audit(request, "auth_failed")
         raise UNAUTHORIZED
     try:
         return verifier.verify(token)
     except jwt.InvalidTokenError:
+        audit(request, "auth_failed")
         raise UNAUTHORIZED from None
 
 
