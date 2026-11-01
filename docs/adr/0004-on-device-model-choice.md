@@ -49,5 +49,19 @@ no crash (docs/spikes/01-model-engine.md):
 Swift package). **Backup: llama.cpp.** Final confirmation after spike #13 (constrained output, fixed seed).
 Both engines are device-only (no iOS Simulator), so production code uses a protocol with a fake in tests.
 
+## Speech engine decision (spike #14, Nov 1 2026)
+Both engines ran in airplane mode on the iPhone 13 Pro Max, scored by code (docs/spikes/06-speech.md):
+
+| | Apple SpeechTranscriber | WhisperKit large-v3 |
+|---|---|---|
+| Real non-native voice, quiet: WER / key facts | 13.5% / 10 of 11 | 8.8% / 11 of 11 |
+| Time for about 100 s of audio | about 2 s | 11-23 s |
+| In the app | nothing (system language files) | 626 MB, ~100 s first load |
+| Same result every run | yes | no (dropout and invented text) |
+
+**Engine: Apple SpeechTranscriber.** **Option: WhisperKit**, behind the same interface, for speakers it
+serves better; re-tested in Hardening. Neither is trusted for numbers on its own (ADR 0005).
+
 ## Revisit when
 - A newer small model beats LFM2.5 on the same four tests on the same phone, or licensing requires the switch.
+- Speech: Apple stops supporting a needed language or device, or a smaller Whisper-class model is repeatable.
