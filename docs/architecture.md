@@ -107,9 +107,9 @@ flowchart TB
 | Boundary | What crosses it | Protection |
 |---|---|---|
 | Secure Enclave ↔ app | Signing and key-wrapping requests only | Private keys never leave the hardware |
-| Phone ↔ network | Approved, signed items only | TLS, signatures, device attestation (Iteration 3) |
-| Network ↔ backend | Sync batches and dashboard requests | Authentication, rate limits, versioned contract (Iteration 3) |
+| Phone ↔ network | Approved, signed items only | TLS, signatures, enrolled Secure Enclave device keys (#46; App Attest needs a paid Apple team) |
+| Network ↔ backend | Sync batches and dashboard requests | Authentication, tenant from the token, rate limits, versioned contract (#45) |
 | Backend ↔ organization database | One organization's data | Separate database per organization, row-level security per mission team |
 | Backend ↔ cloud AI | Data labelled public only | Label check before any call; Official Use Only never leaves |
 
-Details of keys and storage: ADR 0008. Threat model per boundary: Iteration 3.
+Details of keys and storage: ADR 0008. Threat model per boundary, with status and tests: [threat-model.md](threat-model.md).

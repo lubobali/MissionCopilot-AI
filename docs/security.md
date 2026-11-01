@@ -1,6 +1,7 @@
 # How Mission Copilot protects field data
 
-**Status: draft, proven in a feasibility spike on an iPhone 13 Pro Max. Not independently audited.**
+**Status: draft. Proven in a feasibility spike on an iPhone 13 Pro Max; not yet in the main app (rebuilt
+test-first in Phase 4). Not independently audited.** Every threat and its status: [threat model](threat-model.md).
 Decision record: [ADR 0008](adr/0008-data-storage-isolation-encryption.md). Evidence and how to repeat it:
 [spike #16](spikes/03-encryption.md).
 
@@ -39,11 +40,12 @@ the server's sync receipt to be caught.
 
 ## Check it yourself
 The code is open source. The [spike report](spikes/03-encryption.md) shows how to copy the database off a phone
-you own and try to read it with standard tools. The same check runs automatically in CI.
+you own and try to read it with standard tools. The same check runs automatically in CI on the spike package.
 
 ## What it does not protect against (honest limits)
 - **An unlocked phone in the wrong hands.** While unlocked, the app can read its data, and so can whoever holds
-  the phone. The app lock (Face ID or passcode on open, lock after inactivity) is planned for Phase 3.
+  the phone. The app lock (Face ID or passcode on open, lock after inactivity) is designed in Phase 3 (#49) and built
+  with the encrypted store in Phase 4.
 - **A phone without a passcode.** iOS Data Protection needs one.
 - **A compromised or jailbroken phone**, or attacks on memory while the app is open.
 - **Losing unsynced data.** If the phone is lost before sync, that data is gone. This is deliberate: losing data
@@ -52,5 +54,5 @@ you own and try to read it with standard tools. The same check runs automaticall
 - **The server.** Separate rules apply there (one database per organization); see ADR 0008.
 
 ## Status
-- Feasibility proven on a real iPhone (October 31, 2026); production code is rebuilt test-first in Phase 3.
+- Feasibility proven on a real iPhone (October 31, 2026); production code is rebuilt test-first in Phase 4.
 - **Not independently audited** and no bug bounty. Treat this as a portfolio project, not certified software.
