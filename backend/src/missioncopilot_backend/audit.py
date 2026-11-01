@@ -13,7 +13,9 @@ from dataclasses import dataclass
 from typing import Literal
 
 GENESIS = "0" * 64
-Kind = Literal["auth_failed", "rate_limited", "body_too_large", "org_without_database"]
+Kind = Literal[
+    "auth_failed", "role_denied", "rate_limited", "body_too_large", "org_without_database"
+]
 
 
 @dataclass(frozen=True)

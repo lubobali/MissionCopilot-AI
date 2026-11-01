@@ -3,9 +3,10 @@ info:
   title: MissionCopilot-AI API
   version: 1.0.0
   description: >
-    Contract between the iPhone app and the backend. The organization is taken from the
-    authentication token, never from the request body. Only approved, device-signed items are
-    uploaded. Errors use Problem Details (RFC 9457).
+    Contract between the iPhone app and the backend. People (dashboard) authenticate with a
+    bearer token; enrolled phones sign every request with their Secure Enclave key and never hold
+    a bearer token. The organization comes from the token or the enrolled device, never from the
+    request. Only approved, device-signed items are uploaded. Errors use Problem Details (RFC 9457).
   license:
     name: MIT
     identifier: MIT
@@ -20,6 +21,7 @@ tags:
   - name: sync
   - name: review
   - name: reporting
+  - name: devices
 paths:
   /v1/health:
     get:
@@ -45,6 +47,8 @@ paths:
     get:
       tags: [missions]
       operationId: getMissionPack
+      security:
+        - deviceSignature: []
       summary: Download the mission pack before going offline
       parameters:
         - $ref: "#/components/parameters/MissionId"
@@ -71,6 +75,8 @@ paths:
     post:
       tags: [sync]
       operationId: uploadSyncBatch
+      security:
+        - deviceSignature: []
       summary: Upload approved, signed items from the phone outbox (idempotent)
       parameters:
         - $ref: "#/components/parameters/MissionId"
@@ -118,6 +124,8 @@ paths:
     post:
       tags: [review]
       operationId: submitForReview
+      security:
+        - deviceSignature: []
       summary: Officer submits the approved report to the manager
       parameters:
         - $ref: "#/components/parameters/MissionId"
@@ -239,6 +247,134 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /v1/devices/enrollment-codes:
+    post:
+      tags: [devices]
+      operationId: issueEnrollmentCode
+      summary: An admin issues a single-use code to enroll one person's phone (15 minutes)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollmentCodeRequest"
+      responses:
+        "201":
+          description: The code, shown once; only its hash is stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollmentCode"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "422":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/devices/enroll:
+    post:
+      tags: [devices]
+      operationId: enrollDevice
+      summary: A phone registers its Secure Enclave public key with a one-time code
+      description: >
+        Authenticated by the one-time code, not a token. The phone proves it holds the private
+        key by signing the enrollment message. The device starts as pending until a manager
+        approves it. Trust on first use: without App Attest the server cannot prove the key lives
+        in a Secure Enclave.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceEnrollment"
+      responses:
+        "201":
+          description: Enrolled, waiting for a manager's approval
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "401":
+          description: The code is unknown, used or expired, or the proof does not verify
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "422":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/devices:
+    get:
+      tags: [devices]
+      operationId: listDevices
+      summary: A manager lists the organization's phones, pending ones first
+      responses:
+        "200":
+          description: Devices of the caller's organization
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Device"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/devices/{deviceId}/approve:
+    post:
+      tags: [devices]
+      operationId: approveDevice
+      summary: A manager approves a pending phone
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: The device is active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/devices/{deviceId}/revoke:
+    post:
+      tags: [devices]
+      operationId: revokeDevice
+      summary: A manager or admin revokes a phone; its signed requests are refused from then on
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: The device is revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 components:
   securitySchemes:
     bearerAuth:
@@ -246,7 +382,23 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: ES256 JWT from the configured issuer; iss, aud, sub, org, iat and exp are required. The organization (org) and user (sub) come only from this token, never from the path, query or body.
+    deviceSignature:
+      type: apiKey
+      in: header
+      name: X-Device-Signature
+      description: >
+        An enrolled, approved phone signs every request with its Secure Enclave key (ECDSA P-256,
+        SHA-256, DER, base64). Headers X-Device-Id, X-Device-Seq (strictly increasing) and
+        X-Device-Time (Unix seconds) are signed too; the signed message is defined in
+        docs/security.md. Replays, old times and unknown, pending or revoked devices get 401.
   parameters:
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     MissionId:
       name: missionId
       in: path
@@ -298,6 +450,59 @@ components:
           schema:
             $ref: "#/components/schemas/Problem"
   schemas:
+    EnrollmentCodeRequest:
+      type: object
+      additionalProperties: false
+      required: [userId, deviceLabel]
+      properties:
+        userId:
+          type: string
+          description: The person whose phone this code may enroll
+        deviceLabel:
+          type: string
+          maxLength: 80
+    EnrollmentCode:
+      type: object
+      required: [code, expiresAt]
+      properties:
+        code:
+          type: string
+          description: Shown once; the server keeps only its hash
+        expiresAt:
+          type: string
+          format: date-time
+    DeviceEnrollment:
+      type: object
+      additionalProperties: false
+      required: [code, publicKeyDER, proof]
+      properties:
+        code:
+          type: string
+        publicKeyDER:
+          type: string
+          contentEncoding: base64
+          description: P-256 public key, SubjectPublicKeyInfo DER (CryptoKit derRepresentation)
+        proof:
+          type: string
+          contentEncoding: base64
+          description: ECDSA P-256 SHA-256 DER signature over the enrollment message
+    Device:
+      type: object
+      required: [id, userId, label, status, enrolledAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        label:
+          type: string
+        status:
+          type: string
+          enum: [pending, active, revoked]
+        enrolledAt:
+          type: string
+          format: date-time
     Problem:
       type: object
       description: RFC 9457 Problem Details
