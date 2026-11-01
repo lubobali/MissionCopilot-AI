@@ -83,6 +83,17 @@ class DeviceRegistry:
     def find(self, device_id: str) -> Device | None:
         return self._devices.get(device_id)
 
+    def now(self) -> float:
+        return self._clock()
+
+    def accept_seq(self, device_id: str, seq: int) -> bool:
+        """True and remembered if seq is above every number accepted before; else False."""
+        device = self._devices[device_id]
+        if seq <= device.last_seq:
+            return False
+        self.update(device, last_seq=seq)
+        return True
+
     def in_org(self, org_id: str, device_id: str) -> Device | None:
         """The device only if it belongs to this organization: another organization's device and
         a missing one look the same."""

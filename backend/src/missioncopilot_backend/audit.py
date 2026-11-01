@@ -24,6 +24,7 @@ Kind = Literal[
     "device_enrolled",
     "device_approved",
     "device_revoked",
+    "device_auth_failed",
 ]
 
 
