@@ -4,13 +4,13 @@ request bodies reject fields we did not define (mass assignment)."""
 
 import pytest
 from fastapi import FastAPI
-from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 
 from missioncopilot_backend.app import create_app
 from missioncopilot_backend.models import StrictModel
 from missioncopilot_backend.settings import Settings
+from tests.unit.route_listing import served_routes
 
 pytestmark = pytest.mark.unit
 
@@ -83,12 +83,7 @@ def test_valid_input_still_works(client):
 
 
 def body_models(app: FastAPI) -> list[object]:
-    return [
-        param.field_info.annotation
-        for route in app.routes
-        if isinstance(route, APIRoute)
-        for param in route.dependant.body_params
-    ]
+    return [body for route in served_routes(app) for body in route.body_types]
 
 
 def is_strict(model: object) -> bool:

@@ -5,11 +5,11 @@ from pathlib import Path
 
 import pytest
 import yaml
-from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from missioncopilot_backend.app import create_app
 from missioncopilot_backend.settings import Settings
+from tests.unit.route_listing import served_routes
 
 pytestmark = pytest.mark.unit
 
@@ -41,11 +41,7 @@ def test_health_is_versioned_like_the_contract():
 def test_every_route_is_in_the_contract():
     spec = yaml.safe_load(SPEC_PATH.read_text(encoding="utf-8"))
     contract = {(method.upper(), path) for path, item in spec["paths"].items() for method in item}
-    served = {
-        (method, route.path)
-        for route in create_app(Settings()).routes
-        if isinstance(route, APIRoute)
-        for method in route.methods or ()
-    }
+    served = {(route.method, route.path) for route in served_routes(create_app(Settings()))}
 
+    assert ("GET", "/v1/health") in served, "the guard must see routes on included routers"
     assert served - contract == set()

@@ -2,6 +2,7 @@ import os
 
 from fastapi import APIRouter, FastAPI
 
+from missioncopilot_backend.auth import TokenVerifier
 from missioncopilot_backend.errors import install_error_handlers
 from missioncopilot_backend.settings import Settings
 
@@ -13,7 +14,7 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-def create_app(settings: Settings) -> FastAPI:
+def create_app(settings: Settings, verifier: TokenVerifier | None = None) -> FastAPI:
     """Build the app for one set of settings; tests build their own instead of patching globals."""
     docs = settings.docs_enabled
     app = FastAPI(
@@ -22,6 +23,7 @@ def create_app(settings: Settings) -> FastAPI:
         redoc_url="/redoc" if docs else None,
         openapi_url="/openapi.json" if docs else None,
     )
+    app.state.verifier = verifier  # None: every secured route refuses (fail closed)
     install_error_handlers(app)
     app.include_router(v1)
     return app
