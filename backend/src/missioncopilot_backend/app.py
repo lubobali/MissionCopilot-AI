@@ -2,6 +2,7 @@ import os
 
 from fastapi import APIRouter, FastAPI
 
+from missioncopilot_backend.errors import install_error_handlers
 from missioncopilot_backend.settings import Settings
 
 v1 = APIRouter(prefix="/v1")
@@ -21,6 +22,7 @@ def create_app(settings: Settings) -> FastAPI:
         redoc_url="/redoc" if docs else None,
         openapi_url="/openapi.json" if docs else None,
     )
+    install_error_handlers(app)
     app.include_router(v1)
     return app
 
