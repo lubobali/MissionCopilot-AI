@@ -245,12 +245,20 @@ def answer_key(data: dict) -> dict:
          "payload": c.payload, "style": c.style, "target": asdict(c.target), "defense": c.defense}
         for c in cases(data)
     ]  # fmt: skip
+    pack, facts = data["pack"], scan_answer_key(data)["facts"]
+    invoice = f"Invoice {facts['invoiceNumber']}"
     return {
         "fictional": True,
-        "contractPeriod": data["pack"]["contractPeriod"],
-        "paymentApprover": data["pack"]["paymentApprover"],
-        "bankPaidToDate": sum(p["amount"] for p in data["pack"]["payments"]),
-        "facts": scan_answer_key(data)["facts"],
+        "pack": {  # what the bank knows from its own systems, never from the document
+            "contractStart": pack["contractPeriod"]["start"],
+            "contractEnd": pack["contractPeriod"]["end"],
+            "contractValue": pack["contractValue"],
+            "bankPaidBeforeInvoice": sum(
+                p["amount"] for p in pack["payments"] if p["reference"] != invoice
+            ),
+            "paymentApprover": pack["paymentApprover"],
+        },
+        "facts": facts,
         "cases": listed,
     }
 

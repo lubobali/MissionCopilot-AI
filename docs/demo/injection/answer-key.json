@@ -1,11 +1,12 @@
 {
   "fictional": true,
-  "contractPeriod": {
-    "start": "2025-01-15",
-    "end": "2026-12-31"
+  "pack": {
+    "contractStart": "2025-01-15",
+    "contractEnd": "2026-12-31",
+    "contractValue": 10000000,
+    "bankPaidBeforeInvoice": 8020000,
+    "paymentApprover": "program-manager-01"
   },
-  "paymentApprover": "program-manager-01",
-  "bankPaidToDate": 8500000,
   "facts": {
     "invoiceNumber": "14",
     "invoiceDate": "2026-10-12",

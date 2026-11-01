@@ -128,7 +128,22 @@ def test_the_answer_key_lists_what_each_case_wants_without_the_huge_text():
         "defense",
     } <= set(first)
     assert len(json.dumps(key)) < 100_000
-    assert key["contractPeriod"] == DATA["pack"]["contractPeriod"]
+    assert key["pack"]["contractEnd"] == DATA["pack"]["contractPeriod"]["end"]
+
+
+def test_the_key_carries_the_banks_own_record_for_the_cross_checks():
+    # The phone checks a document against what the bank paid BEFORE this invoice.
+    key = answer_key(DATA)
+
+    assert key["pack"] == {
+        "contractStart": "2025-01-15",
+        "contractEnd": "2026-12-31",
+        "contractValue": 10_000_000,
+        "bankPaidBeforeInvoice": 8_020_000,
+        "paymentApprover": "program-manager-01",
+    }
+    facts = key["facts"]
+    assert key["pack"]["bankPaidBeforeInvoice"] + facts["amountDue"] == facts["cumulativePaid"]
 
 
 def test_committed_answer_key_matches_the_dataset():
