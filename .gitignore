@@ -3,6 +3,8 @@
 .env.*
 !.env.example
 *.pem
+# The one public key that is meant to be published (verifies the model signature).
+!docs/models/model-signing.pub.pem
 *.key
 *.p12
 *.mobileprovision
@@ -10,10 +12,12 @@
 # --- AI model files (too big, and license: the app downloads them) ---
 *.gguf
 *.safetensors
+# An 8 KiB fake model, for the model-signing tests (the large-file hook still blocks real weights).
+!ios/MissionCopilotTests/Fixtures/ModelSigning/fixture-model/model.safetensors
 *.mlpackage
 *.mlmodelc
 *.bin
-models/
+/models/
 
 # --- Python / uv ---
 __pycache__/

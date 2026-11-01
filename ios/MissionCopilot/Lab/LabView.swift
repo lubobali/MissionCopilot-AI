@@ -53,8 +53,15 @@ struct LabView: View {
 
     private func importModels() {
         do {
-            let imported = try ModelStore.live().importFromInbox()
-            message = imported.isEmpty ? "Nothing to import." : "Imported: \(imported.joined(separator: ", "))"
+            let result = try ModelStore.live().importFromInbox()
+            var lines: [String] = []
+            if !result.imported.isEmpty {
+                lines.append("Imported: \(result.imported.joined(separator: ", "))")
+            }
+            for (name, reason) in result.refused.sorted(by: { $0.key < $1.key }) {
+                lines.append("Refused \(name): \(reason)")
+            }
+            message = lines.isEmpty ? "Nothing to import." : lines.joined(separator: "\n")
             refresh()
         } catch {
             message = "Import failed: \(error.localizedDescription)"

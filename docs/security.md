@@ -66,6 +66,17 @@ and every request it sends is signed with that key.
 - Devices, codes and sequence numbers are kept in memory until the database arrives (Phase 5); there the
   sequence check becomes one transaction.
 
+## Which model may run (signed model)
+- The on-device model is signed with **OpenSSF Model Signing** (the official `model-signing` tool, pinned). The
+  signature lists the SHA-256 of all 9 model files and is signed with our own P-256 key.
+- The app checks it with CryptoKit **before importing and again before every load**: one changed byte, an extra or
+  missing file, a symlink, another key or a file name that climbs out of the folder is refused. The public key is
+  pinned in the app. Measured on the iPhone, offline: **0.37 to 0.59 s** for the 633 MB model.
+- The app's parts list ([`docs/sbom/app.cdx.json`](sbom/app.cdx.json), CycloneDX) records the model's source,
+  revision, hash and license, and the pinned database libraries. A check on every commit fails if it drifts
+  from the signature or the pinned versions. CI also builds the backend's parts list from its lockfile.
+- Details and how to verify it yourself: [docs/models/README.md](models/README.md).
+
 ## Check it yourself
 The code is open source. The [spike report](spikes/03-encryption.md) shows how to copy the database off a phone
 you own and try to read it with standard tools. The same check runs automatically in CI on the spike package.
@@ -76,6 +87,8 @@ you own and try to read it with standard tools. The same check runs automaticall
   with the encrypted store in Phase 4.
 - **A phone without a passcode.** iOS Data Protection needs one.
 - **A compromised or jailbroken phone**, or attacks on memory while the app is open.
+- **A bad model we signed ourselves.** The signature proves the model is the one we checked, not that the upstream
+  model is free of problems. The app never lets the model decide a fact or a flag (ADR 0005).
 - **Losing unsynced data.** If the phone is lost before sync, that data is gone. This is deliberate: losing data
   is safer than leaking it.
 - **Remote wipe while offline.** Not possible; real deployments should add device management (MDM).

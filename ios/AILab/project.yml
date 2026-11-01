@@ -40,6 +40,9 @@ targets:
     platform: iOS
     sources:
       - Sources
+      # Story #47: the main app's model-signature check, the same file, timed on the real model.
+      - path: ../MissionCopilot/Platform/ModelSignature.swift
+      - path: ../MissionCopilot/Platform/ModelSigningKey.swift
       # Spike #15: the committed scan documents and answer key, read on the phone.
       - path: ../../docs/demo/scans
         buildPhase: resources
