@@ -24,6 +24,11 @@ packages:
     path: EncryptionLab
   DocumentLab:
     path: DocumentLab
+  SpeechLab:
+    path: SpeechLab
+  ArgmaxOSS:
+    url: https://github.com/argmaxinc/argmax-oss-swift
+    exactVersion: 1.1.1
 targets:
   MissionCopilotAILab:
     type: application
@@ -38,6 +43,9 @@ targets:
       # Spike #15: the committed scan documents and answer key, read on the phone.
       - path: ../../docs/demo/scans
         buildPhase: resources
+      - path: ../../docs/demo/audio
+        type: folder
+        buildPhase: resources
     dependencies:
       # Pinned llama.cpp b11960 (= stable v0.8.0, commit 8642541b), device slice only.
       - framework: ../../models/llama.xcframework
@@ -50,8 +58,11 @@ targets:
         product: MLXGuidedGeneration
       - package: Transformers
         product: Tokenizers
+      - package: ArgmaxOSS
+        product: WhisperKit
       - package: EncryptionLab
       - package: DocumentLab
+      - package: SpeechLab
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lubobali.missioncopilot.ailab
@@ -61,6 +72,8 @@ targets:
         INFOPLIST_KEY_UIFileSharingEnabled: YES
         INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: YES
         INFOPLIST_KEY_NSCameraUsageDescription: Scan test documents for the reading spike.
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: Record a test voice debrief for the speech spike.
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: Transcribe test debriefs on this iPhone, offline.
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
         SUPPORTED_PLATFORMS: iphoneos
@@ -81,11 +94,15 @@ targets:
           - TokenizerAdapter.swift
       - path: ../../docs/demo/scans
         buildPhase: resources
+      - path: ../../docs/demo/audio
+        type: folder
+        buildPhase: resources
     dependencies:
       - framework: ../../models/llama.xcframework
         embed: true
       - package: EncryptionLab
       - package: DocumentLab
+      - package: SpeechLab
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lubobali.missioncopilot.ailab
@@ -95,6 +112,8 @@ targets:
         INFOPLIST_KEY_UIFileSharingEnabled: YES
         INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: YES
         INFOPLIST_KEY_NSCameraUsageDescription: Scan test documents for the reading spike.
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: Record a test voice debrief for the speech spike.
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: Transcribe test debriefs on this iPhone, offline.
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
         SUPPORTED_PLATFORMS: iphoneos

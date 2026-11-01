@@ -1,0 +1,124 @@
+{
+  "en": {
+    "voice": "Samantha",
+    "text": "This is a fictional training debrief for the Kandor Rural Roads Project, Package 1. I visited the site from the 10th to the 14th of November 2026. At kilometre 18, I measured the road width at 4.9 metres. The specification is 7 metres, so the road is too narrow at that point. I have a photo and a tape measurement. Kandor Roadworks Ltd reports 32 of 64 kilometres of asphalt built, out of 64 kilometres in total, which is half of the road. The Section 3 bridge is not started. The contractor gave rains and fuel shortages as the reason. Invoice 14 asks for 480,000 dollars. With this invoice, payments reach 8.5 million dollars, which is 85 percent of the contract value. Physical progress is only 50 percent, so payments are 35 points ahead of the work. This needs a follow up before the next payment. The planned completion date is 15 December 2026. I do not think that date is realistic without the bridge. The ministry letter extends the deadline to 15 March 2027, if a new work plan arrives within two weeks. Next steps: ask the contractor for the revised work plan, check the road width at two more points, and hold the next payment until work on the bridge has started. End of debrief.",
+    "facts": [
+      {
+        "name": "locationKm",
+        "value": "km 18",
+        "spoken": "kilometre 18"
+      },
+      {
+        "name": "roadWidthMeasured",
+        "value": "4.9 m",
+        "spoken": "4.9 metres"
+      },
+      {
+        "name": "roadWidthSpec",
+        "value": "7 m",
+        "spoken": "7 metres"
+      },
+      {
+        "name": "kmBuilt",
+        "value": "32",
+        "spoken": "32 of 64"
+      },
+      {
+        "name": "kmTotal",
+        "value": "64 km",
+        "spoken": "64 kilometres"
+      },
+      {
+        "name": "bridgeStatus",
+        "value": "not_started",
+        "spoken": "not started"
+      },
+      {
+        "name": "invoiceNumber",
+        "value": "14",
+        "spoken": "invoice 14"
+      },
+      {
+        "name": "invoiceAmount",
+        "value": "480000",
+        "spoken": "480,000"
+      },
+      {
+        "name": "paidTotal",
+        "value": "8.5 million",
+        "spoken": "8.5 million"
+      },
+      {
+        "name": "paidPercent",
+        "value": "85 percent",
+        "spoken": "85 percent"
+      },
+      {
+        "name": "plannedCompletion",
+        "value": "2026-12-15",
+        "spoken": "15 December 2026"
+      }
+    ]
+  },
+  "fr": {
+    "voice": "Thomas",
+    "text": "Ceci est un débriefing de formation fictif pour le projet de routes rurales de Kandor, lot 1. J'ai visité le chantier du 10 au 14 novembre 2026. Au kilomètre 18, j'ai mesuré la largeur de la route à 4,9 mètres. La spécification est de 7 mètres, donc la route est trop étroite à cet endroit. J'ai une photo et une mesure au ruban. L'entreprise Kandor Roadworks Ltd déclare 32 sur 64 kilomètres d'asphalte construits, sur un total de 64 kilomètres, soit la moitié de la route. Le pont de la section 3 n'est pas commencé. L'entreprise donne comme raison les pluies et les pénuries de carburant. La facture 14 demande 480 000 dollars. Avec cette facture, les paiements atteignent 8,5 millions de dollars, soit 85 pour cent de la valeur du contrat. L'avancement physique n'est que de 50 pour cent, donc les paiements ont 35 points d'avance sur les travaux. Il faut un suivi avant le prochain paiement. La date d'achèvement prévue est le 15 décembre 2026. Je ne pense pas que cette date soit réaliste sans le pont. La lettre du ministère prolonge le délai jusqu'au 15 mars 2027, si un nouveau plan de travail arrive sous deux semaines. Prochaines étapes : demander le plan de travail révisé, mesurer la largeur en deux autres points, et suspendre le prochain paiement jusqu'au début des travaux du pont. Fin du débriefing.",
+    "facts": [
+      {
+        "name": "locationKm",
+        "value": "km 18",
+        "spoken": "kilomètre 18"
+      },
+      {
+        "name": "roadWidthMeasured",
+        "value": "4.9 m",
+        "spoken": "4,9 mètres"
+      },
+      {
+        "name": "roadWidthSpec",
+        "value": "7 m",
+        "spoken": "7 mètres"
+      },
+      {
+        "name": "kmBuilt",
+        "value": "32",
+        "spoken": "32 sur 64"
+      },
+      {
+        "name": "kmTotal",
+        "value": "64 km",
+        "spoken": "64 kilomètres"
+      },
+      {
+        "name": "bridgeStatus",
+        "value": "not_started",
+        "spoken": "pas commencé"
+      },
+      {
+        "name": "invoiceNumber",
+        "value": "14",
+        "spoken": "facture 14"
+      },
+      {
+        "name": "invoiceAmount",
+        "value": "480000",
+        "spoken": "480 000"
+      },
+      {
+        "name": "paidTotal",
+        "value": "8.5 million",
+        "spoken": "8,5 millions"
+      },
+      {
+        "name": "paidPercent",
+        "value": "85 percent",
+        "spoken": "85 pour cent"
+      },
+      {
+        "name": "plannedCompletion",
+        "value": "2026-12-15",
+        "spoken": "15 décembre 2026"
+      }
+    ]
+  }
+}

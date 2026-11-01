@@ -1,0 +1,63 @@
+{
+  "spike": 14,
+  "device": "iPhone 13 Pro Max (A15), iOS 27.2, free Apple ID signing",
+  "date": "2026-11-01",
+  "note": "Values copied from the app's speech-results.json after each Lab run. Every run below was in airplane mode, recorded by the app as 'offline (no network path)'. Score = word error rate (WER) after normalization, and key facts found / 11. Real-voice and cloned-voice audio stays on the phone and the Mac, never in the repo; only scores and the number errors are kept. Answer key: docs/demo/audio/answer-key.json.",
+  "engines": {
+    "apple": "SpeechTranscriber + SpeechAnalyzer, iOS 27.2, preset .transcription, language assets installed once online (en already present, fr 15 s)",
+    "whisper": "WhisperKit 1.1.1, openai_whisper-large-v3-v20240930_626MB (598 MB on disk), temperature 0, VAD chunking unless noted, model + tokenizer copied to the phone, download: false"
+  },
+  "apple_status": {
+    "SpeechTranscriber.isAvailable": true,
+    "en_US": "supported, installed",
+    "fr_FR": "supported, installed after a 15 s download"
+  },
+  "mac_voices": {
+    "audio": "debrief-en.m4a Samantha 78 s, debrief-fr.m4a Thomas 84 s",
+    "apple en": "WER 7.8%, facts 10/11 (miss was a scorer gap: 'December 15th, 2026', fixed and tested), 1.8 s",
+    "apple fr": "WER 4.4%, facts 11/11, 1.5 s",
+    "whisper en": "WER 6.0%, facts 10/11 (same scorer gap), 11.3 s",
+    "whisper fr run 1 (vad)": "WER 33.2% (67 deletions), facts 9/11, 75.5 s: about 30 s of audio silently missing from the transcript",
+    "whisper fr run 2 (vad)": "WER 4.4%, facts 11/11, 13.7 s",
+    "whisper fr run 3 (no chunking)": "WER 5.3%, facts 11/11, 13.0 s",
+    "whisper fr run 4 (vad)": "WER 4.4%, facts 11/11, 12.2 s",
+    "whisper fr run 5 (no chunking)": "WER 5.3%, facts 11/11, 11.8 s"
+  },
+  "cloned_voice": {
+    "audio": "the tester's own voice, cloned (ElevenLabs Multilingual v2), 99 s; noise mixed by scripts/mix_noise.py at exactly 10 dB SNR",
+    "apple quiet": "WER 6.0%, facts 10/11",
+    "apple road 10 dB": "WER 7.0%, facts 10/11",
+    "apple cafe 10 dB": "WER 6.5%, facts 10/11",
+    "apple number error, all 3 rounds": "'8.5 million dollars' heard as '$85 million'",
+    "whisper quiet": "WER 2.3%, facts 11/11",
+    "whisper road 10 dB": "WER 1.4%, facts 11/11",
+    "whisper cafe 10 dB": "WER 2.3%, facts 11/11",
+    "time": "apple 1.9-2.0 s, whisper 11-23 s, per 99 s"
+  },
+  "real_voice": {
+    "audio": "the tester (non-native English speaker) reading the English script into the phone mic, raw (measurement mode)",
+    "quiet room (20.8 dB loud-to-quiet frames), 110 s": {
+      "apple": "WER 13.5%, facts 10/11 (miss: 'in voice 14', a word error; every number right), 2.2 s",
+      "whisper": "WER 8.8%, facts 11/11, 12.0 s"
+    },
+    "loud cafe + road noise from the Mac speakers (9.2 dB loud-to-quiet frames), 114 s": {
+      "apple": "WER 39.1%, facts 6/11, 2.5 s; number errors: 'kilometer of 80' (18), '8.500 hours' (8.5 million), 'December of 2020' (2026)",
+      "whisper run 1": "WER 31.0%, facts 9/11; '$8,500' (8.5 million); invented 'Thank you.' and a repeated sentence",
+      "whisper run 2": "WER 38.0%, facts 5/11",
+      "whisper run 3": "WER 19.5%, facts 10/11; '$8,500' (8.5 million)"
+    }
+  },
+  "whisper_load_and_memory": {
+    "first load after an install (Core ML compiles for the chip)": "101.5-104.9 s",
+    "warm load": "1.5-2.1 s",
+    "app memory available before load / after load / after runs / after unload (MB)": "3037 / 2973 / 2890 / 2982",
+    "note": "os_proc_available_memory, not a peak trace; Apple's transcriber runs in a system process, so the app's own memory does not show its cost"
+  },
+  "scorer_changes_after_seeing_results": [
+    "English dates in one order: 'December 15th, 2026' = '15 December 2026'",
+    "'of' before the year: '15 December of 2026'",
+    "'8.5 million' = '$8500000' = '8,500,000'; '480 thousand' = '480000' (exact decimal; '85 million' stays different)",
+    "units stuck to numbers: '4.9m' = '4.9 m'",
+    "each change test-first and mutation-checked; every one only makes the same value match, never a different value"
+  ]
+}

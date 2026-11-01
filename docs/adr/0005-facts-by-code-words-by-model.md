@@ -43,5 +43,12 @@ Option 3.
 - **Added rule:** every extracted fact must be grounded in its source document by code. An ungrounded fact
   is "needs review" and cannot be used in a report until a person confirms it.
 
+## Evidence (spike #14: voice debriefs, offline)
+- Both speech engines at times wrote a **wrong number with no warning** ("$85 million" for 8.5 million,
+  "$8,500", "km 80" for 18), and Whisper once dropped 30 s of audio while the text still read smoothly
+  (docs/spikes/06-speech.md). Grounding cannot catch this: the wrong number is in the transcript.
+- **Added rule:** a number from speech is "heard", not evidence. The app reads it back; it becomes evidence
+  only after the speaker confirms it, and code cross-checks it against the documents and the other facts.
+
 ## Revisit when
 - Never for arithmetic. Revisit the extraction split if document types multiply beyond what rules handle.
