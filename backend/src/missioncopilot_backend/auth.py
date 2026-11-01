@@ -54,12 +54,16 @@ UNAUTHORIZED = HTTPException(401, headers={"WWW-Authenticate": "Bearer"})
 
 
 def audit(
-    request: Request, kind: Kind, org_id: str | None = None, actor: str | None = None
+    request: Request,
+    kind: Kind,
+    org_id: str | None = None,
+    actor: str | None = None,
+    subject: str | None = None,
 ) -> None:
     log: AuditLog | None = getattr(request.app.state, "audit", None)
     if log is not None:
         client = request.client.host if request.client else None
-        log.record(kind, client=client, org_id=org_id, actor=actor)
+        log.record(kind, client=client, org_id=org_id, actor=actor, subject=subject)
 
 
 def require_principal(request: Request) -> Principal:

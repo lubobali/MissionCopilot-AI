@@ -83,6 +83,17 @@ class DeviceRegistry:
     def find(self, device_id: str) -> Device | None:
         return self._devices.get(device_id)
 
+    def in_org(self, org_id: str, device_id: str) -> Device | None:
+        """The device only if it belongs to this organization: another organization's device and
+        a missing one look the same."""
+        device = self._devices.get(device_id)
+        return device if device is not None and device.org_id == org_id else None
+
+    def of_org(self, org_id: str) -> list[Device]:
+        """This organization's devices, pending first, then by enrollment time."""
+        mine = [d for d in self._devices.values() if d.org_id == org_id]
+        return sorted(mine, key=lambda d: (d.status != "pending", d.enrolled_at))
+
     def has_key(self, public_key_der: bytes) -> bool:
         return hashlib.sha256(public_key_der).hexdigest() in self._keys
 

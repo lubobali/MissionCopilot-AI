@@ -335,7 +335,7 @@ paths:
     post:
       tags: [devices]
       operationId: approveDevice
-      summary: A manager approves a pending phone
+      summary: A manager approves a pending phone (never their own; a revoked phone stays revoked)
       parameters:
         - $ref: "#/components/parameters/DeviceId"
       responses:
@@ -351,6 +351,12 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: Only a pending device can be approved
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "429":
           $ref: "#/components/responses/TooManyRequests"
   /v1/devices/{deviceId}/revoke:

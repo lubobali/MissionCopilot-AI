@@ -22,6 +22,8 @@ Kind = Literal[
     "enrollment_code_issued",
     "enrollment_failed",
     "device_enrolled",
+    "device_approved",
+    "device_revoked",
 ]
 
 
@@ -33,6 +35,7 @@ class AuditEvent:
     client: str | None
     org_id: str | None
     actor: str | None
+    subject: str | None  # what the event is about, for example a device id
     prev_hash: str
     hash: str = ""
 
@@ -57,9 +60,10 @@ class AuditLog:
         client: str | None = None,
         org_id: str | None = None,
         actor: str | None = None,
+        subject: str | None = None,
     ) -> AuditEvent:
         event = AuditEvent(
-            len(self._events), self._clock(), kind, client, org_id, actor, self.head()
+            len(self._events), self._clock(), kind, client, org_id, actor, subject, self.head()
         )
         event = event.replace(hash=event.content_hash())
         self._events.append(event)
