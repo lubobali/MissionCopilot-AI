@@ -28,6 +28,15 @@ struct NormalizerTests {
         #expect(Normalizer.words("7 meters, 64 kilometers", language: "en") == ["7", "m", "64", "km"])
     }
 
+    @Test(arguments: ["15 December 2026", "December 15th, 2026", "December 15th. 2026", "the 15th of December 2026"])
+    func englishDateOrdersAllMeanTheSameDate(text: String) {
+        #expect(Normalizer.words(text, language: "en").suffix(3) == ["15", "december", "2026"])
+    }
+
+    @Test func aDifferentDayIsStillADifferentDate() {
+        #expect(Normalizer.words("December 16th, 2026", language: "en") == ["16", "december", "2026"])
+    }
+
     @Test func sentenceEndDoesNotStickToNumbers() {
         #expect(Normalizer.words("in 2026. End of debrief.", language: "en") == ["in", "2026", "end", "of", "debrief"])
     }

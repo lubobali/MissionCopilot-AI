@@ -15,6 +15,7 @@ struct SpeechView: View {
             #if canImport(WhisperKit)
             Section("WhisperKit large-v3 (626 MB, from Documents/whisperkit)") {
                 Button("4. Run WhisperKit on both debriefs") { model.runWhisper() }
+                Button("5. WhisperKit French again: VAD, then no chunking") { model.runWhisper(frenchRepeat: true) }
             }
             .disabled(model.running)
             #endif

@@ -22,10 +22,34 @@ public enum Normalizer {
             CharacterSet.letters.contains(scalar) || CharacterSet.decimalDigits.contains(scalar)
                 || scalar == "'" || scalar == "." ? Character(scalar) : " "
         }
-        return String(kept).split(separator: " ").compactMap { token in
+        let words = String(kept).split(separator: " ").compactMap { token -> String? in
             let word = token.trimmingCharacters(in: CharacterSet(charactersIn: ".'"))
             return word.isEmpty ? nil : units[word] ?? word
         }
+        return language == "en" ? dayBeforeMonth(words) : words
+    }
+
+    static let months: Set<String> = ["january", "february", "march", "april", "may", "june", "july", "august",
+                                      "september", "october", "november", "december"]
+
+    /// English dates in one order: "December 15th, 2026" and "the 15th of December" -> "15 december".
+    /// Only the order and the ordinal change, so a wrong day is still a wrong day.
+    static func dayBeforeMonth(_ words: [String]) -> [String] {
+        let isDay = { (word: String) in Int(word).map { (1...31).contains($0) } ?? false }
+        var out = words.map { replace(#"^(\d{1,2})(st|nd|rd|th)$"#, "$1", in: $0) }
+        var i = 0
+        while i < out.count - 1 {
+            if months.contains(out[i]), isDay(out[i + 1]) {
+                out.swapAt(i, i + 1)
+                i += 2
+            } else if isDay(out[i]), out[i + 1] == "of", i + 2 < out.count, months.contains(out[i + 2]) {
+                out.remove(at: i + 1)
+                i += 2
+            } else {
+                i += 1
+            }
+        }
+        return out
     }
 
     static func replace(_ pattern: String, _ template: String, in text: String) -> String {
