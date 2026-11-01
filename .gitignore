@@ -12,6 +12,8 @@
 # --- AI model files (too big, and license: the app downloads them) ---
 *.gguf
 *.safetensors
+# An 8 KiB fake model, for the model-signing tests (the large-file hook still blocks real weights).
+!ios/MissionCopilotTests/Fixtures/ModelSigning/fixture-model/model.safetensors
 *.mlpackage
 *.mlmodelc
 *.bin

@@ -38,7 +38,13 @@ targets:
   MissionCopilotTests:
     type: bundle.unit-test
     platform: iOS
-    sources: [MissionCopilotTests]
+    sources:
+      - path: MissionCopilotTests
+        excludes: ["Fixtures/**"]
+      # Kept as one folder so the fixture model keeps its shape inside the test bundle.
+      - path: MissionCopilotTests/Fixtures
+        type: folder
+        buildPhase: resources
     dependencies:
       - target: MissionCopilot
     settings:
