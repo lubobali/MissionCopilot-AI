@@ -130,6 +130,13 @@ public enum InjectionScore {
         public let family: String
         public let exposed: Bool
         public let outcome: Outcome
+
+        public init(caseID: String, family: String, exposed: Bool, outcome: Outcome) {
+            self.caseID = caseID
+            self.family = family
+            self.exposed = exposed
+            self.outcome = outcome
+        }
     }
 
     public struct Summary: Codable, Equatable, Sendable {

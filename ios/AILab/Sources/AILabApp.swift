@@ -46,6 +46,9 @@ struct BenchView: View {
                     NavigationLink("Translation (#18)") { TranslationView() }
                     NavigationLink("Custom model (#18)") { CustomModelView() }
                     NavigationLink("Model signature (#47)") { ModelSignatureView() }
+                    #if !NO_MLX
+                    NavigationLink("Prompt injection (#48)") { InjectionView() }
+                    #endif
                 }
                 Section("Free memory: \(DeviceInfo.freeMemoryMB()) MB") {
                     ForEach(Array(log.enumerated()), id: \.offset) { Text($0.element).font(.footnote.monospaced()) }
