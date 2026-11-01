@@ -245,7 +245,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Organization and user come from the token (details in Iteration 3)
+      description: ES256 JWT from the configured issuer; iss, aud, sub, org, iat and exp are required. The organization (org) and user (sub) come only from this token, never from the path, query or body.
   parameters:
     MissionId:
       name: missionId

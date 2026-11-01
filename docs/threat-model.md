@@ -109,7 +109,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 ### B5 Phone → network → backend
 | ID | STRIDE | Threat | Control | Status | Test or phase |
 |---|---|---|---|---|---|
-| T24 | I | Sync traffic is read in transit | TLS 1.3 (iOS 27 requires modern TLS) plus signed payloads | planned | #45, Phase 8 |
+| T24 | I | Sync traffic is read in transit | TLS 1.3 (iOS 27 requires modern TLS) plus signed payloads; HSTS already on every production answer | planned | Phase 8 |
 | T25 | T | A payload is changed in transit or at rest | Secure Enclave signatures and hash chain, verified by the backend | built | `backend/tests/unit/test_evidence_chain.py` |
 | T26 | S | A phone the organization never approved sends data | Enrollment: single-use admin code, manager approval, revocation | planned | #46 |
 | T27 | T | An old signed batch is replayed | Nonce or sequence number, plus idempotency key | planned | #46, Phase 8 |
@@ -119,15 +119,15 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 ### B6 Backend ↔ organization databases, and the API in front of them
 | ID | STRIDE | Threat | Control | Status | Test or phase |
 |---|---|---|---|---|---|
-| T30 | S | Unauthenticated calls | Bearer token on every route, deny by default | planned | #45 |
-| T31 | E | Organization A reads organization B (BOLA, API1:2023) | Organization only from the token; a cross-tenant test on every route | planned | #45 |
+| T30 | S | Unauthenticated calls | ES256 bearer token from one issuer on every route except health; secured router by default; every failure the same 401 | built | `backend/tests/unit/test_auth.py` |
+| T31 | E | Organization A reads organization B (BOLA, API1:2023) | Organization only from the token; one store per organization; another org's mission answers like a missing one; a cross-tenant test on every route | built | `backend/tests/unit/test_tenancy.py` |
 | T32 | I | Shared storage between organizations | One physical database per organization | planned | Phase 5 |
 | T33 | E | One mission team sees another team's mission | Row-level security per mission team | planned | Phase 8 |
-| T34 | D | Brute force, bots, flooding | Rate limit with 429, body size limit | planned | #45 |
-| T35 | I | API docs pages hand out the attack map | `/docs`, `/redoc`, `/openapi.json` off in production | planned | #45 |
-| T36 | T | Unexpected fields change stored data (mass assignment) | Strict input: unknown fields rejected | planned | #45 |
-| T37 | I | Routes exist that the contract does not describe | A test that the app's routes match the spec | planned | #45 |
-| T38 | R | No record of security events | Append-only audit log | planned | #45 |
+| T34 | D | Brute force, bots, flooding | Rate limit per client with 429 and Retry-After, capped memory; 1 MiB body limit, chunked bodies counted | built | `backend/tests/unit/test_limits.py` |
+| T35 | I | API docs pages hand out the attack map | `/docs`, `/redoc`, `/openapi.json` off in production; production is the default | built | `backend/tests/unit/test_app_surface.py` |
+| T36 | T | Unexpected fields change stored data (mass assignment) | Strict input: unknown fields rejected, a guard checks every request body; errors never echo input or leak a crash | built | `backend/tests/unit/test_errors_and_input.py` |
+| T37 | I | Routes exist that the contract does not describe | A test that every served route, routers included, is in the contract | built | `backend/tests/unit/test_app_surface.py` |
+| T38 | R | No record of security events | Append-only, hash-chained audit log; never tokens or bodies; stored in an insert-only table in Phase 8 | built | `backend/tests/unit/test_audit.py` |
 | T39 | I | A database backup is stolen | Per-organization keys, encrypted at rest | planned | Phase 8 |
 
 ### B7 Manager browser ↔ backend
@@ -137,6 +137,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | T41 | T | Script injection or clickjacking on the dashboard | Content Security Policy, frame-ancestors, output escaping | planned | #45 (headers), Phase 8 |
 | T42 | T | A forged "approve" request (CSRF) | SameSite cookies and a CSRF token, or bearer tokens only | planned | Phase 8 |
 | T43 | R | A manager denies having approved a mission | Approvals recorded in the audit log with who and when | planned | Phase 8 |
+| T53 | T | Another website calls the API from a browser, or a forged Host header | CORS only for the dashboard origin, no credentials; unknown hosts refused; nosniff, no framing, a 'none' content policy, no-referrer, no-store and HSTS on every answer | built | `backend/tests/unit/test_browser_and_hosts.py` |
 
 ### B8 Backend ↔ cloud AI
 | ID | STRIDE | Threat | Control | Status | Test or phase |
@@ -205,7 +206,7 @@ against the current release before quoting.
 | M5 Communication | T24, T25 | API5 Function-level authorization | T31, T33 |
 | M6 Privacy controls | P01-P07 | API6 Sensitive business flows | T42, T43 (approval) |
 | M7 Binary protections | T21 (accepted) | API7 Server-side request forgery | Not applicable: no URL fetching |
-| M8 Misconfiguration | T23, T35 | API8 Misconfiguration | T35, T41 |
+| M8 Misconfiguration | T23, T35 | API8 Misconfiguration | T35, T41, T53 |
 | M9 Data storage | T14-T16, T19 | API9 Inventory management | T37 |
 | M10 Cryptography | T14, T19, T25 | API10 Unsafe consumption of APIs | T45 |
 
