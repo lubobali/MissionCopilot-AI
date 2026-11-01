@@ -51,7 +51,9 @@ you own and try to read it with standard tools. The same check runs automaticall
 - **Losing unsynced data.** If the phone is lost before sync, that data is gone. This is deliberate: losing data
   is safer than leaking it.
 - **Remote wipe while offline.** Not possible; real deployments should add device management (MDM).
-- **The server.** Separate rules apply there (one database per organization); see ADR 0008.
+- **The server.** Separate rules apply there (one database per organization); see ADR 0008. The backend's
+  own protections (tokens, organization isolation, limits, headers, audit log) are listed in
+  [backend/README.md](../backend/README.md), each with its test in the [threat model](threat-model.md).
 
 ## Status
 - Feasibility proven on a real iPhone (October 31, 2026); production code is rebuilt test-first in Phase 4.
