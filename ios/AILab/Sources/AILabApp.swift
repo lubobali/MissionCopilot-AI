@@ -44,6 +44,7 @@ struct BenchView: View {
                     NavigationLink("Documents (#15)") { DocumentView() }
                     NavigationLink("Speech (#14)") { SpeechView() }
                     NavigationLink("Translation (#18)") { TranslationView() }
+                    NavigationLink("Custom model (#18)") { CustomModelView() }
                 }
                 Section("Free memory: \(DeviceInfo.freeMemoryMB()) MB") {
                     ForEach(Array(log.enumerated()), id: \.offset) { Text($0.element).font(.footnote.monospaced()) }
