@@ -93,17 +93,20 @@ extension DocumentLabModel {
     /// The newest saved scan of each page (page detected by code).
     @available(iOS 26.0, *)
     private func latestPhotoPerPage() async throws -> [(DocumentReader.Timed, PageName)] {
-        let files = ((try? FileManager.default.contentsOfDirectory(atPath: DeviceInfo.documents.path)) ?? [])
-            .filter { $0.hasPrefix("scan-") && $0.hasSuffix(".jpg") }.sorted()
-        var newest: [PageName: (DocumentReader.Timed, PageName)] = [:]
-        for file in files {
-            guard let image = UIImage(contentsOfFile: DeviceInfo.documents.appendingPathComponent(file).path) else {
-                continue
-            }
+        // Oldest to newest by the file's creation date, so the newest scan of each page wins.
+        // (Sorting by name was wrong: older "scan-invoice-14-..." names sort after newer "scan-179...".)
+        let urls = ((try? FileManager.default.contentsOfDirectory(at: DeviceInfo.documents,
+                                                                  includingPropertiesForKeys: [.creationDateKey])) ?? [])
+            .filter { $0.lastPathComponent.hasPrefix("scan-") && $0.pathExtension == "jpg" }
+            .sorted { Self.created($0) < Self.created($1) }
+        var newest: [PageName: (DocumentReader.Timed, PageName, String)] = [:]
+        for url in urls {
+            guard let image = UIImage(contentsOfFile: url.path) else { continue }
             let read = try await readAndDetect(image)
-            newest[read.1] = read
+            newest[read.1] = (read.0, read.1, url.lastPathComponent)
         }
-        return PageName.allCases.compactMap { newest[$0] }
+        record("facts: photos used", PageName.allCases.compactMap { newest[$0]?.2 }.joined(separator: ", "))
+        return PageName.allCases.compactMap { newest[$0] }.map { ($0.0, $0.1) }
     }
 
     /// "offline (no network path)" in airplane mode with Wi-Fi off; otherwise the interfaces in use.
@@ -120,6 +123,10 @@ extension DocumentLabModel {
             }
             monitor.start(queue: DispatchQueue(label: "network-status"))
         }
+    }
+
+    private static func created(_ url: URL) -> Date {
+        (try? url.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast
     }
 
     // MARK: - Pure helpers

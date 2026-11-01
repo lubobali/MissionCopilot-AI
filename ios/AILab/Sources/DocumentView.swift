@@ -6,6 +6,7 @@ struct DocumentView: View {
     @State private var model = DocumentLabModel()
     @State private var condition = DocumentLabModel.Condition.printedFlat
     @State private var scanning = false
+    @State private var scanningAnyPage = false
 
     var body: some View {
         List {
@@ -21,6 +22,11 @@ struct DocumentView: View {
                 Button("Re-score saved scans") { model.rescoreSavedScans() }
             }
             .disabled(model.running)
+            Section("Real paper of your own (unscored: counts only, no text or photo kept)") {
+                Button("Read any page") { scanningAnyPage = true }
+                    .disabled(!VNDocumentCameraViewController.isSupported)
+            }
+            .disabled(model.running)
             #if !NO_MLX
             Section("3. Scan -> AI -> 8 facts, checked by code (offline)") {
                 Button("Run scan -> facts (clean x3 + saved photos)") { model.runScanToFacts() }
@@ -32,6 +38,13 @@ struct DocumentView: View {
             }
         }
         .navigationTitle("Documents #15")
+        .fullScreenCover(isPresented: $scanningAnyPage) {
+            DocumentScanner { images in
+                scanningAnyPage = false
+                if !images.isEmpty { model.readAnyPage(images) }
+            }
+            .ignoresSafeArea()
+        }
         .fullScreenCover(isPresented: $scanning) {
             DocumentScanner { images in
                 scanning = false

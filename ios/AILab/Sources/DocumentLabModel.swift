@@ -53,14 +53,38 @@ final class DocumentLabModel {
     /// The page is detected by code (best match against the answer key), so nobody can pick the wrong one.
     func scanned(_ images: [UIImage], condition: Condition) {
         guard #available(iOS 26.0, *) else { return log("Needs iOS 26 or later.") }
-        guard let image = images.first else { return log("No page scanned.") }
-        let name = "scan-\(Int(Date().timeIntervalSince1970)).jpg"
-        if let jpeg = image.jpegData(compressionQuality: 0.8) {
-            try? jpeg.write(to: DeviceInfo.documents.appendingPathComponent(name))
-        }
+        guard !images.isEmpty else { return log("No page scanned.") }
+        let stamp = Int(Date().timeIntervalSince1970)
         running = true
         Task {
-            await readPhoto(image, label: "scan \(name), \(condition.rawValue)")
+            // Every page of the session: the scanner can take several pages before Save.
+            for (index, image) in images.enumerated() {
+                let name = "scan-\(stamp)-p\(index + 1).jpg"
+                if let jpeg = image.jpegData(compressionQuality: 0.8) {
+                    try? jpeg.write(to: DeviceInfo.documents.appendingPathComponent(name))
+                }
+                await readPhoto(image, label: "scan \(name), \(condition.rawValue)")
+            }
+            save()
+            running = false
+        }
+    }
+
+    /// Any real paper page (not scored, no answer key): logs only counts, never the text, and keeps no photo.
+    func readAnyPage(_ images: [UIImage]) {
+        guard #available(iOS 26.0, *) else { return log("Needs iOS 26 or later.") }
+        guard let image = images.first, let cgImage = image.cgImage else { return log("No page scanned.") }
+        running = true
+        Task {
+            do {
+                let result = try await DocumentReader.read(cgImage: cgImage, orientation: Self.orientation(image))
+                let lines = result.page.transcript.split(separator: "\n").count
+                let cells = result.page.tables.reduce(0) { $0 + $1.reduce(0) { $0 + $1.count } }
+                record("real paper (unscored) \(Int(Date().timeIntervalSince1970))",
+                       "\(lines) lines, \(result.page.tables.count) tables, \(cells) cells, \(Int(result.milliseconds)) ms")
+            } catch {
+                log("real paper FAILED: \(error)")
+            }
             save()
             running = false
         }
