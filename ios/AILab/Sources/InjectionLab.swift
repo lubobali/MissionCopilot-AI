@@ -1,6 +1,7 @@
 #if !NO_MLX
 import DocumentLab
 import Foundation
+import MLX
 import MLXLLM
 import MLXLMCommon
 import Observation
@@ -14,15 +15,25 @@ import SwiftUI
 @MainActor @Observable
 final class InjectionLabModel {
     static let runs = 3
-    var log: [String] = ["Opens the model, then runs 33 cases (3 runs each; the oversized one once, last)."]
+    var log: [String] = ["Runs 33 cases (3 runs each; the oversized one once, last). Run again to continue."]
     var running = false
     private var rows: [[String: String]] = []
     private var scored: [String: [InjectionScore.Scored]] = ["before": [], "after": []]
     private var notes: [String: String] = [:]
 
+    /// Deletes saved results, so the next run starts from the first case.
+    func startOver() {
+        try? FileManager.default.removeItem(at: Self.resultsURL)
+        rows = []
+        scored = ["before": [], "after": []]
+        notes = [:]
+        log.append("Saved results deleted.")
+    }
+
     func run() {
         guard #available(iOS 26.0, *) else { return log.append("Needs iOS 26 or later.") }
         running = true
+        resume()
         Task {
             notes["network during run"] = await DeviceInfo.networkStatus()
             do {
@@ -41,9 +52,13 @@ final class InjectionLabModel {
         let folder = try Self.folder()
         let key = try JSONDecoder().decode(InjectionKey.self, from: Data(contentsOf: folder.appendingPathComponent("answer-key.json")))
         let model = DeviceInfo.documents.appendingPathComponent("LFM2.5-1.2B-Instruct-4bit", isDirectory: true)
+        // The first run crashed after 21 answers with each one slower: MLX kept every GPU buffer. Cap the
+        // cache and empty it after each answer, and log free memory to show it holds.
+        Memory.cacheLimit = 32 * 1_048_576
         let container = try await LLMModelFactory.shared.loadContainer(from: model, using: LocalTokenizerLoader())
+        let finished = Set(rows.map { $0["case"] ?? "" })
         let ordered = key.cases.filter { $0.family != "oversized_input" } + key.cases.filter { $0.family == "oversized_input" }
-        for item in ordered {
+        for item in ordered where !finished.contains(item.id) {
             let (source, paymentRows, readMs) = try await Self.read(item, in: folder)
             let exposed = item.family != "clean" && InjectionScore.exposed(item.payload, in: source)
             let runs = item.family == "oversized_input" ? 1 : Self.runs
@@ -51,10 +66,12 @@ final class InjectionLabModel {
                 let start = Date()
                 let raw = try? await StructuredSpike.constrained(container: container, prompt: Self.prompt(source))
                 let modelMs = Int(Date().timeIntervalSince(start) * 1000)
+                Memory.clearCache()
                 let facts = raw.flatMap { try? JSONDecoder().decode(ExtractedFacts.self, from: Data($0.utf8)) }
                 let answer = InjectionScore.Run(caseID: item.id, source: source, paymentRows: paymentRows, facts: facts)
                 var row = ["case": item.id, "family": item.family, "run": "\(run)", "exposed": "\(exposed)",
-                           "read ms": "\(readMs)", "model ms": "\(modelMs)", "raw": raw ?? "NO ANSWER"]
+                           "read ms": "\(readMs)", "model ms": "\(modelMs)", "free MB": "\(DeviceInfo.freeMemoryMB())",
+                           "raw": raw ?? "NO ANSWER"]
                 for mode in [InjectionScore.Mode.before, .after] {
                     let outcome = InjectionScore.outcome(item, answer, mode: mode, key: key)
                     row[mode.rawValue] = outcome.rawValue
@@ -108,6 +125,25 @@ final class InjectionLabModel {
         return url
     }
 
+    static let resultsURL = DeviceInfo.documents.appendingPathComponent("injection-results.json")
+
+    /// Picks up the answers saved before a crash; a case counts as done once all its runs are saved.
+    private func resume() {
+        guard rows.isEmpty, let data = try? Data(contentsOf: Self.resultsURL),
+              let saved = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let runs = saved["runs"] as? [[String: String]] else { return }
+        rows = runs
+        notes = saved["notes"] as? [String: String] ?? [:]
+        for row in runs {
+            for mode in ["before", "after"] {
+                guard let outcome = row[mode].flatMap(InjectionScore.Outcome.init(rawValue:)) else { continue }
+                scored[mode, default: []].append(.init(caseID: row["case"] ?? "", family: row["family"] ?? "",
+                                                       exposed: row["exposed"] == "true", outcome: outcome))
+            }
+        }
+        log.append("Continuing after \(Set(runs.compactMap { $0["case"] }).count) saved cases.")
+    }
+
     private func note(_ name: String, _ value: String) {
         notes[name] = value
         log.append(name + ": " + value)
@@ -123,7 +159,7 @@ final class InjectionLabModel {
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys])
         else { return }
-        try? data.write(to: DeviceInfo.documents.appendingPathComponent("injection-results.json"))
+        try? data.write(to: Self.resultsURL)
     }
 }
 
@@ -133,7 +169,8 @@ struct InjectionView: View {
     var body: some View {
         List {
             Section("Prompt-injection set (#48), offline") {
-                Button("Run all cases") { model.run() }.disabled(model.running)
+                Button("Run all cases (continues after a crash)") { model.run() }.disabled(model.running)
+                Button("Start over", role: .destructive) { model.startOver() }.disabled(model.running)
                 if model.running { ProgressView() }
             }
             Section("Log") {
