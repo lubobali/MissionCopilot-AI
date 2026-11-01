@@ -1,0 +1,110 @@
+{
+  "facts": {
+    "invoiceNumber": "14",
+    "invoiceDate": "2026-10-12",
+    "amountDue": 480000,
+    "cumulativePaid": 8500000,
+    "contractValue": 10000000,
+    "kmCompleted": 32,
+    "kmTotal": 64,
+    "bridgeStatus": "not_started"
+  },
+  "pages": {
+    "invoice-14": {
+      "title": "Invoice No. 14",
+      "lines": [
+        "Kandor Roadworks Ltd",
+        "Plot 7, Ring Road, Kandor City",
+        "Kandor Rural Roads Project, Package 1 (KRRP-P1)",
+        "Invoice No. 14",
+        "Date: 12 October 2026",
+        "Bill to: Ministry of Public Works, Kandor",
+        "Amount due this invoice: USD 480,000",
+        "Contract value: USD 10,000,000",
+        "Paid to date, including this invoice: USD 8,500,000"
+      ]
+    },
+    "progress-report-2026-09": {
+      "title": "Contractor progress report, September 2026",
+      "lines": [
+        "Kandor Roadworks Ltd",
+        "Kandor Rural Roads Project, Package 1 (KRRP-P1)",
+        "Status as of 30 September 2026",
+        "Road built: 32 of 64 km of asphalt",
+        "Section 3 bridge: not started",
+        "Reason given: rains and fuel shortages",
+        "Planned completion: 15 December 2026"
+      ]
+    }
+  },
+  "tables": {
+    "invoice-14": {
+      "headers": [
+        "Date",
+        "Reference",
+        "Amount (USD)"
+      ],
+      "rows": [
+        [
+          "15 Feb 2025",
+          "Advance payment",
+          "1,000,000"
+        ],
+        [
+          "30 Sep 2025",
+          "Invoice 6",
+          "1,500,000"
+        ],
+        [
+          "31 Jan 2026",
+          "Invoice 9",
+          "1,800,000"
+        ],
+        [
+          "31 May 2026",
+          "Invoice 11",
+          "2,000,000"
+        ],
+        [
+          "31 Aug 2026",
+          "Invoice 13",
+          "1,720,000"
+        ],
+        [
+          "12 Oct 2026",
+          "Invoice 14",
+          "480,000"
+        ]
+      ]
+    },
+    "progress-report-2026-09": {
+      "headers": [
+        "Milestone",
+        "Due",
+        "Met"
+      ],
+      "rows": [
+        [
+          "Mobilisation",
+          "1 Mar 2025",
+          "20 Feb 2025"
+        ],
+        [
+          "Sections 1 and 2 paved",
+          "30 Jun 2026",
+          "20 Jul 2026"
+        ],
+        [
+          "Section 3 bridge complete",
+          "30 Sep 2026",
+          ""
+        ],
+        [
+          "Practical completion",
+          "15 Dec 2026",
+          ""
+        ]
+      ]
+    }
+  }
+}

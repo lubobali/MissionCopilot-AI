@@ -96,7 +96,8 @@ enum StructuredSpike {
     }
 
     /// Constrained run: the grammar forces valid JSON matching the schema (greedy, deterministic).
-    static func constrained(container: ModelContainer, maxTokens: Int = 256) async throws -> String {
+    static func constrained(container: ModelContainer, prompt: String = prompt, maxTokens: Int = 256)
+        async throws -> String {
         try await container.perform { context in
             let tokenizer = context.tokenizer
             let grammarVocab = TokenizerVocabExtractor.extractForGrammar(from: tokenizer)

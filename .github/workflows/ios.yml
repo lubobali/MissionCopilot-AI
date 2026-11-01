@@ -10,10 +10,12 @@ on:
     branches: [main]
     paths:
       - "ios/**"
+      - "docs/demo/scans/**"
       - ".github/workflows/ios.yml"
   pull_request:
     paths:
       - "ios/**"
+      - "docs/demo/scans/**"
       - ".github/workflows/ios.yml"
 
 concurrency:
@@ -23,8 +25,10 @@ concurrency:
 jobs:
   ios:
     name: iOS lint and tests (simulator)
-    # Pinned image: "latest" moves, pinned stays reproducible.
-    runs-on: macos-15
+    # Pinned image and pinned Xcode: "latest" moves, pinned stays reproducible. macos-15 defaulted to
+    # Xcode 16.4 (iOS 18.5 SDK) while development uses Xcode 27.2; the document reader needs the iOS 26
+    # SDK. Xcode 26.6 is the newest on GitHub runners; move to Xcode 27 when the image offers it.
+    runs-on: macos-26
     timeout-minutes: 30
     permissions:
       contents: read
@@ -33,6 +37,7 @@ jobs:
       XCODEGEN_SHA256: "4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806"
       SWIFTLINT_VERSION: "0.65.1"
       SWIFTLINT_SHA256: "c1e429b0599cf1b516f369a2d9ec04eaf0e436f3c12b637df8851fa52ff694d0"
+      XCODE_APP: /Applications/Xcode_26.6.app
       TOOLS_DIR: ${{ github.workspace }}/../ios-tools
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -59,6 +64,9 @@ jobs:
           unzip -qo swiftlint.zip -d "$RUNNER_TEMP/swiftlint"
           echo "$RUNNER_TEMP/xcodegen/xcodegen/bin" >> "$GITHUB_PATH"
           echo "$RUNNER_TEMP/swiftlint" >> "$GITHUB_PATH"
+
+      - name: Select Xcode (pinned)
+        run: sudo xcode-select -s "$XCODE_APP"
 
       - name: Tool versions
         run: |
@@ -92,3 +100,9 @@ jobs:
           set -euo pipefail
           udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for r,v in d.items() if 'iOS' in r for x in v if x['name'].startswith('iPhone')))")
           ios/AILab/EncryptionLab/test.sh "id=${udid}"
+
+      - name: Document lab tests (spike 15, Vision reads the scan documents)
+        run: |
+          set -euo pipefail
+          udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for r,v in d.items() if 'iOS' in r for x in v if x['name'].startswith('iPhone')))")
+          ios/AILab/DocumentLab/test.sh "id=${udid}"
