@@ -1,0 +1,24 @@
+# Dependabot (threat model T47, T48): weekly update pull requests for the backend's Python packages
+# and for GitHub Actions. A 7-day cooldown skips brand-new releases, the window in which hijacked
+# packages and actions have been caught in the past. Security fixes are not delayed by the cooldown.
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: /backend
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      python:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
