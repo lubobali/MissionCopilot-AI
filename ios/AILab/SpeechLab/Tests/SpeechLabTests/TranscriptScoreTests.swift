@@ -19,8 +19,8 @@ struct NormalizerTests {
     }
 
     @Test func percentAndMillionsInBothLanguages() {
-        #expect(Normalizer.words("85% of 8.5 million", language: "en") == ["85", "percent", "of", "8.5", "million"])
-        #expect(Normalizer.words("85 pour cent, 8,5 millions", language: "fr") == ["85", "percent", "8.5", "million"])
+        #expect(Normalizer.words("85% of 8.5 million", language: "en") == ["85", "percent", "of", "8500000"])
+        #expect(Normalizer.words("85 pour cent, 8,5 millions", language: "fr") == ["85", "percent", "8500000"])
         #expect(Normalizer.words("85 per cent", language: "en") == ["85", "percent"])
     }
 
@@ -31,6 +31,30 @@ struct NormalizerTests {
     @Test(arguments: ["15 December 2026", "December 15th, 2026", "December 15th. 2026", "the 15th of December 2026"])
     func englishDateOrdersAllMeanTheSameDate(text: String) {
         #expect(Normalizer.words(text, language: "en").suffix(3) == ["15", "december", "2026"])
+    }
+
+    @Test(arguments: ["15 December of 2026", "December 15th of 2026"])
+    func ofBeforeTheYearIsTheSameDate(text: String) {
+        #expect(Normalizer.words(text, language: "en") == ["15", "december", "2026"])
+    }
+
+    @Test(arguments: ["8.5 million", "$8500000", "8,500,000", "8 500 000"])
+    func aMillionWrittenAnyWayIsTheSameNumber(text: String) {
+        #expect(Normalizer.words(text, language: "en") == ["8500000"])
+    }
+
+    @Test func thousandAsAWordIsTheSameNumber() {
+        #expect(Normalizer.words("480 thousand dollars", language: "en") == ["480000", "dollars"])
+        #expect(Normalizer.words("480 mille dollars", language: "fr") == ["480000", "dollars"])
+    }
+
+    @Test func unitsStuckToTheNumberAreSplit() {
+        #expect(Normalizer.words("4.9m and 18km", language: "en") == ["4.9", "m", "and", "18", "km"])
+    }
+
+    @Test func aDifferentAmountIsStillADifferentAmount() {
+        #expect(Normalizer.words("85 million", language: "en") == ["85000000"])
+        #expect(Normalizer.words("8,500 hours", language: "en") == ["8500", "hours"])
     }
 
     @Test func aDifferentDayIsStillADifferentDate() {

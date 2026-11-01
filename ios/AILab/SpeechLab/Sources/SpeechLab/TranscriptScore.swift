@@ -18,6 +18,7 @@ public enum Normalizer {
         text = replace(#"(\d),(\d)"#, "$1.$2", in: text)  // French decimal comma: "4,9" -> "4.9"
         text = replace(#"(\d)\s*%"#, "$1 percent", in: text)
         text = replace(#"\b(pour|per) cent\b"#, "percent", in: text)
+        text = replace(#"(\d)(km|m)\b"#, "$1 $2", in: text)  // "4.9m" -> "4.9 m"
         let kept = text.unicodeScalars.map { scalar -> Character in
             CharacterSet.letters.contains(scalar) || CharacterSet.decimalDigits.contains(scalar)
                 || scalar == "'" || scalar == "." ? Character(scalar) : " "
@@ -26,7 +27,25 @@ public enum Normalizer {
             let word = token.trimmingCharacters(in: CharacterSet(charactersIn: ".'"))
             return word.isEmpty ? nil : units[word] ?? word
         }
-        return language == "en" ? dayBeforeMonth(words) : words
+        let numbers = scaled(words)
+        return language == "en" ? dayBeforeMonth(numbers) : numbers
+    }
+
+    static let multipliers: [String: Decimal] = ["thousand": 1000, "mille": 1000, "million": 1_000_000]
+
+    /// "8.5 million" and "480 thousand" -> "8500000" and "480000", the form a transcript may write instead.
+    /// Exact decimal arithmetic, so "85 million" stays a different number from "8.5 million".
+    static func scaled(_ words: [String]) -> [String] {
+        var out: [String] = []
+        for word in words {
+            if let factor = multipliers[word], let last = out.last, let number = Decimal(string: last),
+               last.allSatisfy({ $0.isNumber || $0 == "." }) {
+                out[out.count - 1] = "\(number * factor)"
+            } else {
+                out.append(word)
+            }
+        }
+        return out
     }
 
     static let months: Set<String> = ["january", "february", "march", "april", "may", "june", "july", "august",
@@ -49,7 +68,11 @@ public enum Normalizer {
                 i += 1
             }
         }
-        return out
+        // "15 december of 2026" -> "15 december 2026"
+        return out.indices.filter { j in
+            !(out[j] == "of" && j > 0 && months.contains(out[j - 1]) && j + 1 < out.count
+              && out[j + 1].count == 4 && Int(out[j + 1]) != nil)
+        }.map { out[$0] }
     }
 
     static func replace(_ pattern: String, _ template: String, in text: String) -> String {

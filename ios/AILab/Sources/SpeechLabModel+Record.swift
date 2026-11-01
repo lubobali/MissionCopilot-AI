@@ -6,9 +6,9 @@ import Foundation
 extension SpeechLabModel {
     var isRecording: Bool { recorder != nil }
 
-    /// "quiet" or "noisy" while recording, from the file name.
+    /// "quiet" or "noisy" while recording, from the file name "lubo-real-en-<round>-<time>".
     var recordingRound: String? {
-        recorder.map { $0.url.deletingPathExtension().lastPathComponent.replacingOccurrences(of: "lubo-real-en-", with: "") }
+        recorder.map { $0.url.deletingPathExtension().lastPathComponent.split(separator: "-")[3] }.map(String.init)
     }
 
     func toggleRecording(round: String) {
@@ -26,7 +26,8 @@ extension SpeechLabModel {
                 let session = AVAudioSession.sharedInstance()
                 try session.setCategory(.record, mode: .measurement)  // no voice processing: the raw mic
                 try session.setActive(true)
-                let url = Self.voiceFolder.appendingPathComponent("lubo-real-en-\(round).m4a")
+                // A new name per take: a second take must never replace the first (it did once).
+                let url = Self.voiceFolder.appendingPathComponent("lubo-real-en-\(round)-\(Int(Date().timeIntervalSince1970)).m4a")
                 let settings: [String: Any] = [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 16000,
                                                AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 32000]
                 let recorder = try AVAudioRecorder(url: url, settings: settings)
