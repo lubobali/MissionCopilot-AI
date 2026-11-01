@@ -1,0 +1,117 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "bom-ref": "missioncopilot-ios",
+      "name": "MissionCopilot (iOS)"
+    },
+    "properties": [
+      {
+        "name": "missioncopilot:checked-by",
+        "value": "scripts/check_bom.py on every commit: model hash = signed bundle, Swift pins = Package.resolved"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "machine-learning-model",
+      "bom-ref": "model-lfm2.5-1.2b-instruct-4bit",
+      "group": "mlx-community",
+      "name": "LFM2.5-1.2B-Instruct-4bit",
+      "version": "dee2f8a2786e6648bb644a7ca40652842490034b",
+      "purl": "pkg:huggingface/mlx-community/LFM2.5-1.2B-Instruct-4bit@dee2f8a2786e6648bb644a7ca40652842490034b",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d837f243744bbdbe7dd032f90b482a1c45d5b6035b25c1d7804d0f4c74b5c004"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "LFM Open License v1.0 (may need a commercial agreement for large organizations, ADR 0004)"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://huggingface.co/mlx-community/LFM2.5-1.2B-Instruct-4bit/tree/dee2f8a2786e6648bb644a7ca40652842490034b"
+        },
+        {
+          "type": "attestation",
+          "url": "https://github.com/lubobali/MissionCopilot-AI/blob/main/docs/models/LFM2.5-1.2B-Instruct-4bit.sig",
+          "comment": "OpenSSF Model Signing bundle over all 9 files; the app verifies it before every load"
+        }
+      ],
+      "pedigree": {
+        "ancestors": [
+          {
+            "type": "machine-learning-model",
+            "group": "LiquidAI",
+            "name": "LFM2.5-1.2B-Instruct"
+          }
+        ],
+        "notes": "4-bit MLX conversion of the LiquidAI base model by mlx-community"
+      },
+      "modelCard": {
+        "modelParameters": {
+          "task": "text-generation"
+        },
+        "considerations": {
+          "useCases": [
+            "Drafting summaries and structured fields offline; every fact and flag comes from code checks, not the model (ADR 0005)"
+          ],
+          "technicalLimitations": [
+            "Small 1.2B model: can be wrong or follow injected text; outputs are checked and need human approval"
+          ]
+        }
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "grdb-swift-sqlcipher-fork",
+      "group": "lubobali",
+      "name": "GRDB.swift",
+      "version": "7.11.1",
+      "purl": "pkg:github/lubobali/GRDB.swift@b860da4a2a72305e14297a67871784d9480bd7d4",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "pedigree": {
+        "ancestors": [
+          {
+            "type": "library",
+            "group": "groue",
+            "name": "GRDB.swift",
+            "version": "7.11.1",
+            "purl": "pkg:github/groue/GRDB.swift@v7.11.1"
+          }
+        ],
+        "notes": "Fork on branch sqlcipher-7.11.1: only Package.swift changes, to link SQLCipher (spike 03)"
+      }
+    },
+    {
+      "type": "library",
+      "bom-ref": "sqlcipher-swift",
+      "group": "sqlcipher",
+      "name": "SQLCipher.swift",
+      "version": "4.20.0",
+      "purl": "pkg:github/sqlcipher/SQLCipher.swift@e7415c5e6b4fd9b78874bb956aad8a42b08e9966",
+      "licenses": [
+        {
+          "license": {
+            "name": "SQLCipher Community Edition Open Source License (BSD-style, Zetetic LLC)"
+          }
+        }
+      ]
+    }
+  ]
+}

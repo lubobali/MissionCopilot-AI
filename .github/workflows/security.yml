@@ -1,6 +1,6 @@
 name: Security
 
-# Security checks (threat model rows T47, T48): known-vulnerable dependencies and risky code patterns
+# Security checks (threat model rows T47, T48, T52): known-vulnerable dependencies and risky code patterns
 # fail CI. Runs on every pull request, on main, and weekly, because new vulnerabilities are published
 # without any change to our code. Swift needs a full Mac build, so it runs weekly and on demand.
 
@@ -39,6 +39,38 @@ jobs:
           set -euo pipefail
           uv export --locked --no-hashes --no-emit-project --format requirements-txt -o "$RUNNER_TEMP/requirements.txt"
           uvx pip-audit@2.10.1 --strict --disable-pip --no-deps -r "$RUNNER_TEMP/requirements.txt"
+
+  backend-sbom:
+    name: SBOM (backend, CycloneDX)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      # Runtime packages only (no dev tools), each with its version, PyPI URL and SHA-256 from uv.lock.
+      # uv's CycloneDX export is a preview feature, so it is opted into by name.
+      - name: Build the backend SBOM from the lockfile
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          uv export --locked --no-dev --no-emit-project --preview-features sbom-export \
+            --format cyclonedx1.5 > "$RUNNER_TEMP/backend.cdx.json"
+          python3 -c 'import json,sys; c=json.load(open(sys.argv[1]))["components"]; assert c and all(x.get("purl") for x in c); print(len(c), "components")' "$RUNNER_TEMP/backend.cdx.json"
+          cp ../docs/sbom/app.cdx.json "$RUNNER_TEMP/app.cdx.json"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom
+          path: |
+            ${{ runner.temp }}/backend.cdx.json
+            ${{ runner.temp }}/app.cdx.json
+          retention-days: 90
 
   codeql:
     name: CodeQL (${{ matrix.language }})
