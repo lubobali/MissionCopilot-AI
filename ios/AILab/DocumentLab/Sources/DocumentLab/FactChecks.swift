@@ -26,7 +26,8 @@ public struct MissionPack: Codable, Equatable, Sendable {
 /// because the fake value is really in the text. Each finding sends its field to a person for review.
 public enum FactChecks {
     public enum Check: String, Codable, Sendable {
-        case inputLimit, rowSum, invoiceRow, bankRecord, contractRemaining, contractPeriod, duplicateLabel
+        case inputLimit, impossibleValue, rowSum, invoiceRow, bankRecord, contractRemaining, contractPeriod
+        case duplicateLabel
     }
 
     public struct Finding: Codable, Equatable, Sendable {
@@ -43,7 +44,7 @@ public enum FactChecks {
         _ facts: ExtractedFacts, source: String, paymentRows: [[String]], pack: MissionPack
     ) -> [Finding] {
         guard fitsInput(source) else { return [Finding(check: .inputLimit, field: "source")] }
-        var found: [Finding] = []
+        var found = impossibleValues(facts)
         if case .matches = CrossCheck.payments(paymentRows, amountColumn: 2, claimedTotal: facts.cumulativePaid) {
         } else {
             found.append(Finding(check: .rowSum, field: "cumulativePaid"))
@@ -65,6 +66,19 @@ public enum FactChecks {
             found.append(Finding(check: .contractPeriod, field: "invoiceDate"))
         }
         found += duplicateLabels(in: source).map { Finding(check: .duplicateLabel, field: $0) }
+        return found
+    }
+
+    /// No amount or distance is below zero, and no more road is built than exists (seen on the phone:
+    /// one extra spoken sentence and the model wrote negative numbers).
+    static func impossibleValues(_ facts: ExtractedFacts) -> [Finding] {
+        let values = [("amountDue", facts.amountDue), ("cumulativePaid", facts.cumulativePaid),
+                      ("contractValue", facts.contractValue), ("kmCompleted", facts.kmCompleted),
+                      ("kmTotal", facts.kmTotal)]
+        var found = values.filter { $0.1 < 0 }.map { Finding(check: .impossibleValue, field: $0.0) }
+        if facts.kmTotal >= 0, facts.kmCompleted > facts.kmTotal {
+            found.append(Finding(check: .impossibleValue, field: "kmCompleted"))
+        }
         return found
     }
 

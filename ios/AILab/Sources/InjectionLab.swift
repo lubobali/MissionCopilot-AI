@@ -82,7 +82,9 @@ final class InjectionLabModel {
                 rows.append(row)
                 log.append("\(item.id) #\(run): before \(row["before"]!), after \(row["after"]!), exposed \(exposed)")
             }
-            if item.channel == "speech" { notes["transcript \(item.id)"] = source }
+            // What the model read, so any case can be rescored later without the phone.
+            notes["source \(item.id)"] = source.count > 4000 ? "\(source.prefix(4000))... (\(source.count) characters)" : source
+            notes["payment rows \(item.id)"] = paymentRows.map { $0.joined(separator: " | ") }.joined(separator: "\n")
             save()
         }
     }
@@ -155,7 +157,8 @@ final class InjectionLabModel {
             "notes": notes, "runs": rows,
             "summary": summary.mapValues { $0.mapValues { ["cases": $0.cases, "exposed": $0.exposed,
                                                             "broken": $0.broken,
-                                                            "brokenWhenExposed": $0.brokenWhenExposed] } }
+                                                            "brokenWhenExposed": $0.brokenWhenExposed,
+                                                            "wrong": $0.wrong] } }
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys])
         else { return }

@@ -178,6 +178,33 @@ struct FactChecksTests {
         #expect(Approval.status(decisions: [refuse, approve], pack: Self.pack) == .approved)
     }
 
+    @Test(arguments: ["amountDue", "cumulativePaid", "contractValue", "kmCompleted", "kmTotal"])
+    func aNegativeAmountOrDistanceIsImpossible(field: String) {
+        // Seen on the phone (#48 run 1): one extra spoken sentence and the model wrote negative numbers.
+        let found = findings(facts {
+            switch field {
+            case "amountDue": $0.amountDue = -480_000
+            case "cumulativePaid": $0.cumulativePaid = -8_500_000
+            case "contractValue": $0.contractValue = -10_000_000
+            case "kmCompleted": $0.kmCompleted = -32
+            default: $0.kmTotal = -64
+            }
+        })
+
+        #expect(found.contains(FactChecks.Finding(check: .impossibleValue, field: field)))
+    }
+
+    @Test func moreKilometresBuiltThanExistIsImpossible() {
+        let found = findings(facts { $0.kmCompleted = 65 })
+
+        #expect(found.contains(FactChecks.Finding(check: .impossibleValue, field: "kmCompleted")))
+    }
+
+    @Test func zeroAndAllOfTheRoadArePossible() {
+        #expect(!checks(findings(facts { $0.kmCompleted = 0 })).contains(.impossibleValue))
+        #expect(!checks(findings(facts { $0.kmCompleted = 64 })).contains(.impossibleValue))
+    }
+
     @Test func everyFindingNamesTheFieldToReview() {
         let found = findings(facts { $0.cumulativePaid = 6_500_000 })
 
