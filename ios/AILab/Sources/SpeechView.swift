@@ -12,10 +12,17 @@ struct SpeechView: View {
                 Button("3. Run Apple on both debriefs") { model.runApple() }
             }
             .disabled(model.running)
+            Section("Real voice (Documents/voice, English)") {
+                Button("6. Run Apple on voice files") { model.runAppleOnVoice() }
+                #if canImport(WhisperKit)
+                Button("7. Run WhisperKit on voice files") { model.runWhisper(.voice) }
+                #endif
+            }
+            .disabled(model.running)
             #if canImport(WhisperKit)
             Section("WhisperKit large-v3 (626 MB, from Documents/whisperkit)") {
                 Button("4. Run WhisperKit on both debriefs") { model.runWhisper() }
-                Button("5. WhisperKit French again: VAD, then no chunking") { model.runWhisper(frenchRepeat: true) }
+                Button("5. WhisperKit French again: VAD, then no chunking") { model.runWhisper(.frenchRepeat) }
             }
             .disabled(model.running)
             #endif

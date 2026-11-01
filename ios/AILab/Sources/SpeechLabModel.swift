@@ -98,13 +98,13 @@ final class SpeechLabModel {
 
     // MARK: - Scoring and results
 
-    func score(engine: String, language: Language, transcript: String, seconds: Double) throws {
+    func score(engine: String, language: Language, transcript: String, seconds: Double, audio: URL? = nil) throws {
         let script = try Self.script(language)
         let reference = Normalizer.words(script.text, language: language.rawValue)
         let hypothesis = Normalizer.words(transcript, language: language.rawValue)
         let wer = WordErrorRate.compute(reference: reference, hypothesis: hypothesis)
         let facts = FactScore.score(script.facts, in: transcript, language: language.rawValue)
-        let audioSeconds = (try? AVAudioFile(forReading: Self.audioURL(language))).map {
+        let audioSeconds = (try? AVAudioFile(forReading: audio ?? Self.audioURL(language))).map {
             Double($0.length) / $0.processingFormat.sampleRate
         } ?? 0
         record("\(engine) \(language.rawValue)",

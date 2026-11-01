@@ -8,10 +8,17 @@ import WhisperKit
 extension SpeechLabModel {
     static let whisperFolder = DeviceInfo.documents.appendingPathComponent("whisperkit", isDirectory: true)
 
-    /// Both debriefs with VAD chunking; `frenchRepeat` instead runs only French, once with VAD chunking and
-    /// once without, to tell whether a dropped passage repeats and whether chunking causes it.
-    func runWhisper(frenchRepeat: Bool = false) {
-        let runs: [(Language, ChunkingStrategy?)] = frenchRepeat ? [(.fr, .vad), (.fr, nil)] : [(.en, .vad), (.fr, .vad)]
+    enum WhisperRuns { case debriefs, frenchRepeat, voice }
+
+    /// `.debriefs`: both Mac-voice debriefs with VAD chunking. `.frenchRepeat`: French only, with VAD
+    /// chunking and without, to tell whether a dropped passage repeats. `.voice`: every Documents/voice file.
+    func runWhisper(_ which: WhisperRuns = .debriefs) {
+        typealias Run = (label: String, audio: URL?, language: Language, chunking: ChunkingStrategy?)
+        let runs: [Run] = switch which {
+        case .debriefs: [("whisper", nil, .en, .vad), ("whisper", nil, .fr, .vad)]
+        case .frenchRepeat: [("whisper vad repeat", nil, .fr, .vad), ("whisper no-chunking repeat", nil, .fr, nil)]
+        case .voice: Self.voiceFiles().map { ("whisper \($0.deletingPathExtension().lastPathComponent)", $0, .en, .vad) }
+        }
         task {
             self.record("whisper: network during run", await DeviceInfo.networkStatus())
             let model = Self.whisperFolder.appendingPathComponent("openai_whisper-large-v3-v20240930_626MB").path
@@ -27,15 +34,15 @@ extension SpeechLabModel {
                 // The first load compiles the model for this phone's chips; later loads are faster.
                 self.record("whisper: load", String(format: "%.1f s, free memory %d -> %d MB", Date().timeIntervalSince(loadStart),
                                                     freeBefore, DeviceInfo.freeMemoryMB()))
-                for (language, chunking) in runs {
+                for run in runs {
                     let start = Date()
-                    let options = DecodingOptions(task: .transcribe, language: language.rawValue, temperature: 0,
-                                                  chunkingStrategy: chunking)
-                    let results = try await whisper.transcribe(audioPath: Self.audioURL(language).path, decodeOptions: options)
+                    let options = DecodingOptions(task: .transcribe, language: run.language.rawValue, temperature: 0,
+                                                  chunkingStrategy: run.chunking)
+                    let audio = try run.audio ?? Self.audioURL(run.language)
+                    let results = try await whisper.transcribe(audioPath: audio.path, decodeOptions: options)
                     let text = results.map(\.text).joined(separator: " ")
-                    let engine = frenchRepeat ? "whisper \(chunking == nil ? "no-chunking" : "vad") repeat" : "whisper"
-                    try self.score(engine: engine, language: language, transcript: text,
-                                   seconds: Date().timeIntervalSince(start))
+                    try self.score(engine: run.label, language: run.language, transcript: text,
+                                   seconds: Date().timeIntervalSince(start), audio: audio)
                 }
                 self.record("whisper: free memory after runs", "\(DeviceInfo.freeMemoryMB()) MB")
                 await whisper.unloadModels()
