@@ -42,6 +42,7 @@ struct BenchView: View {
                     NavigationLink("Encryption proofs (#16)") { EncryptionView() }
                     NavigationLink("Evidence proofs (#17)") { EvidenceView() }
                     NavigationLink("Documents (#15)") { DocumentView() }
+                    NavigationLink("Speech (#14)") { SpeechView() }
                 }
                 Section("Free memory: \(DeviceInfo.freeMemoryMB()) MB") {
                     ForEach(Array(log.enumerated()), id: \.offset) { Text($0.element).font(.footnote.monospaced()) }
