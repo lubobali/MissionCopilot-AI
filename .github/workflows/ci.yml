@@ -60,8 +60,8 @@ jobs:
 
       - name: All commit hooks on every file (lint, format, types, tests, size guard)
         # Skipped here and covered elsewhere: gitleaks (full-history scan above),
-        # swiftlint, ios-tests, encryption-lab-tests, document-lab-tests (need a Mac; ios.yml runs them).
-        run: prek run --all-files --skip gitleaks --skip swiftlint --skip ios-tests --skip encryption-lab-tests --skip document-lab-tests
+        # swiftlint, ios-tests and the three AI Lab package tests (need a Mac; ios.yml runs them).
+        run: prek run --all-files --skip gitleaks --skip swiftlint --skip ios-tests --skip encryption-lab-tests --skip document-lab-tests --skip speech-lab-tests
 
       - name: App startup check
         run: uv run --directory backend python ../scripts/startup_check.py

@@ -11,11 +11,13 @@ on:
     paths:
       - "ios/**"
       - "docs/demo/scans/**"
+      - "docs/demo/audio/**"
       - ".github/workflows/ios.yml"
   pull_request:
     paths:
       - "ios/**"
       - "docs/demo/scans/**"
+      - "docs/demo/audio/**"
       - ".github/workflows/ios.yml"
 
 concurrency:
@@ -106,3 +108,9 @@ jobs:
           set -euo pipefail
           udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for r,v in d.items() if 'iOS' in r for x in v if x['name'].startswith('iPhone')))")
           ios/AILab/DocumentLab/test.sh "id=${udid}"
+
+      - name: Speech lab tests (spike 14, WER and key facts)
+        run: |
+          set -euo pipefail
+          udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for r,v in d.items() if 'iOS' in r for x in v if x['name'].startswith('iPhone')))")
+          ios/AILab/SpeechLab/test.sh "id=${udid}"
