@@ -3,6 +3,8 @@
 .env.*
 !.env.example
 *.pem
+# The one public key that is meant to be published (verifies the model signature).
+!docs/models/model-signing.pub.pem
 *.key
 *.p12
 *.mobileprovision
@@ -13,7 +15,7 @@
 *.mlpackage
 *.mlmodelc
 *.bin
-models/
+/models/
 
 # --- Python / uv ---
 __pycache__/
