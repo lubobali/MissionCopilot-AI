@@ -148,7 +148,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | ID | STRIDE | Threat | Control | Status | Test or phase |
 |---|---|---|---|---|---|
 | T46 | T | A model file is swapped or changed (ATLAS AML.T0010) | Signed SHA-256 manifest, the app refuses a changed model, safetensors only | planned | #47 |
-| T47 | T | A dependency has a known vulnerability | Dependency audit, Dependabot | planned | #44 |
+| T47 | T | A dependency has a known vulnerability | pip-audit on every PR and weekly; CodeQL (Python, Actions; Swift weekly); Dependabot with a 7-day cooldown | built | `.github/workflows/security.yml`, `.github/dependabot.yml` |
 | T48 | T | A compromised CI action steals secrets | Actions pinned to commit SHAs, minimal token permissions, zizmor lint | built | `.github/workflows/ci.yml` |
 | T49 | I | A secret is committed | gitleaks on every commit and in CI over the full history | built | `.github/workflows/ci.yml` |
 | T50 | T | The SQLCipher database library (our GRDB fork) drifts | Pinned revision, recorded in the SBOM | planned | #47 |
