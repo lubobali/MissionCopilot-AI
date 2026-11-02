@@ -112,5 +112,7 @@ What happens to a lost, seized or coerced phone, and what staff should do: [ADR 
   [backend/README.md](../backend/README.md), each with its test in the [threat model](threat-model.md).
 
 ## Status
+- Mobile security self-assessment against OWASP MASVS v2.1, all 24 controls: [masvs.md](masvs.md)
+  (4 built, 5 spike, 8 planned, 5 accepted, 2 not applicable).
 - Feasibility proven on a real iPhone (October 31, 2026); production code is rebuilt test-first in Phase 4.
 - **Not independently audited** and no bug bounty. Treat this as a portfolio project, not certified software.
