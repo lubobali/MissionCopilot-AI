@@ -36,6 +36,10 @@ How field data is protected on the phone (three encryption layers, per-mission c
 **[docs/security.md](docs/security.md)**. Proven on a real iPhone in [spike #16](docs/spikes/03-encryption.md),
 including a check you can repeat yourself. Not independently audited.
 
+**Reviewing security?** Start with the one-page path: **[docs/security-review.md](docs/security-review.md)**
+(threat model, OWASP MASVS matrix, data handling, prompt-injection results, model signing, each with a check
+you can run).
+
 ## How to run
 (filled in as components ship)
 
