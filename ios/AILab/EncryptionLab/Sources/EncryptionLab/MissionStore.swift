@@ -5,7 +5,7 @@ import GRDB
 /// Missions and their notes inside one user's encrypted database (ADR 0008, layers B and C).
 /// The mission key is stored only wrapped; each note is sealed with it before it touches the database.
 public struct MissionStore: Sendable {
-    private let db: DatabasePool
+    let db: DatabasePool
     private let vault: any MissionKeyVault
 
     public init(db: DatabasePool, vault: any MissionKeyVault) throws {
@@ -19,6 +19,8 @@ public struct MissionStore: Sendable {
                 CREATE TABLE IF NOT EXISTS note(
                     id INTEGER PRIMARY KEY, mission_id TEXT NOT NULL REFERENCES mission(id),
                     sealed BLOB NOT NULL);
+                CREATE TABLE IF NOT EXISTS shred_record(
+                    mission_id TEXT PRIMARY KEY, reason TEXT NOT NULL, at REAL NOT NULL);
                 """)
         }
     }
