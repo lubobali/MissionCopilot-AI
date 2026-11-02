@@ -76,8 +76,8 @@
       "bom-ref": "grdb-swift-sqlcipher-fork",
       "group": "lubobali",
       "name": "GRDB.swift",
-      "version": "7.11.1",
-      "purl": "pkg:github/lubobali/GRDB.swift@b860da4a2a72305e14297a67871784d9480bd7d4",
+      "version": "7.12.0",
+      "purl": "pkg:github/lubobali/GRDB.swift@743e132654bb30469ce64e2294e14d8ad0aa4d95",
       "licenses": [
         {
           "license": {
@@ -91,11 +91,11 @@
             "type": "library",
             "group": "groue",
             "name": "GRDB.swift",
-            "version": "7.11.1",
-            "purl": "pkg:github/groue/GRDB.swift@v7.11.1"
+            "version": "7.12.0",
+            "purl": "pkg:github/groue/GRDB.swift@v7.12.0"
           }
         ],
-        "notes": "Fork on branch sqlcipher-7.11.1: only Package.swift changes, to link SQLCipher (spike 03)"
+        "notes": "Fork on branch sqlcipher-7.12.0: only Package.swift changes, to link SQLCipher, as GRDB's README says for SPM; GRDB's 29 encryption tests pass on it"
       }
     },
     {

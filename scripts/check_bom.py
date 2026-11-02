@@ -9,12 +9,16 @@ Usage: python scripts/check_bom.py
 
 import base64
 import json
+import re
 import sys
 from pathlib import Path
 
 BOM = Path("docs/sbom/app.cdx.json")
 SIGNATURE = Path("docs/models/LFM2.5-1.2B-Instruct-4bit.sig")
 RESOLVED = Path("ios/AILab/EncryptionLab/Package.resolved")
+PROJECT = Path("ios/project.yml")
+# A package pinned by commit in project.yml (XcodeGen), read without a YAML library.
+PACKAGE = re.compile(r"^  (\w[\w.-]*):\n    url: (\S+)\n    revision: ([0-9a-f]{40})$", re.M)
 WEIGHTS = "model.safetensors"
 
 
@@ -52,6 +56,14 @@ def pin_problems(components: list[dict], resolved: dict) -> list[str]:
     return found
 
 
+def app_pins(project_yml: str) -> list[dict]:
+    """The main app's packages, pinned by commit in project.yml, in Package.resolved's shape."""
+    return [
+        {"identity": f"{name} (app)", "location": url, "state": {"revision": revision}}
+        for name, url, revision in PACKAGE.findall(project_yml)
+    ]
+
+
 def problems(bom: dict, signature: dict, resolved: dict) -> list[str]:
     if bom.get("bomFormat") != "CycloneDX" or bom.get("specVersion") != "1.6":
         return ["not a CycloneDX 1.6 BOM"]
@@ -66,7 +78,9 @@ def problems(bom: dict, signature: dict, resolved: dict) -> list[str]:
 
 
 def main() -> int:
-    found = problems(load(BOM), load(SIGNATURE), load(RESOLVED))
+    resolved = load(RESOLVED)
+    resolved["pins"] += app_pins(PROJECT.read_text(encoding="utf-8"))
+    found = problems(load(BOM), load(SIGNATURE), resolved)
     for problem in found:
         print(f"BOM: {problem}")
     if not found:
