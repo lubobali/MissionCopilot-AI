@@ -12,6 +12,8 @@ struct EncryptedStore: Sendable {
     }
 
     private let pool: DatabasePool
+    /// Opened to pause on StoreSuspension's signals.
+    let isSuspendable: Bool
 
     /// - Parameter suspendable: pauses on StoreSuspension's signals (the app's store always is, #69).
     static func open(at file: URL, key: DataKey, suspendable: Bool = false) throws -> EncryptedStore {
@@ -23,7 +25,7 @@ struct EncryptedStore: Sendable {
         do {
             let pool = try DatabasePool(path: file.path, configuration: config)
             try migrator.migrate(pool)
-            return EncryptedStore(pool: pool)
+            return EncryptedStore(pool: pool, isSuspendable: suspendable)
         } catch let error as DatabaseError where error.resultCode == .SQLITE_NOTADB {
             throw Failure.wrongKey
         }
