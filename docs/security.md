@@ -77,6 +77,19 @@ and every request it sends is signed with that key.
   from the signature or the pinned versions. CI also builds the backend's parts list from its lockfile.
 - Details and how to verify it yourself: [docs/models/README.md](models/README.md).
 
+## App lock (designed; built with the encrypted store in Phase 4)
+- **When it asks:** on every cold start, and when the app comes back after **2 minutes** away (the
+  organization sets 0 to 5). A clock that moved backwards while away also asks. The timing rule is code
+  with its own tests (`ios/MissionCopilot/Platform/AppLock.swift`).
+- **What it guards is the key, not the screen.** The database key is kept in the Keychain so that iOS
+  releases it **only after Face ID or the passcode**, and **only while the phone has a passcode**, on this
+  phone only. A lock that just asks Face ID "yes or no" can be bypassed on a tampered phone; this one
+  cannot open the database without the key. Removing the phone's passcode deletes the key, so a phone
+  without a passcode cannot open mission data at all.
+- **The app switcher shows a cover**, not the last screen, whenever the app is not in front.
+- **Limit:** once unlocked, the app can show the active missions to whoever holds the phone; that is why
+  only active missions are on it and keys expire (ADR 0012).
+
 ## Check it yourself
 The code is open source. The [spike report](spikes/03-encryption.md) shows how to copy the database off a phone
 you own and try to read it with standard tools. The same check runs automatically in CI on the spike package.
