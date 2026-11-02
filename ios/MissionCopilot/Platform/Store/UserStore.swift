@@ -10,12 +10,29 @@ enum UserStore {
     struct Live: Sendable {
         let base: URL
         let keys: KeychainDataKeyStore
+        let vault: SecureEnclaveVault
     }
 
     static let live = Live(
         base: URL.applicationSupportDirectory.appendingPathComponent("Stores", isDirectory: true),
-        keys: .app
+        keys: .app,
+        vault: .app
     )
+
+    /// A user's missions, after the lease check (ADR 0012).
+    struct Opened: Sendable {
+        let missions: MissionStore
+        /// Missions shredded by this check, to show the officer and report on the next sync.
+        let shredded: [ShredRecord]
+    }
+
+    /// Opens a user's missions and enforces their leases first, so nothing past its lease is ever read.
+    /// The app calls this at launch and at every unlock (app lock, #73).
+    static func openMissions(user: String, in base: URL, keys: some DataKeyStore, vault: any MissionKeyVault,
+                             now: Date = Date()) throws -> Opened {
+        let missions = MissionStore(store: try open(user: user, in: base, keys: keys), vault: vault)
+        return Opened(missions: missions, shredded: try missions.enforce(now: now))
+    }
 
     static func open(user: String, in base: URL, keys: some DataKeyStore) throws -> EncryptedStore {
         let folder = try ProtectedFolder.create(for: user, in: base)

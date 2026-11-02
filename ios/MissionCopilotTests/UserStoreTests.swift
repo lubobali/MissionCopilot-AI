@@ -41,11 +41,30 @@ struct UserStoreTests {
         #expect(try keys.loadOrCreate(for: "a") != keys.loadOrCreate(for: "b"))
     }
 
+    @Test func openingAUsersMissionsEnforcesTheLeasesBeforeAnythingIsRead() throws {
+        let (base, keys) = try setup()
+        defer { try? keys.delete(for: "officer-7") }
+        let vault = SoftwareKeyVault()
+        let start = KeyLeaseTests.start
+        let first = try UserStore.openMissions(user: "officer-7", in: base, keys: keys, vault: vault, now: start)
+        try first.missions.create(mission: "kandor-roads", title: "Kandor rural roads", now: start)
+        try first.missions.addNote("Km 42 culvert washed out", to: "kandor-roads")
+
+        // Opened again 15 days later, without a sync: the lease ended, so the mission is already shredded.
+        let later = start.addingTimeInterval(15 * KeyLeaseTests.day)
+        let reopened = try UserStore.openMissions(user: "officer-7", in: base, keys: keys, vault: vault, now: later)
+
+        #expect(reopened.shredded == [ShredRecord(mission: "kandor-roads", reason: .leaseEnded, time: later)])
+        #expect(throws: MissionKeyNotFound(mission: "kandor-roads")) { try reopened.missions.notes(in: "kandor-roads") }
+        #expect(reopened.missions.store.isSuspendable)
+    }
+
     @Test func theAppKeepsStoresInApplicationSupportBehindFaceIDOrThePasscode() throws {
         let support = try #require(FileManager.default.urls(for: .applicationSupportDirectory,
                                                            in: .userDomainMask).first)
 
         #expect(UserStore.live.base == support.appendingPathComponent("Stores", isDirectory: true))
         #expect(UserStore.live.keys.usesAppRule)
+        #expect(UserStore.live.vault.service == "com.lubobali.missioncopilot.missionkey")
     }
 }

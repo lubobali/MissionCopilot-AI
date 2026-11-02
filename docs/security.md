@@ -1,8 +1,9 @@
 # How Mission Copilot protects field data
 
 **Status: draft. Proven in a feasibility spike on an iPhone 13 Pro Max and being rebuilt test-first in the
-main app (Phase 4): the encrypted store, its Keychain key, the protected folder and the pause on lock are in
-the app (#69); mission keys, signed evidence and the app lock follow. Not independently audited.** Every threat and its status: [threat model](threat-model.md).
+main app (Phase 4): the encrypted store, its Keychain key, the protected folder and the pause on lock (#69),
+and per-mission keys in the Secure Enclave with the 14-day lease and recorded shreds (#70) are in the app;
+signed evidence and the app lock follow. Not independently audited.** Every threat and its status: [threat model](threat-model.md).
 Decision record: [ADR 0008](adr/0008-data-storage-isolation-encryption.md). Evidence and how to repeat it:
 [spike #16](spikes/03-encryption.md).
 

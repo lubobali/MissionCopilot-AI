@@ -11,7 +11,8 @@ struct EncryptedStore: Sendable {
         case suspended
     }
 
-    private let pool: DatabasePool
+    /// Used only inside Platform/Store, which keeps GRDB away from the rest of the app.
+    let pool: DatabasePool
     /// Opened to pause on StoreSuspension's signals.
     let isSuspendable: Bool
 
@@ -40,6 +41,35 @@ struct EncryptedStore: Sendable {
                 table.column("value", .text).notNull()
             }
         }
+        // Missions and their notes (#70). The mission key is stored only wrapped; notes only sealed.
+        migrator.registerMigration("v2-missions") { database in
+            try database.create(table: "mission") { table in
+                table.primaryKey("id", .text)
+                table.column("title", .text).notNull()
+                table.column("classification", .text).notNull()
+                table.column("encapsulated_key", .blob).notNull()
+                table.column("wrapped_key", .blob).notNull()
+            }
+            try database.create(table: "note") { table in
+                table.autoIncrementedPrimaryKey("id")
+                table.column("mission_id", .text).notNull().references("mission", onDelete: .cascade)
+                table.column("sealed", .blob).notNull()
+            }
+        }
+        // Key leases and shred records (#70, ADR 0012). A shred record outlives its mission: it is
+        // reported on the next sync, so it has no foreign key that a purge would cascade through.
+        migrator.registerMigration("v3-leases-and-shreds") { database in
+            try database.create(table: "mission_lease") { table in
+                table.primaryKey("mission_id", .text).references("mission", onDelete: .cascade)
+                table.column("renewed_at", .double).notNull()
+                table.column("days", .integer).notNull()
+            }
+            try database.create(table: "shred_record") { table in
+                table.primaryKey("mission_id", .text)
+                table.column("reason", .text).notNull()
+                table.column("at", .double).notNull()
+            }
+        }
         return migrator
     }
 
@@ -50,7 +80,7 @@ struct EncryptedStore: Sendable {
     }
 
     /// Every write goes through here, so a paused store answers `.suspended`, never a SQLite code.
-    private func write<T>(_ body: (Database) throws -> T) throws -> T {
+    func write<T>(_ body: (Database) throws -> T) throws -> T {
         do {
             return try pool.write(body)
         } catch let error as DatabaseError where [.SQLITE_INTERRUPT, .SQLITE_ABORT].contains(error.resultCode) {
