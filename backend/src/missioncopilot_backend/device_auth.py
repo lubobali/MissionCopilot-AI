@@ -16,6 +16,7 @@ from starlette.datastructures import Headers
 
 from missioncopilot_backend.auth import audit
 from missioncopilot_backend.devices import DeviceRegistry
+from missioncopilot_backend.shred_order import ShredOrder
 from missioncopilot_backend.signatures import is_signed_by, load_p256_public_key
 
 REQUEST_DOMAIN = b"missioncopilot-request-v1\n"
@@ -56,7 +57,7 @@ async def require_device(request: Request) -> DevicePrincipal:
     device = devices.find(request.headers.get("X-Device-Id", ""))
     fields = _signed_fields(request.headers)
     body = await request.body()  # cached: the route reads the same bytes
-    if device is None or device.status != "active" or fields is None:
+    if device is None or device.status not in ("active", "revoked") or fields is None:
         return _refuse(request, device.id if device else None)
     seq, at, signature = fields
     if abs(devices.now() - at) > TIME_WINDOW_SECONDS:
@@ -67,6 +68,8 @@ async def require_device(request: Request) -> DevicePrincipal:
     message = request_message(request.method, path, device.id, seq, at, body)
     if key is None or not is_signed_by(key, signature, message):
         return _refuse(request, device.id)
+    if device.status == "revoked":  # only the genuine phone learns it was revoked (ADR 0012)
+        return _shred(request, device.id, int(devices.now()))
     if not devices.accept_seq(device.id, seq):  # only after the signature: forgeries move nothing
         return _refuse(request, device.id)
     return DevicePrincipal(device_id=device.id, org_id=device.org_id, user_id=device.user_id)
@@ -76,6 +79,13 @@ def _refuse(request: Request, device_id: str | None) -> DevicePrincipal:
     # The subject is a known device id only: an unknown header value never reaches the log.
     audit(request, "device_auth_failed", subject=device_id)
     raise REFUSED
+
+
+def _shred(request: Request, device_id: str, now: int) -> DevicePrincipal:
+    if request.app.state.shred_key is None:
+        return _refuse(request, device_id)
+    audit(request, "shred_order_sent", subject=device_id)
+    raise ShredOrder(device_id, now)
 
 
 def device_router() -> APIRouter:
