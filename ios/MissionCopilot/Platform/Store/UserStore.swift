@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 
 /// Puts one user's store together (ADR 0008): their protected folder (layer A), their key from the
 /// Keychain (layer B), the encrypted database inside, always pausing on lock. The app opens it only
@@ -29,14 +30,16 @@ enum UserStore {
     /// Opens a user's missions and enforces their leases first, so nothing past its lease is ever read.
     /// The app calls this at launch and at every unlock (app lock, #73).
     static func openMissions(user: String, in base: URL, keys: some DataKeyStore, vault: any MissionKeyVault,
-                             now: Date = Date()) throws -> Opened {
-        let missions = MissionStore(store: try open(user: user, in: base, keys: keys), vault: vault)
+                             context: LAContext? = nil, now: Date = Date()) throws -> Opened {
+        let missions = MissionStore(store: try open(user: user, in: base, keys: keys, context: context), vault: vault)
         return Opened(missions: missions, shredded: try missions.enforce(now: now))
     }
 
-    static func open(user: String, in base: URL, keys: some DataKeyStore) throws -> EncryptedStore {
+    /// - Parameter context: the Face ID or passcode authentication that just succeeded (one prompt).
+    static func open(user: String, in base: URL, keys: some DataKeyStore,
+                     context: LAContext? = nil) throws -> EncryptedStore {
         let folder = try ProtectedFolder.create(for: user, in: base)
-        let key = try keys.loadOrCreate(for: user)
+        let key = try keys.loadOrCreate(for: user, context: context)
         return try EncryptedStore.open(at: folder.appendingPathComponent(fileName), key: key, suspendable: true)
     }
 }

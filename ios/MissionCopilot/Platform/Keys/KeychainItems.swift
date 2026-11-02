@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 
 struct KeychainFailure: Error, Equatable { let status: OSStatus }
@@ -8,8 +9,10 @@ struct KeychainFailure: Error, Equatable { let status: OSStatus }
 struct KeychainItems: Sendable {
     let service: String
 
-    func load(_ account: String) throws -> Data? {
-        var search = query(account)
+    /// - Parameter context: an authentication that already succeeded (Face ID or passcode), so iOS
+    ///   releases an item protected by user presence without asking a second time.
+    func load(_ account: String, context: LAContext? = nil) throws -> Data? {
+        var search = query(account, context: context)
         search[kSecReturnData as String] = true
         var result: CFTypeRef?
         let status = SecItemCopyMatching(search as CFDictionary, &result)
@@ -20,7 +23,7 @@ struct KeychainItems: Sendable {
 
     /// Adds the item; false if one already exists (another caller created it first).
     func add(_ data: Data, account: String, access: SecAccessControl) throws -> Bool {
-        var item = query(account)
+        var item = query(account, context: nil)
         item[kSecValueData as String] = data
         item[kSecAttrAccessControl as String] = access
         let status = SecItemAdd(item as CFDictionary, nil)
@@ -30,12 +33,12 @@ struct KeychainItems: Sendable {
     }
 
     func delete(_ account: String) throws {
-        let status = SecItemDelete(query(account) as CFDictionary)
+        let status = SecItemDelete(query(account, context: nil) as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw KeychainFailure(status: status) }
     }
 
     func attributes(_ account: String) throws -> [String: Any] {
-        var search = query(account)
+        var search = query(account, context: nil)
         search[kSecReturnAttributes as String] = true
         var result: CFTypeRef?
         let status = SecItemCopyMatching(search as CFDictionary, &result)
@@ -45,9 +48,13 @@ struct KeychainItems: Sendable {
         return found
     }
 
-    private func query(_ account: String) -> [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
-         kSecAttrAccount as String: account, kSecAttrSynchronizable as String: false,
-         kSecUseDataProtectionKeychain as String: true]
+    func query(_ account: String, context: LAContext?) -> [String: Any] {
+        var query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
+            kSecAttrAccount as String: account, kSecAttrSynchronizable as String: false,
+            kSecUseDataProtectionKeychain as String: true
+        ]
+        if let context { query[kSecUseAuthenticationContext as String] = context }
+        return query
     }
 }

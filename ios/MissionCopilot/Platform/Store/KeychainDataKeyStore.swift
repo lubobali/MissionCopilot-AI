@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 
 /// Each user's database key in the Keychain: never synced, this phone only, and in the app released
@@ -21,12 +22,12 @@ struct KeychainDataKeyStore: DataKeyStore {
         self.access = access ?? DataKeyAccess.make
     }
 
-    func loadOrCreate(for user: String) throws -> DataKey {
-        if let existing = try items.load(user) { return DataKey(bytes: existing) }
+    func loadOrCreate(for user: String, context: LAContext?) throws -> DataKey {
+        if let existing = try items.load(user, context: context) { return DataKey(bytes: existing) }
         let key = try DataKey.random()
         if try items.add(key.bytes, account: user, access: access()) { return key }
         // Another caller created it first: both open the same database.
-        guard let raced = try items.load(user) else { throw Failure(status: errSecDuplicateItem) }
+        guard let raced = try items.load(user, context: context) else { throw Failure(status: errSecDuplicateItem) }
         return DataKey(bytes: raced)
     }
 

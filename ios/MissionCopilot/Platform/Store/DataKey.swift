@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 
 /// 32 random bytes that unlock one user's encrypted database (ADR 0008 layer B).
@@ -20,6 +21,14 @@ struct DataKey: Sendable, Equatable {
 
 /// Where each user's database key is kept. The app uses the Keychain; tests can use any store.
 protocol DataKeyStore: Sendable {
-    func loadOrCreate(for user: String) throws -> DataKey
+    /// - Parameter context: the Face ID or passcode authentication that just succeeded, so the key is
+    ///   released without a second prompt (nil in tests and before the app lock).
+    func loadOrCreate(for user: String, context: LAContext?) throws -> DataKey
     func delete(for user: String) throws
+}
+
+extension DataKeyStore {
+    func loadOrCreate(for user: String) throws -> DataKey {
+        try loadOrCreate(for: user, context: nil)
+    }
 }

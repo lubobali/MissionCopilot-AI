@@ -44,6 +44,7 @@ targets:
         INFOPLIST_KEY_NSMicrophoneUsageDescription: Record a short voice debrief after a meeting.
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: Turn your voice debrief into notes on this phone.
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: Attach the site location to photos you take as evidence.
+        INFOPLIST_KEY_NSFaceIDUsageDescription: Face ID unlocks your missions, so only you can open them on this iPhone.
       configs:
         Debug:
           # Debug only: lets Finder copy large model files into the app (spikes).

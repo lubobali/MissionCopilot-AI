@@ -1,0 +1,16 @@
+{
+  "story": "#73 app lock (ADR 0012)",
+  "device": "iPhone 13 Pro Max, iOS 27.2, app installed from main app build (Debug), free signing",
+  "date": "2026-11-02",
+  "method": "checked by hand on the phone by the owner; app opened once online after install, then airplane mode",
+  "checks": {
+    "face id unlocks the app": "pass",
+    "one prompt only (the database key is read with the same Face ID authentication)": "pass: Face ID only, no second prompt",
+    "app switcher shows the privacy cover, not mission content": "pass: white card with the shield-lock icon, while the app next to it showed its screen",
+    "cold start (app closed and reopened) asks": "pass",
+    "back after 30 seconds (under the 2-minute grace time) does not ask": "pass",
+    "back after 4 minutes asks again by itself": "pass",
+    "cancel stays locked; nothing opens without Face ID or the passcode": "pass"
+  },
+  "found on the way": "iOS needs NSFaceIDUsageDescription for Face ID on a real phone; added with a guard test before the phone build"
+}
