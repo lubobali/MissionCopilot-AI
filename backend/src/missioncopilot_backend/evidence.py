@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from cryptography.hazmat.primitives.asymmetric import ec
 
+from missioncopilot_backend.evidence_format import version
 from missioncopilot_backend.signatures import is_signed_by, load_p256_public_key
 
 GENESIS_HASH = "0" * 64
@@ -65,16 +66,34 @@ def _load_key(public_key_der: bytes) -> ec.EllipticCurvePublicKey | None:
     return load_p256_public_key(public_key_der)
 
 
+def _read(payload: bytes) -> dict | None:
+    try:
+        value = json.loads(payload)
+    except (ValueError, UnicodeDecodeError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
 def verify_chain(records: Sequence[Record], public_key_der: bytes) -> Result:
-    """Signatures, sequence numbers and links, in order. Reports the first item that breaks."""
+    """Signatures, format, sequence numbers and links, in order. Reports the first item that breaks.
+    A chain is all version 1 (spike #17) or all version 2 (docs/evidence-format.md)."""
     key = _load_key(public_key_der)
     if key is None:
         return Result(ok=False, index=0, problem="bad_signature")
     expected_prev = GENESIS_HASH
+    chain_version = None
     for index, record in enumerate(records):
         if not _signed_by(key, record):
             return Result(ok=False, index=index, problem="bad_signature")
-        payload = json.loads(record.payload)
+        payload = _read(record.payload)
+        if payload is None:
+            return Result(ok=False, index=index, problem="unreadable_payload")
+        item_version = version(payload)
+        if item_version is None:
+            return Result(ok=False, index=index, problem="bad_payload")
+        if chain_version not in (None, item_version):
+            return Result(ok=False, index=index, problem="mixed_versions")
+        chain_version = item_version
         if payload["prevHash"] != expected_prev:
             return Result(ok=False, index=index, problem="wrong_prev_hash")
         if payload["seq"] != index + 1:
