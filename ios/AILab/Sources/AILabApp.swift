@@ -48,6 +48,7 @@ struct BenchView: View {
                     NavigationLink("Model signature (#47)") { ModelSignatureView() }
                     #if !NO_MLX
                     NavigationLink("Prompt injection (#48)") { InjectionView() }
+                    NavigationLink("Model time limit (#62)") { TimeLimitView() }
                     #endif
                 }
                 Section("Free memory: \(DeviceInfo.freeMemoryMB()) MB") {

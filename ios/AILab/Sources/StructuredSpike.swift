@@ -95,9 +95,20 @@ enum StructuredSpike {
         return String(text[start...end])
     }
 
+    struct ModelStopped: Error {}
+
+    /// Constrained run under a time limit (#62): an answer past the limit is never returned. Every lab
+    /// that asks the model for facts goes through here.
+    static func constrained(container: ModelContainer, prompt: String = prompt, maxTokens: Int = 256,
+                            limit: TimeLimit = .model) async throws -> String {
+        switch try await limit.run({ try await unlimited(container: container, prompt: prompt, maxTokens: maxTokens) }) {
+        case .answered(let output): return output
+        case .stopped: throw ModelStopped()
+        }
+    }
+
     /// Constrained run: the grammar forces valid JSON matching the schema (greedy, deterministic).
-    static func constrained(container: ModelContainer, prompt: String = prompt, maxTokens: Int = 256)
-        async throws -> String {
+    static func unlimited(container: ModelContainer, prompt: String, maxTokens: Int) async throws -> String {
         try await container.perform { context in
             let tokenizer = context.tokenizer
             let grammarVocab = TokenizerVocabExtractor.extractForGrammar(from: tokenizer)
@@ -120,7 +131,7 @@ enum StructuredSpike {
                     whitespaceBias: whitespace.bias, whitespaceTokenIDs: whitespace.tokenIDs
                 ) { delta in
                     output += delta
-                    return true
+                    return !Task.isCancelled  // past the time limit: stop at the next token
                 }
             } catch {
                 // Keep the partial output so the failure can be diagnosed, not just counted.

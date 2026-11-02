@@ -43,6 +43,8 @@ targets:
       # Story #47: the main app's model-signature check, the same file, timed on the real model.
       - path: ../MissionCopilot/Platform/ModelSignature.swift
       - path: ../MissionCopilot/Platform/ModelSigningKey.swift
+      # Story #62: the main app's model time limit, the same file, measured on the real model.
+      - path: ../MissionCopilot/Platform/AI/TimeLimit.swift
       # Spike #15: the committed scan documents and answer key, read on the phone.
       - path: ../../docs/demo/scans
         buildPhase: resources
