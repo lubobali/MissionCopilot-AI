@@ -2,7 +2,7 @@ name: MissionCopilot
 options:
   bundleIdPrefix: com.lubobali
   deploymentTarget:
-    iOS: "18.0"
+    iOS: "26.0"
   createIntermediateGroups: true
 configFiles:
   Debug: Config/Base.xcconfig
@@ -16,6 +16,11 @@ targets:
   MissionCopilot:
     type: application
     platform: iOS
+    entitlements:
+      path: Entitlements/MissionCopilot.entitlements
+      properties:
+        # ADR 0008 layer A: every file the app creates is unreadable while the phone is locked.
+        com.apple.developer.default-data-protection: NSFileProtectionComplete
     sources: [MissionCopilot]
     settings:
       base:
