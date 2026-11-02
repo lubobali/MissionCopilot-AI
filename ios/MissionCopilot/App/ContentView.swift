@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct ContentView: View {
+    /// Missions the lease check just destroyed, in plain words (nil when none).
+    var notice: String?
+    var onLock: () -> Void = {}
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
@@ -11,6 +15,12 @@ struct ContentView: View {
                     .font(.title.bold())
                 Text("Offline AI for field missions")
                     .foregroundStyle(.secondary)
+                if let notice {
+                    Text(notice)
+                        .font(.footnote)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 8)
+                }
                 NavigationLink("Licenses") { AcknowledgementsView() }
                     .padding(.top, 24)
                 #if DEBUG
@@ -19,6 +29,9 @@ struct ContentView: View {
                 #endif
             }
             .padding()
+            .toolbar {
+                Button("Lock", systemImage: "lock", action: onLock)
+            }
         }
     }
 }
