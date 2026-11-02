@@ -82,3 +82,10 @@ def test_every_library_in_the_parts_list_ships_its_license_in_the_app():
     for name in libraries:
         text = folder / f"License-{name}.txt"
         assert text.exists() and text.read_text(encoding="utf-8").strip(), name
+
+
+def test_the_app_says_why_it_uses_face_id():
+    # Without it, iOS refuses (or closes the app on) the first Face ID request on a real iPhone.
+    reason = APP["settings"]["base"].get("INFOPLIST_KEY_NSFaceIDUsageDescription", "")
+
+    assert "Face ID" in reason and len(reason) > 20
