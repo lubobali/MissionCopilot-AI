@@ -8,8 +8,8 @@ let package = Package(
     platforms: [.iOS(.v18), .macOS(.v15)],
     products: [.library(name: "EncryptionLab", targets: ["EncryptionLab"])],
     dependencies: [
-        // Our GRDB 7.11.1 fork with SQLCipher 4.20.0 (exact); only Package.swift differs from upstream.
-        .package(url: "https://github.com/lubobali/GRDB.swift.git", revision: "b860da4a2a72305e14297a67871784d9480bd7d4"),
+        // Our GRDB 7.12.0 fork with SQLCipher 4.20.0 (exact); only Package.swift differs from upstream.
+        .package(url: "https://github.com/lubobali/GRDB.swift.git", revision: "743e132654bb30469ce64e2294e14d8ad0aa4d95"),
     ],
     targets: [
         .target(name: "EncryptionLab", dependencies: [.product(name: "GRDB", package: "GRDB.swift")]),

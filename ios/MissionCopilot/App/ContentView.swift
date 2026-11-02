@@ -11,6 +11,8 @@ struct ContentView: View {
                     .font(.title.bold())
                 Text("Offline AI for field missions")
                     .foregroundStyle(.secondary)
+                NavigationLink("Licenses") { AcknowledgementsView() }
+                    .padding(.top, 24)
                 #if DEBUG
                 NavigationLink("Lab (debug only)") { LabView() }
                     .padding(.top, 24)

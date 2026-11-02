@@ -2,7 +2,7 @@ name: MissionCopilot
 options:
   bundleIdPrefix: com.lubobali
   deploymentTarget:
-    iOS: "18.0"
+    iOS: "26.0"
   createIntermediateGroups: true
 configFiles:
   Debug: Config/Base.xcconfig
@@ -12,11 +12,25 @@ settings:
     SWIFT_VERSION: "6.0"
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
+packages:
+  # GRDB 7.12.0 linked to SQLCipher 4.20.0 (exact): our fork changes only Package.swift, as GRDB's
+  # README says to for SQLCipher with SPM. Pinned by commit; recorded in docs/sbom/app.cdx.json.
+  GRDB:
+    url: https://github.com/lubobali/GRDB.swift
+    revision: 743e132654bb30469ce64e2294e14d8ad0aa4d95
 targets:
   MissionCopilot:
     type: application
     platform: iOS
+    entitlements:
+      path: Entitlements/MissionCopilot.entitlements
+      properties:
+        # ADR 0008 layer A: every file the app creates is unreadable while the phone is locked.
+        com.apple.developer.default-data-protection: NSFileProtectionComplete
     sources: [MissionCopilot]
+    dependencies:
+      - package: GRDB
+        product: GRDB
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lubobali.missioncopilot

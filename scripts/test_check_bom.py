@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 import pytest
-from check_bom import BOM, RESOLVED, SIGNATURE, load, problems
+from check_bom import BOM, PROJECT, RESOLVED, SIGNATURE, app_pins, load, problems
 
 pytestmark = pytest.mark.unit
 
@@ -62,7 +62,7 @@ def test_a_swift_pin_that_moved_is_caught(real):
 
     assert problems(bom, signature, resolved) == [
         "grdb.swift: resolved at 1111111111111111111111111111111111111111, BOM says "
-        "b860da4a2a72305e14297a67871784d9480bd7d4"
+        "743e132654bb30469ce64e2294e14d8ad0aa4d95"
     ]
 
 
@@ -115,3 +115,42 @@ def test_an_older_cyclonedx_version_is_caught(real):
     bom["specVersion"] = "1.5"
 
     assert problems(bom, signature, resolved) == ["not a CycloneDX 1.6 BOM"]
+
+
+PROJECT_YML = """packages:
+  # a comment
+  GRDB:
+    url: https://github.com/lubobali/GRDB.swift
+    revision: {revision}
+targets:
+  MissionCopilot:
+"""
+
+
+def test_the_main_apps_package_pin_is_read_from_project_yml():
+    pins = app_pins(PROJECT_YML.format(revision="a" * 40))
+
+    assert pins == [
+        {
+            "identity": "GRDB (app)",
+            "location": "https://github.com/lubobali/GRDB.swift",
+            "state": {"revision": "a" * 40},
+        }
+    ]
+
+
+def test_the_main_apps_pin_must_match_the_bom(real):
+    bom, signature, resolved = copy.deepcopy(real)
+    resolved["pins"] += app_pins(PROJECT_YML.format(revision="1" * 40))
+
+    assert problems(bom, signature, resolved) == [
+        f"GRDB (app): resolved at {'1' * 40}, BOM says {library(bom, 'GRDB.swift')['purl'][-40:]}"
+    ]
+
+
+def test_the_repo_app_and_spike_pins_both_match_the_bom(real):
+    bom, signature, resolved = copy.deepcopy(real)
+    resolved["pins"] += app_pins((ROOT / PROJECT).read_text(encoding="utf-8"))
+
+    assert len(resolved["pins"]) == 3
+    assert problems(bom, signature, resolved) == []
