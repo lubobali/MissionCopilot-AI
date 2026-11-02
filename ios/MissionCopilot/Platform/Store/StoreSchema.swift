@@ -107,6 +107,27 @@ enum StoreSchema {
                     FOREIGN KEY (mission_id, fact_id) REFERENCES fact(mission_id, id) ON DELETE CASCADE);
                 """)
         }
+        // Records that cannot be changed (#72, domain invariant 5): never updated, and never deleted one by
+        // one; rows go only when their whole mission is removed (purge after a shred), which the rule sees as
+        // "the mission is gone". Shred records can never change. These stop bugs; a stolen database is caught
+        // by the Secure Enclave signatures. The chain head is left out: it is replaced after every item.
+        migrator.registerMigration("v7-append-only") { database in
+            for table in ["evidence", "fact", "fact_source", "sentence", "sentence_fact"] {
+                try database.execute(sql: """
+                    CREATE TRIGGER \(table)_no_update BEFORE UPDATE ON \(table)
+                    BEGIN SELECT RAISE(ABORT, 'append-only: \(table) rows cannot be changed'); END;
+                    CREATE TRIGGER \(table)_no_delete BEFORE DELETE ON \(table)
+                    WHEN EXISTS (SELECT 1 FROM mission WHERE id = OLD.mission_id)
+                    BEGIN SELECT RAISE(ABORT, 'append-only: \(table) rows go only with their mission'); END;
+                    """)
+            }
+            try database.execute(sql: """
+                CREATE TRIGGER shred_record_no_update BEFORE UPDATE ON shred_record
+                BEGIN SELECT RAISE(ABORT, 'append-only: shred records cannot be changed'); END;
+                CREATE TRIGGER shred_record_no_delete BEFORE DELETE ON shred_record
+                BEGIN SELECT RAISE(ABORT, 'append-only: shred records cannot be deleted'); END;
+                """)
+        }
         return migrator
     }
 }

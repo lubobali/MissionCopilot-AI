@@ -6,12 +6,10 @@ import Testing
 /// mission, inherits the strictest label of its facts, and any reader can follow it back to the facts
 /// and the evidence they came from. The database itself refuses a sentence with no fact.
 struct SentenceStoreTests {
-    private let signer = SoftwareEvidenceSigner()
-
     /// A mission with two pieces of evidence (labels given) and one fact on each.
-    private func mission(_ labels: [Classification] = [.officialUseOnly, .officialUseOnly],
-                         id: String = "kandor-roads",
-                         in existing: MissionStore? = nil) throws -> (MissionStore, [Fact]) {
+    static func mission(_ labels: [Classification] = [.officialUseOnly, .officialUseOnly],
+                        id: String = "kandor-roads",
+                        in existing: MissionStore? = nil) throws -> (MissionStore, [Fact]) {
         let store = try existing ?? {
             let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).sqlite")
             let encrypted = try EncryptedStore.open(at: file, key: DataKey.random())
@@ -21,7 +19,7 @@ struct SentenceStoreTests {
         var facts: [Fact] = []
         for (index, label) in labels.enumerated() {
             try store.addEvidence(EvidenceChainTests.capture("page-\(index)", minute: index, kind: .scan), to: id,
-                                  signer: signer, classification: label)
+                                  signer: SoftwareEvidenceSigner(), classification: label)
             facts.append(try store.addFact(FactInput(name: "fact-\(index)", value: "\(index)", unit: nil,
                                                      sources: [FactSource(seq: index + 1, region: nil)],
                                                      rule: FactStoreTests.mc01), to: id))
@@ -35,7 +33,7 @@ struct SentenceStoreTests {
     }
 
     @Test func aSentenceReadsBackWithItsFacts() throws {
-        let (store, facts) = try mission()
+        let (store, facts) = try Self.mission()
 
         let added = try store.addSentence(sentence(facts), to: "kandor-roads")
 
@@ -44,7 +42,7 @@ struct SentenceStoreTests {
     }
 
     @Test func theFactsComeBackInTheOrderTheSentenceUsesThem() throws {
-        let (store, facts) = try mission(Array(repeating: .officialUseOnly, count: 5))
+        let (store, facts) = try Self.mission(Array(repeating: .officialUseOnly, count: 5))
         let order = [facts[3], facts[0], facts[4], facts[1], facts[2]]
 
         try store.addSentence(sentence(order), to: "kandor-roads")
@@ -53,19 +51,19 @@ struct SentenceStoreTests {
     }
 
     @Test func aSentenceInheritsTheStrictestLabelOfItsFacts() throws {
-        let (store, facts) = try mission([.public, .strictlyConfidential])
+        let (store, facts) = try Self.mission([.public, .strictlyConfidential])
 
         #expect(try store.addSentence(sentence(facts), to: "kandor-roads").classification == .strictlyConfidential)
         #expect(try store.sentences(in: "kandor-roads").first?.classification == .strictlyConfidential)
     }
 
     @Test func aSentenceWithNoFactIsRefused() throws {
-        #expect(throws: SentenceError.noFact) { try mission().0.addSentence(sentence([]), to: "kandor-roads") }
+        #expect(throws: SentenceError.noFact) { try Self.mission().0.addSentence(sentence([]), to: "kandor-roads") }
     }
 
     @Test func aFactOfAnotherMissionIsRefused() throws {
-        let (store, _) = try mission()
-        let (_, otherFacts) = try mission(id: "kandor-bridges", in: store)
+        let (store, _) = try Self.mission()
+        let (_, otherFacts) = try Self.mission(id: "kandor-bridges", in: store)
 
         #expect(throws: SentenceError.unknownFact(id: otherFacts[0].id)) {
             try store.addSentence(sentence(otherFacts), to: "kandor-roads")
@@ -73,8 +71,8 @@ struct SentenceStoreTests {
     }
 
     @Test func theDatabaseItselfRefusesASentenceWithNoFactOrAnotherMissionsFact() throws {
-        let (store, _) = try mission()
-        let (_, otherFacts) = try mission(id: "kandor-bridges", in: store)
+        let (store, _) = try Self.mission()
+        let (_, otherFacts) = try Self.mission(id: "kandor-bridges", in: store)
         let insert = """
             INSERT INTO sentence (id, mission_id, section, sealed_text, classification, created_at, first_fact_id)
             VALUES ('s1', 'kandor-roads', 'Findings', x'00', 'official_use_only', 0, %@)
@@ -89,7 +87,7 @@ struct SentenceStoreTests {
     }
 
     @Test func traceFollowsASentenceBackToItsFactsAndEvidence() throws {
-        let (store, facts) = try mission()
+        let (store, facts) = try Self.mission()
         let added = try store.addSentence(sentence(facts), to: "kandor-roads")
 
         let trace = try store.trace(sentence: added.id, in: "kandor-roads")
@@ -103,7 +101,7 @@ struct SentenceStoreTests {
     }
 
     @Test func theTextIsSealedAndAShredMakesItUnreadable() throws {
-        let (store, facts) = try mission()
+        let (store, facts) = try Self.mission()
         try store.addSentence(sentence(facts), to: "kandor-roads")
         let sealed = try store.sealedSentenceTexts(in: "kandor-roads")
         #expect(sealed.count == 1 && sealed[0].range(of: Data("Payments".utf8)) == nil)
