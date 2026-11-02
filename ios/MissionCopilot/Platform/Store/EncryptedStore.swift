@@ -70,6 +70,23 @@ struct EncryptedStore: Sendable {
                 table.column("at", .double).notNull()
             }
         }
+        // Evidence (#71): the signed record and the file are both sealed with the mission key, so a shred
+        // makes them unreadable together; the signature and the head (a count and a hash) are not secret.
+        migrator.registerMigration("v4-evidence") { database in
+            try database.create(table: "evidence") { table in
+                table.column("mission_id", .text).notNull().references("mission", onDelete: .cascade)
+                table.column("seq", .integer).notNull()
+                table.column("sealed_payload", .blob).notNull()
+                table.column("signature", .blob).notNull()
+                table.column("sealed_file", .blob).notNull()
+                table.primaryKey(["mission_id", "seq"])
+            }
+            try database.create(table: "evidence_head") { table in
+                table.primaryKey("mission_id", .text).references("mission", onDelete: .cascade)
+                table.column("payload", .blob).notNull()
+                table.column("signature", .blob).notNull()
+            }
+        }
         return migrator
     }
 

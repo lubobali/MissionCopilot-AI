@@ -66,7 +66,8 @@ struct MissionStore: Sendable {
         try store.pool.read { database in try String.fetchAll(database, sql: "SELECT id FROM mission ORDER BY id") }
     }
 
-    private func missionKey(for mission: String) throws -> SymmetricKey {
+    /// Throws MissionKeyNotFound for an unknown or shredded mission.
+    func missionKey(for mission: String) throws -> SymmetricKey {
         let row = try store.pool.read { database in
             try Row.fetchOne(database, sql: "SELECT encapsulated_key, wrapped_key FROM mission WHERE id = ?",
                              arguments: [mission])
