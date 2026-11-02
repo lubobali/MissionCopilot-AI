@@ -64,6 +64,8 @@ Key names: **MK** = the mission key (one per mission, wrapped by a Secure Enclav
 | Device signing key | Device | Secret | Secure Enclave | Hardware | **Never** (cannot be exported) | No |
 | Mission key | Device | Secret | Keychain, wrapped by SE | SE | **Never**; destroyed at crypto-shred | No |
 | Database key | Device | Secret | Keychain, this device only | Hardware-backed Keychain | **Never** | No |
+| Device registration (public key, status) | Organization | Official Use Only | Org database | TK | Public key only, at enrollment | No |
+| Shred record (mission, reason, time) | System | Official Use Only | Phone store; org database after sync | DK; TK | Yes, on the next sync | No |
 
 ## 4. What this map guarantees
 

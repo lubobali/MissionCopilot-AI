@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 MODEL = Path("docs/threat-model.md")
-STATUSES = {"built", "spike", "planned", "accepted"}
 ROW = re.compile(r"^\|\s*([TP]\d{2})\s*\|")
 PHASE_OR_ISSUE = re.compile(r"Phase \d+|#\d+")
 PATH = re.compile(r"`([^`\s]+)`")
@@ -47,12 +46,20 @@ def problems(rows: list[Row], root: Path) -> list[str]:
         if len(row.cells) != 6:
             found.append(f"{row.id}: expected 6 cells, found {len(row.cells)}")
             continue
-        found.extend(_check(row.id, row.cells[4], row.cells[5], root))
+        found.extend(check_claim(row.id, row.cells[4], row.cells[5], root))
     return found
 
 
-def _check(row_id: str, status: str, where: str, root: Path) -> list[str]:
-    if status not in STATUSES:
+def check_claim(
+    row_id: str,
+    status: str,
+    where: str,
+    root: Path,
+    reasoned: frozenset[str] = frozenset({"accepted"}),
+) -> list[str]:
+    """One claim's rules, shared with the MASVS matrix: built and spike name a real file, spike and
+    planned name a phase or issue, and a status that needs a reason (accepted) gives one."""
+    if status not in {"built", "spike", "planned"} | reasoned:
         return [f"{row_id}: unknown status '{status}'"]
     has_file = any((root / path).exists() for path in PATH.findall(where))
     has_phase = bool(PHASE_OR_ISSUE.search(where))
@@ -64,8 +71,8 @@ def _check(row_id: str, status: str, where: str, root: Path) -> list[str]:
         return [f"{row_id}: spike, but no phase or issue rebuilds it in the app"]
     if status == "planned" and not has_phase:
         return [f"{row_id}: planned, but no phase or issue"]
-    if status == "accepted" and len(where) < 12:
-        return [f"{row_id}: accepted, but no reason given"]
+    if status in reasoned and len(where) < 12:
+        return [f"{row_id}: {status}, but no reason given"]
     return []
 
 

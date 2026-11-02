@@ -5,7 +5,7 @@ digital services. Honest about gaps.
 
 | Responsibility | Covered by | Status | Gap or next step |
 |---|---|---|---|
-| End-to-end architecture, options and trade-offs | architecture.md, ADRs 0001-0011 | Done | Revisit ADRs after the Iteration 2 spikes |
+| End-to-end architecture, options and trade-offs | architecture.md, ADRs 0001-0012 | Done | Revisit ADRs after the Iteration 2 spikes |
 | Build vs buy decisions | ADR 0004 (open model vs built-in), 0007 (adapters), 0009 (own lineage vs C2PA) | Done | Licence check for a large organization (ADR 0004) |
 | Non-functional requirements (offline, performance, privacy) | ADR 0003, 0006, 0008; bake-off numbers | Partly | Real performance only after Iteration 2 |
 | Mobile: native vs hybrid, device capabilities, offline | ADR 0001, 0004 | Partly | Native chosen; device features proven in Iteration 2 |

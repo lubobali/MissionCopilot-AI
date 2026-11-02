@@ -77,15 +77,45 @@ and every request it sends is signed with that key.
   from the signature or the pinned versions. CI also builds the backend's parts list from its lockfile.
 - Details and how to verify it yourself: [docs/models/README.md](models/README.md).
 
+## Lost, seized or forced to unlock (ADR 0012)
+- **Least data:** the phone holds only active missions; each is purged after the server confirms it plus
+  the retention time (30 days, set by the organization).
+- **Keys that expire on their own:** a mission key works offline for **14 days** (set by the
+  organization, up to 30), renewed by every sync. When the lease ends, or the clock is set back, the
+  mission is crypto-shredded. A lost phone protects itself without anyone acting.
+- **Shred order:** when the organization revokes a phone, its next genuine request gets a server-signed
+  order to destroy every mission (`backend/tests/unit/test_shred_order.py`). Anyone else asking learns
+  nothing.
+- **Visible shred, no secret wipe:** the officer can destroy a mission (the organization can turn this off);
+  it is confirmed, recorded and reported. There is **no hidden duress PIN**: in 2025 a traveller was
+  prosecuted for wiping a phone that way during a border search.
+- **If someone forces you to unlock:** your safety comes first. Unlock it, do not resist, tell your manager
+  when safe; they revoke the phone and the shred order does the rest (staff card in ADR 0012).
+- Every data item, where it lives and how it ends: [data-handling.md](data-handling.md).
+
+## App lock (designed; built with the encrypted store in Phase 4)
+- **When it asks:** on every cold start, and when the app comes back after **2 minutes** away (the
+  organization sets 0 to 5). A clock that moved backwards while away also asks. The timing rule is code
+  with its own tests (`ios/MissionCopilot/Platform/AppLock.swift`).
+- **What it guards is the key, not the screen.** The database key is kept in the Keychain so that iOS
+  releases it **only after Face ID or the passcode**, and **only while the phone has a passcode**, on this
+  phone only. A lock that just asks Face ID "yes or no" can be bypassed on a tampered phone; this one
+  cannot open the database without the key. Removing the phone's passcode deletes the key, so a phone
+  without a passcode cannot open mission data at all.
+- **The app switcher shows a cover**, not the last screen, whenever the app is not in front.
+- **Limit:** once unlocked, the app can show the active missions to whoever holds the phone; that is why
+  only active missions are on it and keys expire (ADR 0012).
+
 ## Check it yourself
 The code is open source. The [spike report](spikes/03-encryption.md) shows how to copy the database off a phone
 you own and try to read it with standard tools. The same check runs automatically in CI on the spike package.
 
 ## What it does not protect against (honest limits)
 - **An unlocked phone in the wrong hands.** While unlocked, the app can read its data, and so can whoever holds
-  the phone. The app lock (Face ID or passcode on open, lock after inactivity) is designed in Phase 3 (#49) and built
-  with the encrypted store in Phase 4.
-- **A phone without a passcode.** iOS Data Protection needs one.
+  the phone. The app lock (above) is designed and its rules tested; it is built with the encrypted store in
+  Phase 4. A forced unlock reveals the active missions; least data and expiring keys limit what that is.
+- **A phone without a passcode.** iOS Data Protection needs one; with the app lock (Phase 4) such a phone
+  cannot open mission data at all.
 - **A compromised or jailbroken phone**, or attacks on memory while the app is open.
 - **A bad model we signed ourselves.** The signature proves the model is the one we checked, not that the upstream
   model is free of problems. The app never lets the model decide a fact or a flag (ADR 0005).
@@ -97,5 +127,7 @@ you own and try to read it with standard tools. The same check runs automaticall
   [backend/README.md](../backend/README.md), each with its test in the [threat model](threat-model.md).
 
 ## Status
+- Mobile security self-assessment against OWASP MASVS v2.1, all 24 controls: [masvs.md](masvs.md)
+  (4 built, 5 spike, 8 planned, 5 accepted, 2 not applicable).
 - Feasibility proven on a real iPhone (October 31, 2026); production code is rebuilt test-first in Phase 4.
 - **Not independently audited** and no bug bounty. Treat this as a portfolio project, not certified software.

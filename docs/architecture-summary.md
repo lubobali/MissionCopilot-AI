@@ -35,6 +35,7 @@ Objects: [domain-model.md](domain-model.md). API: [api/openapi.yaml](api/openapi
 | 0009 | Lineage modelled on W3C PROV; signed, hash-chained evidence |
 | 0010 | Versioned, cited red-flag rules (Open Contracting R067/R068 + custom) |
 | 0011 | Export shaped like OC4IDS with risk flags and lineage |
+| 0012 | Lost, seized or coerced phone: least data, expiring mission keys, visible shred, shred order, app lock bound to the data key |
 
 ## Quality and delivery
 Test-first; CI on every push (secret scan, lint, types, tests, contract and dataset tests, workflow

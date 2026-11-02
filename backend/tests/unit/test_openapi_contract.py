@@ -130,6 +130,16 @@ def test_phones_sign_their_requests_and_never_hold_a_bearer_token(spec):
     assert "deviceSignature" in spec["components"]["securitySchemes"]
 
 
+def test_phone_operations_document_the_signed_shred_order(spec):
+    # ADR 0012: a revoked phone's next signed request gets a server-signed order to shred.
+    ops = {op["operationId"]: op for _, op in _operations(spec)}
+    order = spec["components"]["schemas"]["ShredOrder"]
+
+    assert [op for op in PHONE_OPERATIONS if "410" not in ops[op]["responses"]] == []
+    assert set(order["required"]) >= {"type", "status", "order", "signature"}
+    assert set(order["properties"]["order"]["required"]) == {"deviceId", "scope", "issuedAt"}
+
+
 def test_role_restricted_operations_document_403(spec):
     restricted = [n for n in DEVICE_OPERATIONS if n != "POST /v1/devices/enroll"]
     ops = dict(_operations(spec))

@@ -98,8 +98,8 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | T14 | I | The database file is copied off a lost phone | SQLCipher with a random key in the Keychain (this device only) | spike | `ios/AILab/EncryptionLab/Tests/EncryptionLabTests/OutsideCheckTests.swift`, rebuild Phase 4 |
 | T15 | I | Data is read while the phone is locked | iOS Data Protection Complete | spike | `ios/AILab/EncryptionLab/Tests/EncryptionLabTests/ProtectedDirectoryTests.swift`, rebuild Phase 4 |
 | T16 | I | Mission data or models land in iCloud or computer backups | Data and model folders excluded from backup (models built, missions spike) | spike | `ios/AILab/EncryptionLab/Tests/EncryptionLabTests/ProtectedDirectoryTests.swift`, `ios/MissionCopilotTests/ModelStoreTests.swift`, missions rebuilt Phase 4 |
-| T17 | I | An unlocked phone is in the wrong hands | App lock (Face ID or passcode), lock after inactivity | planned | #49, Phase 4 |
-| T18 | I | The officer is forced to unlock the app | Mission keys expire without sync, panic shred, shred order on next contact | planned | #49 |
+| T17 | I | An unlocked phone is in the wrong hands | App lock bound to the data key: the Keychain releases it only after Face ID or passcode, only while the phone has a passcode; asks on cold start and after 2 minutes away (ADR 0012). Timing rule and key access pinned in `ios/MissionCopilotTests/AppLockTests.swift` | planned | Face ID flow with the store, Phase 4 |
+| T18 | I | The officer is forced to unlock the app | Least data on the phone; mission keys on a 14-day lease, crypto-shred when it ends or the clock is set back; visible, recorded shred (no hidden duress PIN); signed shred order to revoked phones; staff card: safety first (ADR 0012) | spike | `ios/AILab/EncryptionLab/Tests/EncryptionLabTests/KeyLeaseTests.swift`, `backend/tests/unit/test_shred_order.py`, phone side Phase 4 and Phase 8 |
 | T19 | T | A mission must be destroyed now | Crypto-shred: delete the mission key, data unreadable at once | spike | `ios/AILab/EncryptionLab/Tests/EncryptionLabTests/MissionKeysTests.swift`, rebuild Phase 4 |
 | T20 | T | The evidence chain is rolled back to an older state | The server keeps a receipt of the latest signed head | planned | Phase 8 |
 | T21 | T | A jailbroken phone tampers with the app | Accepted for the prototype; production adds App Attest and MDM | accepted | Accepted: client checks are bypassable; see Limits |
@@ -160,13 +160,13 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 
 | ID | LINDDUN | Threat | Control | Status | Test or phase |
 |---|---|---|---|---|---|
-| P01 | Linking | Evidence across missions traces a person's movements | Per-mission keys; data purged on the phone after sync; the server keeps approved results only | planned | #49, Phase 8 |
+| P01 | Linking | Evidence across missions traces a person's movements | Per-mission keys; only active missions on the phone, keys expire on a lease (spike, #49); purged after sync plus retention; the server keeps approved results only | planned | Phase 8 (purge after sync) |
 | P02 | Identifying | Voice and photos identify bystanders or informants | Consent screen for full recordings; audio kept only until the transcript is confirmed | planned | Phase 6 |
-| P03 | Non-repudiation | **Signed evidence proves who sent it, which can hurt staff who were coerced** | Named trade-off: signatures prove the device, not free will; the coercion policy lets staff shred | planned | #49 |
+| P03 | Non-repudiation | **Signed evidence proves who sent it, which can hurt staff who were coerced** | Signatures prove the device, not free will (ADR 0009); ADR 0012 staff card: safety first, comply, no hidden wipe; the organization revokes the phone and the shred order destroys its missions | accepted | A named trade-off: accountability needs signed evidence, and the staff card plus the shred order limit the harm to coerced staff |
 | P04 | Detecting | A seized phone reveals that a mission exists | Encrypted database hides even table names; crypto-shred | spike | `ios/AILab/EncryptionLab/Tests/EncryptionLabTests/OutsideCheckTests.swift`, rebuild Phase 4 |
 | P05 | Data disclosure | Official Use Only data reaches cloud AI | Same control as T44 | planned | Phase 6 |
 | P06 | Unawareness | The officer does not know what will be sent | Review screen; nothing leaves before "Approve & Send" | planned | Phase 7 |
-| P07 | Non-compliance | Data kept longer than needed | Retention clock starts at server confirmation, then crypto-shred on the phone | planned | Phase 8, handling sheet #49 |
+| P07 | Non-compliance | Data kept longer than needed | Retention clock starts at server confirmation (30 days, set per organization), then crypto-shred; key lease as a backstop; every item's retention in docs/data-handling.md, checked by `scripts/test_check_data_handling.py` | planned | Phase 8 (retention clock with sync) |
 
 ## 4. AI-specific mapping
 

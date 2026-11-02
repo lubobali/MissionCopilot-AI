@@ -53,6 +53,8 @@ paths:
       parameters:
         - $ref: "#/components/parameters/MissionId"
       responses:
+        "410":
+          $ref: "#/components/responses/ShredOrder"
         "200":
           description: The mission and its pack
           content:
@@ -94,6 +96,8 @@ paths:
             schema:
               $ref: "#/components/schemas/SyncBatch"
       responses:
+        "410":
+          $ref: "#/components/responses/ShredOrder"
         "200":
           description: Batch stored; the receipt starts the retention clock on the phone
           content:
@@ -136,6 +140,8 @@ paths:
             schema:
               $ref: "#/components/schemas/Approval"
       responses:
+        "410":
+          $ref: "#/components/responses/ShredOrder"
         "202":
           description: Submitted for manager review
         "401":
@@ -396,7 +402,8 @@ components:
         An enrolled, approved phone signs every request with its Secure Enclave key (ECDSA P-256,
         SHA-256, DER, base64). Headers X-Device-Id, X-Device-Seq (strictly increasing) and
         X-Device-Time (Unix seconds) are signed too; the signed message is defined in
-        docs/security.md. Replays, old times and unknown, pending or revoked devices get 401.
+        docs/security.md. Replays, old times and unknown or pending devices get 401. A revoked
+        device's genuinely signed request gets 410 with a server-signed shred order (ADR 0012).
   parameters:
     DeviceId:
       name: deviceId
@@ -443,6 +450,15 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+    ShredOrder:
+      description: >
+        This phone was revoked. The server-signed order tells it to destroy every mission it holds
+        (ADR 0012). The phone checks the signature against the pinned server key and that the order
+        names its own device id. Sent only to a genuinely signed request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ShredOrder"
     TooManyRequests:
       description: Too many requests from this client; retry after the given delay
       headers:
@@ -525,6 +541,39 @@ components:
           type: string
         instance:
           type: string
+    ShredOrder:
+      type: object
+      description: >
+        Problem Details with a signed order. The signature is ECDSA P-256 over SHA-256 (DER,
+        base64) of "missioncopilot-shred-v1\n" + deviceId + "\n" + scope + "\n" + issuedAt.
+      required: [type, title, status, order, signature]
+      properties:
+        type:
+          type: string
+          const: urn:missioncopilot:problem:shred-order
+        title:
+          type: string
+        status:
+          type: integer
+          const: 410
+        detail:
+          type: string
+        order:
+          type: object
+          additionalProperties: false
+          required: [deviceId, scope, issuedAt]
+          properties:
+            deviceId:
+              type: string
+            scope:
+              type: string
+              const: all-missions
+            issuedAt:
+              type: integer
+              description: Unix seconds, server time
+        signature:
+          type: string
+          contentEncoding: base64
     Classification:
       type: string
       enum: [strictly_confidential, official_use_only, public]

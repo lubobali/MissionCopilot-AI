@@ -2,6 +2,7 @@ import os
 import time
 from collections.abc import Callable
 
+from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -14,6 +15,7 @@ from missioncopilot_backend.errors import install_error_handlers
 from missioncopilot_backend.headers import SecurityHeadersMiddleware
 from missioncopilot_backend.limits import LimitsMiddleware, RateLimiter
 from missioncopilot_backend.settings import Settings
+from missioncopilot_backend.shred_order import install_shred_orders
 from missioncopilot_backend.tenancy import OrgDatabases
 
 v1 = APIRouter(prefix="/v1")
@@ -32,6 +34,7 @@ def create_app(
     audit: AuditLog | None = None,
     enrollment_codes: EnrollmentCodes | None = None,
     devices: DeviceRegistry | None = None,
+    shred_key: ec.EllipticCurvePrivateKey | None = None,
 ) -> FastAPI:
     """Build the app for one set of settings; tests build their own instead of patching globals."""
     docs = settings.docs_enabled
@@ -47,6 +50,7 @@ def create_app(
     app.state.enrollment_codes = enrollment_codes or EnrollmentCodes()
     app.state.devices = devices or DeviceRegistry()
     install_error_handlers(app)
+    install_shred_orders(app, shred_key)
     # Middleware runs outermost last-added: headers on every answer, then the host check, the
     # limits, and browser origins closest to the routes.
     app.add_middleware(
