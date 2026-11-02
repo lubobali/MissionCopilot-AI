@@ -22,9 +22,11 @@ enum ChipKeyAccess {
 struct SecureEnclaveVault: MissionKeyVault {
     static let app = SecureEnclaveVault(service: "com.lubobali.missioncopilot.missionkey")
 
+    let service: String
     private let items: KeychainItems
 
     init(service: String) {
+        self.service = service
         items = KeychainItems(service: service)
     }
 
