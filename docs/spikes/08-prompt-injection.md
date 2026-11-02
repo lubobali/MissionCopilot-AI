@@ -87,7 +87,8 @@ do not trust the page.
 - **Checks catch what they know.** A forged value that matches the bank's record and the page, inside the
   contract, passes. That is why a person approves every report, and the model never decides a fact.
 - **Spike code:** the checks live in the DocumentLab spike package; the app rebuilds them test-first in
-  Phase 4. The 158-second answer on the oversized input also needs a time limit there.
+  Phase 4. The 158-second answer on the oversized input now has a time limit too (#62): every model call
+  stops after 20 s, and a stopped call is never used (measured on the iPhone: results/time-limit-iphone13promax.json).
 
 ## Decision
 - Keep the design: the model only drafts; **code checks against the bank's own records** and **a person

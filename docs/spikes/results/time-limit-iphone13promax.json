@@ -1,0 +1,11 @@
+{
+  "date": "2026-11-02",
+  "device": "iPhone 13 Pro Max, iOS 27.2, MC AI Lab (Debug), LFM2.5-1.2B-Instruct-4bit, built-in invoice-14 page",
+  "limit 1 s #1": "STOPPED, not used; control back 1005 ms; model work ended 1720 ms; free memory 1941 MB",
+  "limit 1 s #2": "STOPPED, not used; control back 1042 ms; model work ended 1750 ms; free memory 1941 MB",
+  "limit 1 s #3": "STOPPED, not used; control back 1001 ms; model work ended 1741 ms; free memory 1941 MB",
+  "limit 20 s #1": "answered; control back 3616 ms; model work ended 3616 ms; free memory 1935 MB",
+  "limit 20 s #2": "answered; control back 3577 ms; model work ended 3577 ms; free memory 1934 MB",
+  "limit 20 s #3": "answered; control back 3554 ms; model work ended 3554 ms; free memory 1942 MB",
+  "network during run": "offline (no network path)"
+}
