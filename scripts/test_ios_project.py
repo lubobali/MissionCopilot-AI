@@ -3,6 +3,7 @@ pins them: the minimum iOS version (MASVS-CODE-1, #61) and file protection Compl
 the app creates (ADR 0008 layer A). Dropping either fails here, not on someone's phone. CI picks a
 simulator that can run it."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -69,3 +70,15 @@ def test_ci_signs_the_app_tests_ad_hoc_so_the_keychain_works():
 
     assert "CODE_SIGN_IDENTITY=-" in step
     assert "CODE_SIGNING_ALLOWED=NO" not in step
+
+
+def test_every_library_in_the_parts_list_ships_its_license_in_the_app():
+    bom = json.loads((ROOT / "docs" / "sbom" / "app.cdx.json").read_text(encoding="utf-8"))
+    components = bom["components"]
+    libraries = [c["name"].removesuffix(".swift") for c in components if c["type"] == "library"]
+    folder = ROOT / "ios" / "MissionCopilot" / "Licenses"
+
+    assert libraries
+    for name in libraries:
+        text = folder / f"License-{name}.txt"
+        assert text.exists() and text.read_text(encoding="utf-8").strip(), name
