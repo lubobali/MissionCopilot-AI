@@ -85,6 +85,28 @@ enum StoreSchema {
                     FOREIGN KEY (mission_id, evidence_seq) REFERENCES evidence(mission_id, seq) ON DELETE CASCADE);
                 """)
         }
+        // Report sentences (#72): a required first fact of the same mission (a two-column foreign key, so
+        // the database refuses a sentence with no fact or another mission's fact); sentence_fact keeps every
+        // fact in order. The text is sealed with the mission key.
+        migrator.registerMigration("v6-sentences") { database in
+            try database.execute(sql: """
+                CREATE UNIQUE INDEX fact_by_mission ON fact (mission_id, id);
+                CREATE TABLE sentence (
+                    id TEXT PRIMARY KEY,
+                    mission_id TEXT NOT NULL REFERENCES mission(id) ON DELETE CASCADE,
+                    section TEXT NOT NULL, sealed_text BLOB NOT NULL,
+                    classification TEXT NOT NULL CHECK (classification IN
+                        ('strictly_confidential', 'official_use_only', 'public')),
+                    created_at REAL NOT NULL,
+                    first_fact_id TEXT NOT NULL,
+                    FOREIGN KEY (mission_id, first_fact_id) REFERENCES fact(mission_id, id) ON DELETE CASCADE);
+                CREATE TABLE sentence_fact (
+                    sentence_id TEXT NOT NULL REFERENCES sentence(id) ON DELETE CASCADE,
+                    mission_id TEXT NOT NULL, fact_id TEXT NOT NULL, position INTEGER NOT NULL,
+                    PRIMARY KEY (sentence_id, fact_id),
+                    FOREIGN KEY (mission_id, fact_id) REFERENCES fact(mission_id, id) ON DELETE CASCADE);
+                """)
+        }
         return migrator
     }
 }
