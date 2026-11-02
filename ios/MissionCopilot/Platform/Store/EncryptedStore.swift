@@ -56,6 +56,20 @@ struct EncryptedStore: Sendable {
                 table.column("sealed", .blob).notNull()
             }
         }
+        // Key leases and shred records (#70, ADR 0012). A shred record outlives its mission: it is
+        // reported on the next sync, so it has no foreign key that a purge would cascade through.
+        migrator.registerMigration("v3-leases-and-shreds") { database in
+            try database.create(table: "mission_lease") { table in
+                table.primaryKey("mission_id", .text).references("mission", onDelete: .cascade)
+                table.column("renewed_at", .double).notNull()
+                table.column("days", .integer).notNull()
+            }
+            try database.create(table: "shred_record") { table in
+                table.primaryKey("mission_id", .text)
+                table.column("reason", .text).notNull()
+                table.column("at", .double).notNull()
+            }
+        }
         return migrator
     }
 

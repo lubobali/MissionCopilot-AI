@@ -9,12 +9,16 @@ struct MissionStore: Sendable {
     let store: EncryptedStore
     let vault: any MissionKeyVault
 
-    func create(mission: String, title: String, classification: Classification = .officialUseOnly) throws {
+    /// A new mission gets a fresh key and starts its offline lease (ADR 0012).
+    func create(mission: String, title: String, classification: Classification = .officialUseOnly,
+                now: Date = Date()) throws {
         let wrapped = try vault.wrap(SymmetricKey(size: .bits256), for: mission)
         try store.write { database in
             try database.execute(sql: "INSERT INTO mission VALUES (?, ?, ?, ?, ?)", arguments: [
                 mission, title, classification.rawValue, wrapped.encapsulatedKey, wrapped.ciphertext
             ])
+            try database.execute(sql: "INSERT INTO mission_lease VALUES (?, ?, ?)",
+                                 arguments: [mission, now.timeIntervalSince1970, KeyLease.defaultDays])
         }
     }
 
