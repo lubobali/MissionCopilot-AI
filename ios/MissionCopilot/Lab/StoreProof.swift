@@ -72,8 +72,10 @@ struct StoreProof {
         return report
     }
 
-    /// Removes everything an earlier run left: folders, the data key, the mission keys.
+    /// Removes everything an earlier run left: folders, the data key, the mission keys, the chip signing
+    /// key (a fresh one each run; its public key goes out with the chain).
     func cleanUp() {
+        try? (signer as? SecureEnclaveEvidenceSigner)?.deleteKey()
         try? FileManager.default.removeItem(at: base)
         try? FileManager.default.removeItem(at: outbox)
         try? keys.delete(for: Self.user)

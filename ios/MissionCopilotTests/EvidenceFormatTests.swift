@@ -19,7 +19,7 @@ struct EvidenceFormatTests {
         return try! JSONDecoder().decode(Export.self, from: Data(contentsOf: url))
     }()
 
-    @Test func theAppEncodesTheSameFieldsToExactlyThePythonBytes() throws {
+    @Test(.needsRepoFiles) func theAppEncodesTheSameFieldsToExactlyThePythonBytes() throws {
         for record in Self.fixture.records {
             let fields = try JSONDecoder().decode(EvidencePayload.self, from: record.payload)
 
@@ -27,7 +27,7 @@ struct EvidenceFormatTests {
         }
     }
 
-    @Test func theAppVerifiesThePythonChainAndHeadWithOnlyThePublicKey() {
+    @Test(.needsRepoFiles) func theAppVerifiesThePythonChainAndHeadWithOnlyThePublicKey() {
         let fixture = Self.fixture
 
         let result = EvidenceChain.verify(fixture.records, head: fixture.head, publicKeyDER: fixture.publicKeyDER)
@@ -35,7 +35,7 @@ struct EvidenceFormatTests {
         #expect(result == .valid(count: 3))
     }
 
-    @Test func noLocationMeansNoLocationFieldNotNull() throws {
+    @Test(.needsRepoFiles) func noLocationMeansNoLocationFieldNotNull() throws {
         let payload = try JSONDecoder().decode(EvidencePayload.self, from: Self.fixture.records[1].payload)
 
         #expect(payload.location == nil)

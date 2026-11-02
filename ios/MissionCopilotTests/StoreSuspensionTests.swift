@@ -6,7 +6,7 @@ import UIKit
 /// About 10 seconds after the phone locks, Complete files become unreadable, and an app holding a
 /// database lock while suspended is killed (0xDEAD10CC). The store pauses when protected data goes away
 /// or the app leaves the screen, and resumes when it comes back (#69). The phone run (#74) proves it.
-@Suite(.serialized)
+@Suite(.serialized, .takesTurnsWithThePause)
 struct StoreSuspensionTests {
     private func store(suspendable: Bool = true) throws -> EncryptedStore {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).sqlite")

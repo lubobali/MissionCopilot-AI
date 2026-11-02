@@ -12,6 +12,7 @@ private let simulatorGaps: [String] = []
 
 /// The phone proof of the Phase 4 store (#74), run here with software keys: every check passes on
 /// working code, and a broken part makes its own check fail instead of passing by luck.
+@Suite(.takesTurnsWithThePause)
 struct StoreProofTests {
     private struct Folders {
         let base: URL

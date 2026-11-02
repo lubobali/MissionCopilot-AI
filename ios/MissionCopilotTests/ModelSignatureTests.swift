@@ -150,7 +150,9 @@ extension ModelSignatureTests {
 extension ModelSignatureTests {
     /// Found on the iPhone: iOS app folders live under /private/var, and resolving the folder's path
     /// drops "/private" while the file listing keeps it, which once cut every file name short.
-    @Test func aModelUnderAPrivatePathVerifies() throws {
+    @Test(.enabled(if: FileManager.default.isWritableFile(atPath: "/private/tmp"),
+                   "Writes to the Mac's /private/tmp; on the iPhone the app's own folder is under /private/var"))
+    func aModelUnderAPrivatePathVerifies() throws {
         let model = URL(fileURLWithPath: "/private/tmp/\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.copyItem(at: try modelCopy(), to: model)
         defer { try? FileManager.default.removeItem(at: model) }

@@ -54,4 +54,11 @@ struct SecureEnclaveVaultTests {
         #expect(ChipKeyAccess.flags == .privateKeyUsage)
         _ = try ChipKeyAccess.make()
     }
+
+    @Test func theChipKeysBlobIsKeptWithAPlainKeychainRule() throws {
+        // The key-usage flag belongs to the chip key only. On a Keychain item a real phone then refuses
+        // to return the blob (-25293, found by the phone run #74); the Simulator never enforces it.
+        #expect(ChipKeyAccess.blobFlags.isEmpty)
+        _ = try ChipKeyAccess.blob()
+    }
 }

@@ -5,8 +5,8 @@ import UIKit
 
 /// The lock test of the phone proof (#74): writes keep going while the phone locks; the store must pause
 /// (writes refused, never a held lock), resume after unlock, and lose nothing. Here the lock is the same
-/// signals posted on a test center; the phone run proves the real one. Part of the serialized suite,
-/// because the pause reaches every pausable store in the app.
+/// signals posted on a test center; the phone run proves the real one. Part of the suspension suite,
+/// which takes turns with every suite whose stores pause (TakesTurnsWithThePause).
 extension StoreSuspensionTests {
     private final class Locking {
         let center = NotificationCenter()

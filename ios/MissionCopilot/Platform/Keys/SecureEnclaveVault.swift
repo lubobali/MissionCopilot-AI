@@ -7,8 +7,17 @@ import Security
 enum ChipKeyAccess {
     static var accessibility: CFString { kSecAttrAccessibleWhenUnlockedThisDeviceOnly }
     static let flags: SecAccessControlCreateFlags = .privateKeyUsage
+    /// The blob's Keychain item: same lock setting, no key-usage flag. That flag is for the chip key
+    /// only; on a Keychain item a real phone refuses to return the blob (-25293, found by #74).
+    static let blobFlags: SecAccessControlCreateFlags = []
 
-    static func make() throws -> SecAccessControl {
+    /// For creating the chip key itself.
+    static func make() throws -> SecAccessControl { try access(flags) }
+
+    /// For the Keychain item that keeps the chip key's blob.
+    static func blob() throws -> SecAccessControl { try access(blobFlags) }
+
+    private static func access(_ flags: SecAccessControlCreateFlags) throws -> SecAccessControl {
         guard let access = SecAccessControlCreateWithFlags(nil, accessibility, flags, nil) else {
             throw KeychainFailure(status: errSecParam)
         }
@@ -53,7 +62,7 @@ struct SecureEnclaveVault: MissionKeyVault {
             return try SecureEnclave.P256.KeyAgreement.PrivateKey(dataRepresentation: blob)
         }
         let created = try SecureEnclave.P256.KeyAgreement.PrivateKey(accessControl: ChipKeyAccess.make())
-        let access = try ChipKeyAccess.make()
+        let access = try ChipKeyAccess.blob()
         if try items.add(created.dataRepresentation, account: mission, access: access) { return created }
         guard let raced = try items.load(mission) else { throw KeychainFailure(status: errSecDuplicateItem) }
         return try SecureEnclave.P256.KeyAgreement.PrivateKey(dataRepresentation: raced)
