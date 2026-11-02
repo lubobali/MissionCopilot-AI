@@ -116,8 +116,8 @@ merge. Every number below was counted from the repo by a script, not by hand.
   the MASVS matrix allows "accepted" with a reason, like the threat model.
 - Spike code (encrypted store, key lease, shreds, checks) is rebuilt test-first in the app from Phase 4.
 
-**Open** (each is an issue in its iteration, so nothing lives only here): the phone side of the shred order,
-minimum iOS 26, a time limit for the model, the no-tools test (T08), an advisory scan for Swift packages,
-adaptive injection attacks, and an independent security review.
+**Open** (each is an issue in its iteration, so nothing lives only here): the phone side of the shred order
+(#60), minimum iOS 26 (#61), a time limit for the model (#62), the no-tools test T08 (#63), an advisory scan
+for Swift packages (#64), adaptive injection attacks (#65), and an independent security review (#66).
 
 **Next:** Iteration 4 · Evidence store, expanded with research before building, like this one.
