@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 import yaml
 from openapi_spec_validator import validate
+from yaml.constructor import ConstructorError
+from yaml.resolver import BaseResolver
 
 pytestmark = pytest.mark.unit
 
@@ -153,3 +155,23 @@ def test_a_device_is_pending_active_or_revoked(spec):
 
     assert device["properties"]["status"]["enum"] == ["pending", "active", "revoked"]
     assert set(enrollment["required"]) == {"code", "publicKeyDER", "proof"}
+
+
+class _NoDuplicates(yaml.SafeLoader):
+    """A YAML loader that refuses a key written twice; the default one silently keeps the last."""
+
+
+def _refuse_duplicates(loader, node, deep=False):
+    keys = [loader.construct_object(key, deep=deep) for key, _ in node.value]
+    duplicates = {key for key in keys if keys.count(key) > 1}
+    if duplicates:
+        raise ConstructorError(None, None, f"duplicate keys {duplicates}", node.start_mark)
+    return loader.construct_mapping(node, deep=deep)
+
+
+_NoDuplicates.add_constructor(BaseResolver.DEFAULT_MAPPING_TAG, _refuse_duplicates)
+
+
+def test_no_key_is_written_twice_in_the_contract():
+    # A second "properties:" under one schema would silently replace the first.
+    yaml.load(SPEC_PATH.read_text(encoding="utf-8"), Loader=_NoDuplicates)  # noqa: S506 - safe loader subclass
