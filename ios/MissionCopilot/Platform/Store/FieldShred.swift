@@ -33,6 +33,8 @@ extension MissionStore {
         try store.write { database in
             try database.execute(sql: "UPDATE mission_lease SET renewed_at = ? WHERE mission_id = ?",
                                  arguments: [sync.timeIntervalSince1970, mission])
+            try EncryptedStore.appendAudit(AuditEntry(action: .leaseRenewed, actor: actor, mission: mission,
+                                                      target: nil, time: sync), in: database)
         }
     }
 
@@ -90,6 +92,8 @@ extension MissionStore {
         try store.write { database in
             try database.execute(sql: "INSERT INTO shred_record VALUES (?, ?, ?)",
                                  arguments: [mission, reason.rawValue, now.timeIntervalSince1970])
+            try EncryptedStore.appendAudit(AuditEntry(action: .missionShredded, actor: actor, mission: mission,
+                                                      target: reason.rawValue, time: now), in: database)
         }
         return ShredRecord(mission: mission, reason: reason, time: now)
     }

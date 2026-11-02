@@ -128,6 +128,20 @@ enum StoreSchema {
                 BEGIN SELECT RAISE(ABORT, 'append-only: shred records cannot be deleted'); END;
                 """)
         }
+        // The phone's audit log (#72, domain invariant 6): one hash chain for the whole store, written in the
+        // same transaction as each change, never with content, and never changed or deleted, not even by a
+        // purge: what happened to a mission outlives the mission.
+        migrator.registerMigration("v8-audit") { database in
+            try database.execute(sql: """
+                CREATE TABLE audit_event (
+                    seq INTEGER PRIMARY KEY, at INTEGER NOT NULL, actor TEXT NOT NULL, action TEXT NOT NULL,
+                    mission_id TEXT, target_id TEXT, prev_hash TEXT NOT NULL, hash TEXT NOT NULL);
+                CREATE TRIGGER audit_event_no_update BEFORE UPDATE ON audit_event
+                BEGIN SELECT RAISE(ABORT, 'append-only: audit events cannot be changed'); END;
+                CREATE TRIGGER audit_event_no_delete BEFORE DELETE ON audit_event
+                BEGIN SELECT RAISE(ABORT, 'append-only: audit events cannot be deleted'); END;
+                """)
+        }
         return migrator
     }
 }

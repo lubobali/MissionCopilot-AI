@@ -34,6 +34,8 @@ extension MissionStore {
             ])
             try database.execute(sql: "INSERT OR REPLACE INTO evidence_head VALUES (?, ?, ?)",
                                  arguments: [mission, head.payload, head.signature])
+            try EncryptedStore.appendAudit(AuditEntry(action: .evidenceAdded, actor: actor, mission: mission,
+                                                      target: String(chain.records.count), time: Date()), in: database)
         }
         return record
     }

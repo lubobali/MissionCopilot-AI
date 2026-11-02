@@ -57,6 +57,8 @@ extension MissionStore {
                 try database.execute(sql: "INSERT INTO sentence_fact VALUES (?, ?, ?, ?)",
                                      arguments: [sentence.id, mission, factId, position])
             }
+            try EncryptedStore.appendAudit(AuditEntry(action: .sentenceAdded, actor: actor, mission: mission,
+                                                      target: sentence.id, time: now), in: database)
         }
         return sentence
     }
