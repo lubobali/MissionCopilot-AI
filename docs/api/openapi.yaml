@@ -686,32 +686,87 @@ components:
       allOf:
         - $ref: "#/components/schemas/Base"
         - type: object
-          required: [kind, contentHash, prevHash, signature, capturedAt]
-          description: Immutable. Content travels separately; this is the signed record.
+          required: [payload, signature]
+          description: >
+            Immutable signed record. The payload is the exact bytes the phone's Secure Enclave signed (an
+            EvidencePayload, docs/evidence-format.md); verifiers check those bytes and never rebuild the
+            JSON. Nothing signed is repeated outside it. The file itself travels separately.
           properties:
-            kind:
+            payload:
               type: string
-              enum: [photo, scan, audio]
-            contentHash:
-              type: string
-              description: SHA-256, hex
-            prevHash:
-              type: string
+              contentEncoding: base64
             signature:
               type: string
-              description: Secure Enclave P-256 signature, base64
-            capturedAt:
-              type: string
-              format: date-time
-            clockSource:
-              type: string
-            location:
-              type: object
-              properties:
-                lat:
-                  type: number
-                lon:
-                  type: number
+              contentEncoding: base64
+              description: ECDSA P-256 over SHA-256 of the payload bytes, DER
+    EvidencePayload:
+      type: object
+      additionalProperties: false
+      description: What the payload bytes contain (version 2). Sorted keys, integers only.
+      required: [v, seq, prevHash, contentHash, kind, capturedAt, clockSource, missionId]
+      properties:
+        v:
+          type: integer
+          const: 2
+        seq:
+          type: integer
+          minimum: 1
+        prevHash:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        contentHash:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: SHA-256 of the file as captured, hex
+        kind:
+          type: string
+          enum: [photo, scan, audio]
+        capturedAt:
+          type: string
+          pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+          description: UTC, whole seconds; a claim, see clockSource
+        clockSource:
+          type: string
+          enum: [device, gnss]
+        location:
+          type: object
+          additionalProperties: false
+          description: Whole micro-degrees; absent when location is not allowed
+          required: [latE6, lonE6]
+          properties:
+            latE6:
+              type: integer
+              minimum: -90000000
+              maximum: 90000000
+            lonE6:
+              type: integer
+              minimum: -180000000
+              maximum: 180000000
+        missionId:
+          type: string
+    ChainHead:
+      type: object
+      required: [payload, signature]
+      description: The signed head of a mission's evidence chain (a ChainHeadPayload), re-signed after every item.
+      properties:
+        payload:
+          type: string
+          contentEncoding: base64
+        signature:
+          type: string
+          contentEncoding: base64
+    ChainHeadPayload:
+      type: object
+      required: [count, headHash, missionId]
+      properties:
+        count:
+          type: integer
+          minimum: 0
+        headHash:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        missionId:
+          type: string
     FieldNote:
       allOf:
         - $ref: "#/components/schemas/Base"
@@ -872,6 +927,8 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/Evidence"
+            evidenceHead:
+              $ref: "#/components/schemas/ChainHead"
             documents:
               type: array
               items:

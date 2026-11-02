@@ -88,7 +88,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 ### B3 App ↔ Secure Enclave
 | ID | STRIDE | Threat | Control | Status | Test or phase |
 |---|---|---|---|---|---|
-| T11 | S | Someone signs evidence with the officer's key | Secure Enclave key, this device only, used only by our app | spike | `ios/AILab/EncryptionLab/Tests/EncryptionLabTests/EvidenceChainTests.swift`, rebuild Phase 4 |
+| T11 | S | Someone signs evidence with the officer's key | Secure Enclave key, this device only, used only by our app; the signature also covers kind, clock source and location (payload v2, docs/evidence-format.md), and the server checks the format strictly | spike | `ios/MissionCopilotTests/EvidenceChainTests.swift`, `backend/tests/unit/test_evidence_v2.py`, on the phone in #74 |
 | T12 | I | The private key is extracted | Accepted: the key never leaves the Secure Enclave (Apple platform guarantee) | accepted | Accepted: hardware guarantee, see Apple Platform Security |
 | T13 | R | The final approval is signed without the officer present | Approval signature needs Face ID or passcode | planned | #49, Phase 7 |
 

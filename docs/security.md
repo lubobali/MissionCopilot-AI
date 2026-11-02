@@ -2,8 +2,8 @@
 
 **Status: draft. Proven in a feasibility spike on an iPhone 13 Pro Max and being rebuilt test-first in the
 main app (Phase 4): the encrypted store, its Keychain key, the protected folder and the pause on lock (#69),
-and per-mission keys in the Secure Enclave with the 14-day lease and recorded shreds (#70) are in the app;
-signed evidence and the app lock follow. Not independently audited.** Every threat and its status: [threat model](threat-model.md).
+per-mission keys in the Secure Enclave with the 14-day lease and recorded shreds (#70), and signed, sealed
+evidence (#71) are in the app; the app lock follows. Not independently audited.** Every threat and its status: [threat model](threat-model.md).
 Decision record: [ADR 0008](adr/0008-data-storage-isolation-encryption.md). Evidence and how to repeat it:
 [spike #16](spikes/03-encryption.md).
 
@@ -34,11 +34,16 @@ this phone's chip can use, and the app keeps it in the Keychain. Shredding delet
 anywhere else is useless without this phone's chip.
 
 ## Evidence that shows tampering
-Every photo and scan is signed by the phone's Secure Enclave and linked to the item before it, with a signed
-count and last link per mission. Changing one byte, removing an item or cutting off the last one is
-detected offline, and the server verifies the phone's signatures with only the public key
-([spike #17](spikes/04-signed-evidence.md)). Limit: on the phone alone, rolling back to an older chain needs
-the server's sync receipt to be caught.
+Every photo, scan and recording is signed by the phone's Secure Enclave and linked to the item before it,
+with a signed count and last link per mission. The signature covers the file's hash, the time and where
+that time came from, the kind of item and the location ([signed evidence format](evidence-format.md)), so
+none of them can be changed afterwards. Changing one byte, removing an item or cutting off the last one is
+detected offline, and the server verifies the phone's signatures with only the public key, checking the
+format strictly. Built in the app (#71): the app produces byte for byte what the server expects. On the
+phone, each file and its signed record are sealed with the mission key, so a shred makes both unreadable.
+Proven on the iPhone in [spike #17](spikes/04-signed-evidence.md); the app's version is proven on the phone
+in #74. Limit: on the phone alone, rolling back to an older chain needs the server's sync receipt to be
+caught.
 
 ## Which phones may send data (device enrollment)
 A phone never holds a password or a login token. It is known by a key made inside its Secure Enclave,

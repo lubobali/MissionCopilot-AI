@@ -27,7 +27,8 @@ Option 3.
 
 ### Signing and chaining
 - Each evidence item stores: content hash (SHA-256), the previous item's hash, capture time, location
-  if allowed, and a signature by a Secure Enclave P-256 signing key over all of it.
+  if allowed, and a signature by a Secure Enclave P-256 signing key over all of it. The exact signed
+  bytes (payload v2, which also signs the kind and the clock source) are in docs/evidence-format.md.
 - Changing one byte of any item, or removing one, breaks the chain and is detected, offline.
 - A **signed head** (item count + last link, per mission) is re-signed after every item, so cutting off
   the last item is detected too.
