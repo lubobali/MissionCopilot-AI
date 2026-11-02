@@ -51,6 +51,7 @@ struct EncryptedStoreTests {
         let reopened = try EncryptedStore.open(at: file, key: key)
 
         #expect(try reopened.appliedMigrations()
-            == ["v1-store-info", "v2-missions", "v3-leases-and-shreds", "v4-evidence"])
+            == ["v1-store-info", "v2-missions", "v3-leases-and-shreds", "v4-evidence", "v5-facts", "v6-sentences",
+                "v7-append-only", "v8-audit"])
     }
 }

@@ -2,8 +2,9 @@
 
 **Status: draft. Proven in a feasibility spike on an iPhone 13 Pro Max and being rebuilt test-first in the
 main app (Phase 4): the encrypted store, its Keychain key, the protected folder and the pause on lock (#69),
-per-mission keys in the Secure Enclave with the 14-day lease and recorded shreds (#70), and signed, sealed
-evidence (#71) are in the app; the app lock follows. Not independently audited.** Every threat and its status: [threat model](threat-model.md).
+per-mission keys in the Secure Enclave with the 14-day lease and recorded shreds (#70), signed, sealed
+evidence (#71), and facts and sentences that trace back to evidence with an append-only, hash-chained audit
+log (#72) are in the app; the app lock follows. Not independently audited.** Every threat and its status: [threat model](threat-model.md).
 Decision record: [ADR 0008](adr/0008-data-storage-isolation-encryption.md). Evidence and how to repeat it:
 [spike #16](spikes/03-encryption.md).
 

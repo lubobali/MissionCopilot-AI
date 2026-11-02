@@ -48,6 +48,10 @@ Common fields on every object: `id` (UUID), `mission_id` (except Mission), `crea
 | **KeyRef** | `key_kind` (mission key), `wrapped_key`, `wrapping_key_ref` (Secure Enclave), `created_at`, `shred_after` | Device | Deleted at crypto-shred |
 
 ## 3. Invariants (enforced by code and tests)
+In the phone's store (#72), 2, 4, 5 and 6 are built: database rules refuse a fact with no source and a
+sentence with no fact, labels are inherited, rows cannot be changed, and the audit log is hash-chained.
+1 (the approval gate) comes with the approval flow in Phase 7; 3 with the rule engine in Phase 6.
+
 1. A **ReportSentence** with no `fact_ids` blocks approval.
 2. A **Fact** with no `source_evidence_ids` cannot be linked to a sentence.
 3. Facts and flags never come from the model; only the rule engine creates them.

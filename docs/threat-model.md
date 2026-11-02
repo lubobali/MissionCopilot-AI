@@ -82,7 +82,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 |---|---|---|---|---|---|
 | T07 | T | Model output lowers a risk (e.g. hides MC-01) | Code computes every flag; the model never decides one (ADR 0005) | spike | `ios/AILab/DocumentLab/Tests/DocumentLabTests/GroundingTests.swift`, rebuild Phase 6 |
 | T08 | E | Model takes actions (excessive agency, LLM06) | No tools, no network, no memory across documents; approval takes no document text (#48: 4 printed approvals could not approve) | planned | Phase 6 (test that no tools are passed, #63) |
-| T09 | R | Nobody can tell which text produced a value | Lineage: each fact keeps source, rule and approver (ADR 0009) | planned | Phase 4 |
+| T09 | R | Nobody can tell which text produced a value | Lineage in the store: each fact keeps its source evidence (a required database link) and rule version; each sentence its facts; trace() follows a sentence back to evidence; rows never change; changes are in a hash-chained audit log (ADR 0009). The approver comes with the approval flow | built | `ios/MissionCopilotTests/SentenceStoreTests.swift`, `ios/MissionCopilotTests/AuditLogTests.swift`; approver in Phase 7 |
 | T10 | I | One mission's data leaks into another's draft | One mission per prompt, fresh session each time | planned | Phase 7 |
 
 ### B3 App ↔ Secure Enclave

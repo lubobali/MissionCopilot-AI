@@ -15,7 +15,8 @@ extension MissionStore {
 
     /// Signs the capture into the mission's chain, re-signs the head, and stores both, sealed.
     @discardableResult
-    func addEvidence(_ capture: Capture, to mission: String, signer: any EvidenceSigner) throws -> EvidenceRecord {
+    func addEvidence(_ capture: Capture, to mission: String, signer: any EvidenceSigner,
+                     classification: Classification = .officialUseOnly) throws -> EvidenceRecord {
         let key = try missionKey(for: mission)
         var chain = EvidenceChain(missionId: mission)
         for record in try evidence(in: mission) { chain.adopt(record) }
@@ -25,11 +26,16 @@ extension MissionStore {
         let sealedPayload = try MissionData.seal(record.payload, with: key)
         let sealedFile = try MissionData.seal(capture.file, with: key)
         try store.write { database in
-            try database.execute(sql: "INSERT INTO evidence VALUES (?, ?, ?, ?, ?)", arguments: [
-                mission, chain.records.count, sealedPayload, record.signature, sealedFile
+            try database.execute(sql: """
+                INSERT INTO evidence (mission_id, seq, sealed_payload, signature, sealed_file, classification)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """, arguments: [
+                mission, chain.records.count, sealedPayload, record.signature, sealedFile, classification.rawValue
             ])
             try database.execute(sql: "INSERT OR REPLACE INTO evidence_head VALUES (?, ?, ?)",
                                  arguments: [mission, head.payload, head.signature])
+            try EncryptedStore.appendAudit(AuditEntry(action: .evidenceAdded, actor: actor, mission: mission,
+                                                      target: String(chain.records.count), time: Date()), in: database)
         }
         return record
     }

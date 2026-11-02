@@ -24,6 +24,19 @@ Option 3.
 - **Agent:** the device (software) or a person (approver).
 - Every **fact** links to its source entity (page and region, photo, or debrief time range) and to the
   rule version that produced it. Every **report sentence** links to one or more facts.
+- **In the store (#72)**, PROV is mapped onto typed tables rather than generic ones:
+
+  | PROV | Store |
+  |---|---|
+  | Entity | `evidence`, `fact`, `sentence` |
+  | Activity | the rule and version on each fact (`rule_id`, `rule_version`) |
+  | wasDerivedFrom | `fact_source` (fact from evidence, with region), `sentence_fact` (sentence from facts) |
+  | Agent | the actor in the audit log (the phone now; the officer's id with sign-in) |
+
+  "At least one source" is a database rule: a fact's first source and a sentence's first fact are
+  required foreign keys (same mission). A derived item takes the strictest label of its inputs. These rows
+  are never changed, and go only with their whole mission after a shred. Every change is in a hash-chained,
+  append-only audit log. Approvals and the approval gate come with the approval flow (Phase 7).
 
 ### Signing and chaining
 - Each evidence item stores: content hash (SHA-256), the previous item's hash, capture time, location

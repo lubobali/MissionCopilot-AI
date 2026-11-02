@@ -8,6 +8,8 @@ import GRDB
 struct MissionStore: Sendable {
     let store: EncryptedStore
     let vault: any MissionKeyVault
+    /// Who the audit log names for changes made through this store (the officer's id with sign-in, Phase 8).
+    var actor = "phone"
 
     /// A new mission gets a fresh key and starts its offline lease (ADR 0012).
     func create(mission: String, title: String, classification: Classification = .officialUseOnly,
@@ -19,6 +21,8 @@ struct MissionStore: Sendable {
             ])
             try database.execute(sql: "INSERT INTO mission_lease VALUES (?, ?, ?)",
                                  arguments: [mission, now.timeIntervalSince1970, KeyLease.defaultDays])
+            try EncryptedStore.appendAudit(AuditEntry(action: .missionCreated, actor: actor, mission: mission,
+                                                      target: nil, time: now), in: database)
         }
     }
 
@@ -51,6 +55,8 @@ struct MissionStore: Sendable {
     func purge(mission: String) throws {
         try store.write { database in
             try database.execute(sql: "DELETE FROM mission WHERE id = ?", arguments: [mission])  // notes cascade
+            try EncryptedStore.appendAudit(AuditEntry(action: .missionPurged, actor: actor, mission: mission,
+                                                      target: nil, time: Date()), in: database)
         }
     }
 
