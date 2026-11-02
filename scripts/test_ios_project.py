@@ -60,3 +60,12 @@ def test_the_workflow_uses_the_picker():
 
     assert "scripts/newest_iphone.py" in workflow
     assert "startswith('iPhone')" not in workflow  # no step keeps the old first-listed picker
+
+
+def test_ci_signs_the_app_tests_ad_hoc_so_the_keychain_works():
+    workflow = (ROOT / ".github" / "workflows" / "ios.yml").read_text(encoding="utf-8")
+    step = workflow[workflow.index("Test on an iPhone simulator") :]
+    step = step[: step.index("- name:")]
+
+    assert "CODE_SIGN_IDENTITY=-" in step
+    assert "CODE_SIGNING_ALLOWED=NO" not in step
