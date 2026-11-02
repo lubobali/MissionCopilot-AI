@@ -25,69 +25,11 @@ struct EncryptedStore: Sendable {
         }
         do {
             let pool = try DatabasePool(path: file.path, configuration: config)
-            try migrator.migrate(pool)
+            try StoreSchema.migrator.migrate(pool)
             return EncryptedStore(pool: pool, isSuspendable: suspendable)
         } catch let error as DatabaseError where error.resultCode == .SQLITE_NOTADB {
             throw Failure.wrongKey
         }
-    }
-
-    /// Each schema change is a new, named step; steps already applied are never run again.
-    private static var migrator: DatabaseMigrator {
-        var migrator = DatabaseMigrator()
-        migrator.registerMigration("v1-store-info") { database in
-            try database.create(table: "store_info") { table in
-                table.primaryKey("key", .text)
-                table.column("value", .text).notNull()
-            }
-        }
-        // Missions and their notes (#70). The mission key is stored only wrapped; notes only sealed.
-        migrator.registerMigration("v2-missions") { database in
-            try database.create(table: "mission") { table in
-                table.primaryKey("id", .text)
-                table.column("title", .text).notNull()
-                table.column("classification", .text).notNull()
-                table.column("encapsulated_key", .blob).notNull()
-                table.column("wrapped_key", .blob).notNull()
-            }
-            try database.create(table: "note") { table in
-                table.autoIncrementedPrimaryKey("id")
-                table.column("mission_id", .text).notNull().references("mission", onDelete: .cascade)
-                table.column("sealed", .blob).notNull()
-            }
-        }
-        // Key leases and shred records (#70, ADR 0012). A shred record outlives its mission: it is
-        // reported on the next sync, so it has no foreign key that a purge would cascade through.
-        migrator.registerMigration("v3-leases-and-shreds") { database in
-            try database.create(table: "mission_lease") { table in
-                table.primaryKey("mission_id", .text).references("mission", onDelete: .cascade)
-                table.column("renewed_at", .double).notNull()
-                table.column("days", .integer).notNull()
-            }
-            try database.create(table: "shred_record") { table in
-                table.primaryKey("mission_id", .text)
-                table.column("reason", .text).notNull()
-                table.column("at", .double).notNull()
-            }
-        }
-        // Evidence (#71): the signed record and the file are both sealed with the mission key, so a shred
-        // makes them unreadable together; the signature and the head (a count and a hash) are not secret.
-        migrator.registerMigration("v4-evidence") { database in
-            try database.create(table: "evidence") { table in
-                table.column("mission_id", .text).notNull().references("mission", onDelete: .cascade)
-                table.column("seq", .integer).notNull()
-                table.column("sealed_payload", .blob).notNull()
-                table.column("signature", .blob).notNull()
-                table.column("sealed_file", .blob).notNull()
-                table.primaryKey(["mission_id", "seq"])
-            }
-            try database.create(table: "evidence_head") { table in
-                table.primaryKey("mission_id", .text).references("mission", onDelete: .cascade)
-                table.column("payload", .blob).notNull()
-                table.column("signature", .blob).notNull()
-            }
-        }
-        return migrator
     }
 
     func setInfo(_ key: String, _ value: String) throws {
@@ -112,7 +54,13 @@ struct EncryptedStore: Sendable {
     }
 
     func appliedMigrations() throws -> [String] {
-        try pool.read { database in try Self.migrator.appliedMigrations(database) }
+        try pool.read { database in try StoreSchema.migrator.appliedMigrations(database) }
+    }
+
+    /// Tests only: raw SQL, to prove the database's own rules (a fact needs a source, records cannot be
+    /// changed) hold even for a caller that skips the app's checks. The app never calls it.
+    func rawExecuteForTests(_ sql: String) throws {
+        try write { database in try database.execute(sql: sql) }
     }
 
     /// Read on a reader connection (not the writer): proves readers got the key too.
