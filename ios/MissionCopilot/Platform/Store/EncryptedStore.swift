@@ -5,12 +5,18 @@ import GRDB
 /// connection. Opening runs the migrations, which read the schema, so a wrong key fails at once.
 /// GRDB stays inside this folder; the rest of the app (and the tests) use this type's own API.
 struct EncryptedStore: Sendable {
-    enum Failure: Error, Equatable { case wrongKey }
+    enum Failure: Error, Equatable {
+        case wrongKey
+        /// The phone locked or the app left the screen: nothing is written until it resumes.
+        case suspended
+    }
 
     private let pool: DatabasePool
 
-    static func open(at file: URL, key: DataKey) throws -> EncryptedStore {
+    /// - Parameter suspendable: pauses on StoreSuspension's signals (the app's store always is, #69).
+    static func open(at file: URL, key: DataKey, suspendable: Bool = false) throws -> EncryptedStore {
         var config = Configuration()
+        config.observesSuspensionNotifications = suspendable
         config.prepareDatabase { database in
             try database.usePassphrase(key.rawKeyLiteral)
         }
@@ -36,8 +42,17 @@ struct EncryptedStore: Sendable {
     }
 
     func setInfo(_ key: String, _ value: String) throws {
-        try pool.write { database in
+        try write { database in
             try database.execute(sql: "INSERT OR REPLACE INTO store_info VALUES (?, ?)", arguments: [key, value])
+        }
+    }
+
+    /// Every write goes through here, so a paused store answers `.suspended`, never a SQLite code.
+    private func write<T>(_ body: (Database) throws -> T) throws -> T {
+        do {
+            return try pool.write(body)
+        } catch let error as DatabaseError where [.SQLITE_INTERRUPT, .SQLITE_ABORT].contains(error.resultCode) {
+            throw Failure.suspended
         }
     }
 
