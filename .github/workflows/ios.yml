@@ -88,29 +88,31 @@ jobs:
         working-directory: ios
         run: |
           set -euo pipefail
-          # The runner's simulator list changes over time, so pick the first available iPhone.
-          udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for r,v in d.items() if 'iOS' in r for x in v if x['name'].startswith('iPhone')))")
+          # The runner's simulator list changes over time: pick an iPhone on the newest iOS runtime.
+          udid=$(xcrun simctl list devices available -j | python3 "$GITHUB_WORKSPACE/scripts/newest_iphone.py")
           echo "Simulator: $udid"
+          # Ad-hoc signed, no team or certificate: an unsigned test app gets no Keychain (-34018),
+          # and the encrypted store's tests need one (#68).
           xcodebuild test \
             -project MissionCopilot.xcodeproj \
             -scheme MissionCopilot \
             -destination "id=${udid}" \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=
 
       - name: Encryption lab tests (spike 16, SQLCipher + Keychain)
         run: |
           set -euo pipefail
-          udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for r,v in d.items() if 'iOS' in r for x in v if x['name'].startswith('iPhone')))")
+          udid=$(xcrun simctl list devices available -j | python3 "$GITHUB_WORKSPACE/scripts/newest_iphone.py")
           ios/AILab/EncryptionLab/test.sh "id=${udid}"
 
       - name: Document lab tests (spike 15, Vision reads the scan documents)
         run: |
           set -euo pipefail
-          udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for r,v in d.items() if 'iOS' in r for x in v if x['name'].startswith('iPhone')))")
+          udid=$(xcrun simctl list devices available -j | python3 "$GITHUB_WORKSPACE/scripts/newest_iphone.py")
           ios/AILab/DocumentLab/test.sh "id=${udid}"
 
       - name: Speech lab tests (spike 14, WER and key facts)
         run: |
           set -euo pipefail
-          udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for r,v in d.items() if 'iOS' in r for x in v if x['name'].startswith('iPhone')))")
+          udid=$(xcrun simctl list devices available -j | python3 "$GITHUB_WORKSPACE/scripts/newest_iphone.py")
           ios/AILab/SpeechLab/test.sh "id=${udid}"

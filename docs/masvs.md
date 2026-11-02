@@ -26,7 +26,7 @@ This is a self-assessment, **not an independent audit**. Threat by threat: [thre
 | MASVS-PLATFORM-1 | The app uses IPC mechanisms securely. | not applicable | The app has no URL schemes, app extensions, shared app groups or clipboard use; revisit if any is added |
 | MASVS-PLATFORM-2 | The app uses WebViews securely. | not applicable | The app has no WebViews; every screen is native SwiftUI |
 | MASVS-PLATFORM-3 | The app uses the user interface securely. | planned | App switcher cover, no mission content in notifications, no sensitive text left on screen after the lock; designed in docs/security.md, built in Phase 4 |
-| MASVS-CODE-1 | The app requires an up-to-date platform version. | planned | Today the minimum is iOS 18; document reading needs iOS 26, so the minimum is raised to iOS 26 in Phase 4 (#61) |
+| MASVS-CODE-1 | The app requires an up-to-date platform version. | built | The app requires iOS 26 or later (#61), pinned by a test so it cannot slip back: `scripts/test_ios_project.py` |
 | MASVS-CODE-2 | The app has a mechanism for enforcing app updates. | planned | The server refuses requests from app versions below a minimum and the app asks to update; Phase 8 |
 | MASVS-CODE-3 | The app only uses software components without known vulnerabilities. | built | Pinned dependencies, pip-audit on every pull request, Dependabot, CodeQL, a parts list (SBOM) checked against the pins: `.github/workflows/security.yml`, `scripts/test_check_bom.py`. Gap: Swift packages are pinned and listed but not scanned against an advisory database (#64) |
 | MASVS-CODE-4 | The app validates and sanitizes all untrusted inputs. | built | Strict API input (unknown fields refused, size limits), model files checked by signature before use, scanned values checked against the bank's own records: `backend/tests/unit/test_errors_and_input.py`, `ios/MissionCopilotTests/ModelSignatureTests.swift`, `ios/AILab/DocumentLab/Tests/DocumentLabTests/FactChecksTests.swift` |
@@ -39,5 +39,5 @@ This is a self-assessment, **not an independent audit**. Threat by threat: [thre
 | MASVS-PRIVACY-3 | The app is transparent about data collection and usage. | planned | The data handling sheet (docs/data-handling.md) says what is kept, where, how long and who sees it; an in-app privacy screen and App Store privacy details follow in Phase 4 |
 | MASVS-PRIVACY-4 | The app offers user control over their data. | spike | The officer can destroy a mission (the organization can turn this off), every shred is recorded and reported: `ios/AILab/EncryptionLab/Tests/EncryptionLabTests/KeyLeaseTests.swift`; rebuilt in Phase 4; access and deletion requests on the server in Phase 8 |
 
-**Count:** 4 built, 5 spike, 8 planned, 5 accepted, 2 not applicable. The weakest group is RESILIENCE:
+**Count:** 5 built, 5 spike, 7 planned, 5 accepted, 2 not applicable. The weakest group is RESILIENCE:
 it needs a paid Apple team (App Attest) and device management, which a real deployment would add.
