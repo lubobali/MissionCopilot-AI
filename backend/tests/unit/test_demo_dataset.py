@@ -82,3 +82,22 @@ def test_every_demo_moment_has_its_documents(data):
     assert {"invoice", "progress_report", "letter"} <= kinds
     assert "fr" in languages
     assert data["pack"]["checklist"]["survey"]
+
+
+def test_every_real_date_falls_inside_the_contract_period(data):
+    # The prompt-injection cases (#48) plant dates outside it; the real data must never be.
+    period = data["pack"]["contractPeriod"]
+    start, end = date.fromisoformat(period["start"]), date.fromisoformat(period["end"])
+    invoice = next(d for d in data["documents"] if d["kind"] == "invoice")
+    report = next(d for d in data["documents"] if d["kind"] == "progress_report")
+    dates = [p["date"] for p in data["pack"]["payments"]]
+    dates += [invoice["fields"]["date"], report["fields"]["plannedCompletion"]]
+
+    assert start < end
+    assert all(start <= date.fromisoformat(day) <= end for day in dates)
+
+
+def test_payments_are_approved_in_the_app_by_a_mission_team_member(data):
+    # An approval printed on a document never counts (#48); only this person's in-app decision does.
+    assert data["pack"]["paymentApprover"] in data["mission"]["team"]
+    assert data["pack"]["paymentApprover"] != "field-officer-01"

@@ -71,17 +71,17 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | ID | STRIDE | Threat | Control | Status | Test or phase |
 |---|---|---|---|---|---|
 | T01 | S | A forged invoice is scanned as real | Values must be grounded in the scan; code cross-checks; a person approves | spike | `ios/AILab/DocumentLab/Tests/DocumentLabTests/GroundingTests.swift`, rebuild Phase 6 |
-| T02 | T | Hidden instruction in a scanned page (indirect prompt injection, ATLAS AML.T0051.001) | Model has no tools, output is constrained JSON, values grounded, human approval | spike | `ios/AILab/DocumentLab/Tests/DocumentLabTests/GroundingTests.swift`, measured in #48 |
-| T03 | T | A fake second total that IS in the text passes grounding | Code cross-checks: payment lines add up, dates inside the contract | planned | #48 |
-| T04 | T | A spoken number is misheard or injected | Spoken numbers are "heard" until the speaker confirms; cross-checked (ADR 0005) | planned | Phase 6, injection cases in #48 |
+| T02 | T | Hidden instruction in a scanned page (indirect prompt injection, ATLAS AML.T0051.001) | Model has no tools, output is constrained JSON, values grounded and cross-checked against the bank's records, human approval. Measured on the phone: the model obeyed 3 of 30 attacks; 0 of 30 got through the checks (docs/spikes/08-prompt-injection.md) | spike | `ios/AILab/DocumentLab/Tests/DocumentLabTests/InjectionScoreTests.swift`, rebuild Phase 4 |
+| T03 | T | A fake second total that IS in the text passes grounding | Code cross-checks against the bank's own records: rows add up, paid to date = bank's earlier payments + this invoice, contract value, amount fits what is left, date inside the contract, a label printed twice, impossible values; approval only in the app | spike | `ios/AILab/DocumentLab/Tests/DocumentLabTests/FactChecksTests.swift`, rebuild Phase 4 |
+| T04 | T | A spoken number is misheard or injected | Spoken numbers are "heard" until the speaker confirms; cross-checked (ADR 0005). Measured in #48: the model garbles spoken numbers (negative values after one extra sentence), so read-back is required | planned | Phase 6 (measured in #48) |
 | T05 | I | A photo captures unrelated personal content (screens, bystanders) | Photos stay on the phone, encrypted; logs keep counts only | planned | Phase 4, handling sheet #49 |
-| T06 | D | Very long or malformed input stalls the model | Input length cap, token limit, timeout (LLM10) | planned | #48 |
+| T06 | D | Very long or malformed input stalls the model | Input length cap before the model (20,000 characters; a 130,000-character input took 158 s and obeyed a buried instruction), token limit; time limit still to add | spike | `ios/AILab/DocumentLab/Tests/DocumentLabTests/FactChecksTests.swift`, time limit Phase 4 |
 
 ### B2 App ↔ on-device model
 | ID | STRIDE | Threat | Control | Status | Test or phase |
 |---|---|---|---|---|---|
 | T07 | T | Model output lowers a risk (e.g. hides MC-01) | Code computes every flag; the model never decides one (ADR 0005) | spike | `ios/AILab/DocumentLab/Tests/DocumentLabTests/GroundingTests.swift`, rebuild Phase 6 |
-| T08 | E | Model takes actions (excessive agency, LLM06) | No tools, no network, no memory across documents | planned | #48 (test that no tools are passed), Phase 6 |
+| T08 | E | Model takes actions (excessive agency, LLM06) | No tools, no network, no memory across documents; approval takes no document text (#48: 4 printed approvals could not approve) | planned | Phase 6 (test that no tools are passed) |
 | T09 | R | Nobody can tell which text produced a value | Lineage: each fact keeps source, rule and approver (ADR 0009) | planned | Phase 4 |
 | T10 | I | One mission's data leaks into another's draft | One mission per prompt, fresh session each time | planned | Phase 7 |
 

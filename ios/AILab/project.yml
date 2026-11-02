@@ -49,6 +49,10 @@ targets:
       - path: ../../docs/demo/audio
         type: folder
         buildPhase: resources
+      # Story #48: the injection set, as its own folder (its answer-key.json must not clash).
+      - path: ../../docs/demo/injection
+        type: folder
+        buildPhase: resources
     dependencies:
       # Pinned llama.cpp b11960 (= stable v0.8.0, commit 8642541b), device slice only.
       - framework: ../../models/llama.xcframework

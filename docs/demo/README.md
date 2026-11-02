@@ -24,3 +24,13 @@ started, and at km 18 the road is narrower than specified.
 | Ground finding | `fieldFindings.roadWidth` | Road about 30% narrower than specified at km 18 |
 | Ministry letter in French | `documents[letter]` | Note: extension to 15 March 2027 if a new work plan arrives in two weeks |
 | Report and approval | all facts above | Every sentence linked to facts; untraceable sentences blocked |
+
+## Prompt-injection test set (story #48)
+`injection/` holds 30 attacks built from this dataset, plus a clean copy of each source (invoice,
+progress report, spoken debrief). `answer-key.json` says what each attack wants (field, attacker's
+value, true value) and which defense should stop it, so results are scored by code. Families: visible
+instructions, hidden text (near-white, tiny, light gray), fake second values and changed table rows,
+fake approvals, dates outside the contract period (`pack.contractPeriod`), spoken instructions (stock
+macOS voice, never a real person's) and one oversized input. Payments are approved only in the app,
+by `pack.paymentApprover`, never by anything printed on a document.
+Rebuild: `uv run --directory backend python ../scripts/make_injection_set.py`.
