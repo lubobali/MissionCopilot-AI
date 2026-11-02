@@ -82,6 +82,9 @@ struct StoreProof {
 
     private var folder: URL { base.appendingPathComponent(Self.user, isDirectory: true) }
 
+    /// The proof store's database file itself, as it lies on the phone's disk.
+    var databaseFile: URL { folder.appendingPathComponent(UserStore.fileName) }
+
     private func fillAndCheck(context: LAContext?, now: Date, into checks: inout Checks) {
         let opened = Result { try UserStore.openMissions(user: Self.user, in: base, keys: keys, vault: vault,
                                                          context: context, now: now) }
