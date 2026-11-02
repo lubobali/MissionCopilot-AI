@@ -82,6 +82,8 @@ The code is open source. The [spike report](spikes/03-encryption.md) shows how t
 you own and try to read it with standard tools. The same check runs automatically in CI on the spike package.
 
 ## What it does not protect against (honest limits)
+What happens to a lost, seized or coerced phone, and what staff should do: [ADR 0012](adr/0012-lost-seized-or-coerced-phone.md).
+
 - **An unlocked phone in the wrong hands.** While unlocked, the app can read its data, and so can whoever holds
   the phone. The app lock (Face ID or passcode on open, lock after inactivity) is designed in Phase 3 (#49) and built
   with the encrypted store in Phase 4.

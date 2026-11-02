@@ -70,6 +70,7 @@ flowchart TB
    set per organization). At the end, the wrapped MK is deleted, which makes that mission's data
    unreadable at once; the files are then removed.
 8. **App lock.** The app asks for Face ID or the passcode when opened and locks after inactivity.
+   Details, with key expiry and what happens to a lost, seized or coerced phone: ADR 0012.
 
 ### Server rules
 1. **One physical Postgres database per organization**, with its own credentials. No query can join
