@@ -5,7 +5,7 @@ import Testing
 
 /// Unlock opens the store; lock closes it (ADR 0012, #73). The real flow with stand-ins: an authenticator
 /// that succeeds or fails, and a real encrypted store in a temporary folder.
-@MainActor
+@MainActor @Suite(.takesTurnsWithThePause)
 struct AppSessionTests {
     final class FakeAuthenticator: Authenticator {
         var result: Result<LAContext, LAError>

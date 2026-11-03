@@ -43,7 +43,7 @@ struct SecureEnclaveEvidenceSigner: EvidenceSigner {
             return try SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: blob)
         }
         let created = try SecureEnclave.P256.Signing.PrivateKey(accessControl: ChipKeyAccess.make())
-        if try items.add(created.dataRepresentation, account: user, access: ChipKeyAccess.make()) { return created }
+        if try items.add(created.dataRepresentation, account: user, access: ChipKeyAccess.blob()) { return created }
         guard let raced = try items.load(user) else { throw KeychainFailure(status: errSecDuplicateItem) }
         return try SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: raced)
     }

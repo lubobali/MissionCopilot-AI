@@ -1,0 +1,56 @@
+{
+  "checks" : [
+    {
+      "detail" : "56 written, 58 refused while locked, resumed: true",
+      "name" : "lock pause",
+      "passed" : true
+    },
+    {
+      "detail" : "database file unreadable while locked: true",
+      "name" : "unreadable while locked",
+      "passed" : true
+    },
+    {
+      "detail" : "notes after: 136, expected 136, other errors: none",
+      "name" : "data intact",
+      "passed" : true
+    },
+    {
+      "detail" : "success(MissionCopilot.AuditVerification.valid(count: 10))",
+      "name" : "audit log",
+      "passed" : true
+    }
+  ],
+  "events" : [
+    {
+      "second" : 17.5,
+      "what" : "protected data going away"
+    },
+    {
+      "second" : 17.6,
+      "what" : "app left the screen"
+    },
+    {
+      "second" : 17.7,
+      "what" : "writes paused"
+    },
+    {
+      "second" : 27.7,
+      "what" : "database file unreadable"
+    },
+    {
+      "second" : 126.6,
+      "what" : "app back on screen"
+    },
+    {
+      "second" : 126.6,
+      "what" : "protected data back"
+    },
+    {
+      "second" : 126.6,
+      "what" : "writes resumed"
+    }
+  ],
+  "refused" : 58,
+  "written" : 56
+}

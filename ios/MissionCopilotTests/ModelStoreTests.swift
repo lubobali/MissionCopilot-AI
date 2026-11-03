@@ -107,7 +107,7 @@ struct ModelStoreTests {
         }
     }
 
-    @Test func thePinnedKeyIsTheRepositorysPublicKey() throws {
+    @Test(.needsRepoFiles) func thePinnedKeyIsTheRepositorysPublicKey() throws {
         let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent()
         let published = try String(

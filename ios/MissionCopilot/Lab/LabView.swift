@@ -32,6 +32,9 @@ struct LabView: View {
                     .accessibilityHint("Moves model files copied with Finder into the models folder")
                 if !message.isEmpty { Text(message).font(.footnote) }
             }
+            Section("Proofs") {
+                NavigationLink("Store proof (#74)") { StoreProofView() }
+            }
             Section("Spikes") {
                 ForEach(spikes, id: \.issue) { spike in
                     LabeledContent("#\(spike.issue)", value: spike.title)

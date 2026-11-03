@@ -6,6 +6,7 @@ import Testing
 /// One encrypted store per user (ADR 0008, #69): the user's protected folder, the user's key from the
 /// Keychain, the database inside, always pausing on lock. The app's own settings are checked without
 /// opening them: the Simulator cannot do Face ID.
+@Suite(.takesTurnsWithThePause)
 struct UserStoreTests {
     private func setup() throws -> (base: URL, keys: KeychainDataKeyStore) {
         let base = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

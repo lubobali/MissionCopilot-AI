@@ -43,7 +43,7 @@ extension MissionStore {
     /// The mission's signed records, in order: the exact bytes that were signed.
     func evidence(in mission: String) throws -> [EvidenceRecord] {
         let key = try missionKey(for: mission)
-        let rows = try store.pool.read { database in
+        let rows = try store.read { database in
             try Row.fetchAll(database, sql: """
                 SELECT sealed_payload, signature FROM evidence WHERE mission_id = ? ORDER BY seq
                 """, arguments: [mission])
@@ -54,7 +54,7 @@ extension MissionStore {
     }
 
     func evidenceHead(in mission: String) throws -> EvidenceRecord? {
-        try store.pool.read { database in
+        try store.read { database in
             try Row.fetchOne(database, sql: "SELECT payload, signature FROM evidence_head WHERE mission_id = ?",
                              arguments: [mission])
         }.map { EvidenceRecord(payload: $0["payload"], signature: $0["signature"]) }
@@ -62,7 +62,7 @@ extension MissionStore {
 
     func evidenceFile(in mission: String, seq: Int) throws -> Data {
         let key = try missionKey(for: mission)
-        let sealed = try store.pool.read { database in
+        let sealed = try store.read { database in
             try Data.fetchOne(database, sql: "SELECT sealed_file FROM evidence WHERE mission_id = ? AND seq = ?",
                               arguments: [mission, seq])
         }
@@ -72,7 +72,7 @@ extension MissionStore {
 
     /// The rows as stored, for the proof that nothing readable is in them.
     func sealedEvidence(in mission: String) throws -> [SealedEvidence] {
-        try store.pool.read { database in
+        try store.read { database in
             try Row.fetchAll(database, sql: """
                 SELECT sealed_payload, sealed_file FROM evidence WHERE mission_id = ? ORDER BY seq
                 """, arguments: [mission])
