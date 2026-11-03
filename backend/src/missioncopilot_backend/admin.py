@@ -6,6 +6,7 @@ Usage (uv run --directory backend missioncopilot-admin <command>):
   migrate            every database up to the code's migrations (the server never does this itself)
   seed-demo          the fictional Kandor organization, two missions and their teams
   make-signing-key   the server's key for packs and shred orders (once); prints its public half
+  publish-demo-pack  the Kandor roads pack, built from the demo dataset, signed, as the next version
 
 The Postgres admin address comes from MISSIONCOPILOT_ADMIN_URL (or _FILE); locally, backend/.env.
 The directory database is mc_directory unless MISSIONCOPILOT_DIRECTORY_DB names another.
@@ -18,6 +19,7 @@ MISSIONCOPILOT_ORG_URLS_DIR=<dir>/orgs. The signing key goes to MISSIONCOPILOT_S
 
 import argparse
 import base64
+import json
 import os
 import sys
 from collections.abc import Mapping
@@ -36,17 +38,22 @@ from missioncopilot_backend.db.organizations import (
     names_for,
     provision,
 )
+from missioncopilot_backend.db.packs import Pack, publish_pack
+from missioncopilot_backend.pack_content import pack_files
 from missioncopilot_backend.pack_format import key_id
 from missioncopilot_backend.server import StartupError, read_setting
 from missioncopilot_backend.settings import read_env_file
-from missioncopilot_backend.signing_key import SigningKeyError, new_signing_key
+from missioncopilot_backend.signing_key import SigningKeyError, load_signing_key, new_signing_key
 
 BACKEND = Path(__file__).resolve().parents[2]
 DIRECTORY = "mc_directory"
 DEMO_ORG = "kandor-works"
+DATASET = BACKEND.parent / "docs" / "demo" / "kandor-rural-roads.json"
+ROADS = "6f1d2c3a-0000-4000-8000-000000000001"  # the dataset's mission id (the API uses UUIDs)
+BRIDGES = "6f1d2c3a-0000-4000-8000-000000000002"
 DEMO = {  # fictional: Kandor is not a real country
-    "kandor-roads": ("Kandor Rural Roads Project, Package 1", ("officer-7", "manager-1")),
-    "kandor-bridges": ("Kandor Bridges", ("officer-8", "manager-1")),
+    ROADS: ("Kandor Rural Roads Project, Package 1", ("officer-7", "manager-1")),
+    BRIDGES: ("Kandor Bridges", ("officer-8", "manager-1")),
 }
 
 
@@ -150,6 +157,16 @@ def make_signing_key(path: Path) -> tuple[str, str]:
     return key_id(public), base64.b64encode(der).decode()
 
 
+def publish_demo_pack(admin_url: str, key_path: Path, org_id: str = DEMO_ORG) -> Pack:
+    """The roads mission's next pack from the demo dataset. Kandor bridges stays without one."""
+    data = json.loads(DATASET.read_text(encoding="utf-8"))
+    if data["mission"]["id"] != ROADS:
+        raise AdminError("the demo dataset's mission is not the demo roads mission")
+    database, _, _ = names_for(org_id)
+    url = make_conninfo(admin_url, dbname=database)
+    return publish_pack(url, org_id, ROADS, pack_files(data), load_signing_key(key_path))
+
+
 def _key_path(env: Mapping[str, str]) -> Path:
     merged = read_env_file(BACKEND / ".env") | dict(env)
     default = BACKEND / ".keys" / "signing-key.pem"
@@ -176,6 +193,7 @@ def main(argv: list[str] | None = None, env: Mapping[str, str] = os.environ) -> 
     commands.add_parser("migrate")
     commands.add_parser("seed-demo")
     commands.add_parser("make-signing-key")
+    commands.add_parser("publish-demo-pack")
     args = parser.parse_args(argv)
     if args.command == "make-signing-key":  # needs no database
         try:
@@ -196,10 +214,14 @@ def main(argv: list[str] | None = None, env: Mapping[str, str] = os.environ) -> 
         elif args.command == "migrate":
             for name, versions in migrate_all(admin_url, address_dir).items():
                 print(f"OK: {name}: applied {versions or 'nothing, up to date'}")
+        elif args.command == "publish-demo-pack":
+            pack = publish_demo_pack(admin_url, _key_path(env))
+            print(f"OK: Kandor roads pack version {pack.version} published, signed by key "
+                  f"{pack.signature['keyId']}")  # fmt: skip
         else:
             seed_demo(admin_url, address_dir)
             print(f"OK: demo loaded into {DEMO_ORG}")
-    except (AdminError, StartupError, ValueError) as error:
+    except (AdminError, StartupError, SigningKeyError, ValueError) as error:
         print(f"FAILED: {error}", file=sys.stderr)
         return 1
     return 0

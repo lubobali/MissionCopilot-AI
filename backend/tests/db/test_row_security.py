@@ -145,7 +145,8 @@ def test_the_app_login_cannot_add_or_join_missions(org):
 def test_the_app_login_can_read_but_never_change_the_migration_records(org):
     org_db, _ = org
     with psycopg.connect(_url(org_db), autocommit=True) as conn:
-        assert conn.execute("SELECT max(version) FROM schema_migrations").fetchone() == (1,)
+        latest = len(load(ORG_MIGRATIONS))
+        assert conn.execute("SELECT max(version) FROM schema_migrations").fetchone() == (latest,)
         for change in (
             "DELETE FROM schema_migrations",
             "UPDATE schema_migrations SET sha256 = 'x'",

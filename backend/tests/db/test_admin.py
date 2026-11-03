@@ -6,6 +6,7 @@ import stat
 import uuid
 from collections.abc import Generator
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 import psycopg
@@ -14,13 +15,15 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from missioncopilot_backend import admin
 from missioncopilot_backend.db.organizations import drop_database, drop_organization
-from missioncopilot_backend.pack_format import key_id
+from missioncopilot_backend.pack_format import key_id, verify_pack
 from missioncopilot_backend.server import build
 from missioncopilot_backend.signing_key import load_signing_key
 from tests.db.postgres import admin_url
 from tests.unit.clients import local_client
 
 pytestmark = pytest.mark.db
+
+NOW = datetime.now(UTC)
 
 
 @dataclass
@@ -117,9 +120,9 @@ def test_the_demo_starts_a_real_server_where_each_officer_sees_their_own_mission
     app = build(_server_env(ops))
     with local_client(app):
         store = app.state.databases.for_org(demo)
-        assert [m.id for m in store.for_user("officer-7")] == ["kandor-roads"]
-        assert [m.id for m in store.for_user("officer-8")] == ["kandor-bridges"]
-        assert [m.id for m in store.for_user("manager-1")] == ["kandor-bridges", "kandor-roads"]
+        assert [m.id for m in store.for_user("officer-7")] == [admin.ROADS]
+        assert [m.id for m in store.for_user("officer-8")] == [admin.BRIDGES]
+        assert [m.id for m in store.for_user("manager-1")] == [admin.ROADS, admin.BRIDGES]
 
 
 def test_the_command_line_never_prints_a_password(ops, capsys):
@@ -171,3 +174,19 @@ def test_make_signing_key_never_overwrites(tmp_path, capsys):
 
     assert admin.main(["make-signing-key"], env) == 1
     assert "already exists" in capsys.readouterr().err
+
+
+def test_the_demo_pack_is_published_signed_and_counts_up(ops):
+    admin.setup(admin_url(), ops.secrets, ops.directory)
+    demo = ops.org()
+    admin.seed_demo(admin_url(), ops.secrets, demo)
+    key = ops.secrets.parent / "keys" / "signing-key.pem"
+    admin.make_signing_key(key)
+
+    first = admin.publish_demo_pack(admin_url(), key, demo)
+    second = admin.publish_demo_pack(admin_url(), key, demo)
+
+    public = load_signing_key(key).public_key()
+    manifest = verify_pack(second.manifest, second.signature, {key_id(public): public}, now=NOW)
+    assert (first.version, second.version) == (1, 2)
+    assert manifest["missionId"] == admin.ROADS and len(manifest["files"]) == 12
