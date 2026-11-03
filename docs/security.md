@@ -4,7 +4,8 @@
 main app (Phase 4): the encrypted store, its Keychain key, the protected folder and the pause on lock (#69),
 per-mission keys in the Secure Enclave with the 14-day lease and recorded shreds (#70), signed, sealed
 evidence (#71), facts and sentences that trace back to evidence with an append-only, hash-chained audit
-log (#72), and the app lock (#73, checked on the iPhone) are in the app. Not independently audited.** Every threat and its status: [threat model](threat-model.md).
+log (#72), and the app lock (#73, checked on the iPhone) are in the app, and the whole store is proven on the
+iPhone, lock included ([store proof, #74](store-proof.md)). Not independently audited.** Every threat and its status: [threat model](threat-model.md).
 Decision record: [ADR 0008](adr/0008-data-storage-isolation-encryption.md). Evidence and how to repeat it:
 [spike #16](spikes/03-encryption.md).
 
@@ -43,7 +44,7 @@ detected offline, and the server verifies the phone's signatures with only the p
 format strictly. Built in the app (#71): the app produces byte for byte what the server expects. On the
 phone, each file and its signed record are sealed with the mission key, so a shred makes both unreadable.
 Proven on the iPhone in [spike #17](spikes/04-signed-evidence.md); the app's version is proven on the phone
-in #74. Limit: on the phone alone, rolling back to an older chain needs the server's sync receipt to be
+in the [store proof (#74)](store-proof.md), and the server verifies that chain. Limit: on the phone alone, rolling back to an older chain needs the server's sync receipt to be
 caught.
 
 ## Which phones may send data (device enrollment)

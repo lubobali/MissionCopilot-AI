@@ -1,0 +1,51 @@
+{
+  "checks" : [
+    {
+      "detail" : "SQLCipher 4.20.0 community, 8 migrations, another key refused: true",
+      "name" : "encrypted store",
+      "passed" : true
+    },
+    {
+      "detail" : "store.sqlite: NSFileProtectionComplete, store.sqlite-shm: NSFileProtectionComplete, store.sqlite-wal: NSFileProtectionComplete",
+      "name" : "file protection",
+      "passed" : true
+    },
+    {
+      "detail" : "valid(count: 3)",
+      "name" : "evidence chain",
+      "passed" : true
+    },
+    {
+      "detail" : "1 fact, evidence [1, 2]",
+      "name" : "trace",
+      "passed" : true
+    },
+    {
+      "detail" : "9 sealed fields, 0 with plain text",
+      "name" : "sealed rows",
+      "passed" : true
+    },
+    {
+      "detail" : "shredded on open: [\"kandor-old\"], unreadable: true, other kept: true",
+      "name" : "lease ended",
+      "passed" : true
+    },
+    {
+      "detail" : "shredded: [\"kandor-roads\"], unreadable: true",
+      "name" : "shred order",
+      "passed" : true
+    },
+    {
+      "detail" : "valid, 9 events",
+      "name" : "audit log",
+      "passed" : true
+    },
+    {
+      "detail" : "evidence-chain.json, store.sqlite",
+      "name" : "export",
+      "passed" : true
+    }
+  ],
+  "date" : "2026-11-02T23:16:24Z",
+  "device" : "iPhone14,3, iOS 27.2, Mission Copilot (Debug)"
+}
