@@ -7,7 +7,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from missioncopilot_backend.audit import AuditLog
+from missioncopilot_backend.audit import AuditLog, AuditStore
 from missioncopilot_backend.auth import TokenVerifier
 from missioncopilot_backend.device_routes import device_routes
 from missioncopilot_backend.devices import CodeStore, DeviceRegistry, DeviceStore, EnrollmentCodes
@@ -31,7 +31,7 @@ def create_app(
     verifier: TokenVerifier | None = None,
     databases: OrgDatabases | None = None,
     clock: Callable[[], float] = time.monotonic,
-    audit: AuditLog | None = None,
+    audit: AuditStore | None = None,
     enrollment_codes: CodeStore | None = None,
     devices: DeviceStore | None = None,
     shred_key: ec.EllipticCurvePrivateKey | None = None,

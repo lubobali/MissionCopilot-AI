@@ -50,7 +50,7 @@ def test_a_removed_entry_is_found():
 
     del log._events[1]
 
-    assert log.verify() == ["entry 1 does not follow entry 0"]
+    assert log.verify() == ["entry 2 does not follow entry 0"]  # named by number, as stored
 
 
 def test_the_log_can_only_grow():

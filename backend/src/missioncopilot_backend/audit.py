@@ -2,7 +2,9 @@
 an entry, and each entry carries the hash of the one before, so verify() finds an entry changed or
 removed in the store underneath. It records who, what, when and from where; never tokens or request
 bodies. Removing the newest entries is only caught against a copy of head() kept elsewhere, the same
-limit as the phone's evidence chain. In memory for now; Phase 8 moves it to an insert-only table."""
+limit as the phone's evidence chain. The server keeps it in the directory database, where Postgres
+itself refuses changes (db/audit_log.py); AuditLog here is the in-memory stand-in for tests, and
+one contract test runs on both (tests/db/test_audit_log.py)."""
 
 import dataclasses
 import hashlib
@@ -10,7 +12,7 @@ import json
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Protocol
 
 GENESIS = "0" * 64
 Kind = Literal[
@@ -50,7 +52,38 @@ class AuditEvent:
         return dataclasses.replace(self, **changes)
 
 
+def verify_chain(events: tuple[AuditEvent, ...]) -> list[str]:
+    """Each problem found, naming entries by their number: a changed entry, or one that does not
+    follow the entry before it (something between them was removed)."""
+    problems, prev, prev_seq = [], GENESIS, None
+    for event in events:
+        if event.prev_hash != prev:
+            before = "the start" if prev_seq is None else f"entry {prev_seq}"
+            problems.append(f"entry {event.seq} does not follow {before}")
+        elif event.content_hash() != event.hash:
+            problems.append(f"entry {event.seq} was changed")
+        prev, prev_seq = event.hash, event.seq
+    return problems
+
+
+class AuditStore(Protocol):
+    def record(
+        self,
+        kind: Kind,
+        *,
+        client: str | None = None,
+        org_id: str | None = None,
+        actor: str | None = None,
+        subject: str | None = None,
+    ) -> AuditEvent: ...
+    def events(self) -> tuple[AuditEvent, ...]: ...
+    def head(self) -> str: ...
+    def verify(self) -> list[str]: ...
+
+
 class AuditLog:
+    """In memory, for tests."""
+
     def __init__(self, clock: Callable[[], float] = time.time):
         self._clock = clock
         self._events: list[AuditEvent] = []
@@ -78,12 +111,4 @@ class AuditLog:
         return self._events[-1].hash if self._events else GENESIS
 
     def verify(self) -> list[str]:
-        problems, prev = [], GENESIS
-        for index, event in enumerate(self._events):
-            if event.prev_hash != prev:
-                before = f"entry {index - 1}" if index else "the start"
-                problems.append(f"entry {index} does not follow {before}")
-            elif event.content_hash() != event.hash:
-                problems.append(f"entry {index} was changed")
-            prev = event.hash
-        return problems
+        return verify_chain(self.events())

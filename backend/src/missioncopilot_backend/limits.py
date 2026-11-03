@@ -15,7 +15,7 @@ from collections.abc import Callable
 from starlette.exceptions import HTTPException
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from missioncopilot_backend.audit import AuditLog, Kind
+from missioncopilot_backend.audit import AuditStore, Kind
 from missioncopilot_backend.errors import problem
 
 
@@ -53,7 +53,11 @@ class RateLimiter:
 
 class LimitsMiddleware:
     def __init__(
-        self, app: ASGIApp, limiter: RateLimiter, max_body_bytes: int, audit: AuditLog | None = None
+        self,
+        app: ASGIApp,
+        limiter: RateLimiter,
+        max_body_bytes: int,
+        audit: AuditStore | None = None,
     ):
         self.app = app
         self.limiter = limiter

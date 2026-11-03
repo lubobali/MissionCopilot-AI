@@ -17,6 +17,7 @@ from pathlib import Path
 from psycopg import sql
 from psycopg_pool import ConnectionPool
 
+from missioncopilot_backend.db.audit_log import PostgresAuditLog
 from missioncopilot_backend.db.migrations import load, migrate
 from missioncopilot_backend.devices import CODE_LIFETIME_SECONDS, Device, EnrollmentGrant
 
@@ -147,6 +148,7 @@ class Directory:
         self._pool = pool
         self.codes = PostgresEnrollmentCodes(pool, clock)
         self.devices = PostgresDeviceRegistry(pool, clock)
+        self.audit = PostgresAuditLog(pool, clock)
 
     @classmethod
     @contextmanager
