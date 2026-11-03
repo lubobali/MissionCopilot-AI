@@ -121,3 +121,54 @@ merge. Every number below was counted from the repo by a script, not by hand.
 for Swift packages (#64), adaptive injection attacks (#65), and an independent security review (#66).
 
 **Next:** Iteration 4 · Evidence store, expanded with research before building, like this one.
+
+## Iteration 4 · Evidence store (done Nov 2 2026)
+**Done:** the spike code became the app's own store, built test-first, then run on the real iPhone. Nine
+stories, eight pull requests (#76 to #83) plus this review, CI green on every merge.
+
+| Story | Result |
+|---|---|
+| #68 Foundations | Minimum iOS 26 (closes #61), every file the app creates is Complete, SQLCipher in the app through our GRDB 7.12.0 fork, a test that no part of the app links Apple's plain SQLite |
+| #69 Encrypted store | One database key per user in the Keychain, this phone only, behind Face ID or passcode; a per-user folder kept out of backups; the store pauses when the phone locks |
+| #70 Mission keys | One key per mission wrapped by a Secure Enclave key, notes sealed with it, a 14-day lease, every shred recorded |
+| #71 Signed evidence v2 | The signature also covers kind, clock source and location; the app and the server agree byte for byte |
+| #72 Lineage | Every fact and sentence traces back to its evidence; records cannot be changed; a hash-chained audit log |
+| #73 App lock | Face ID with one prompt, a privacy cover in the app switcher, locks again after 2 minutes away |
+| #62 Model time limit | Every model call stops after 20 s; a stopped answer is never used |
+| #74 Store proof | The whole store on the iPhone: 9 of 9 checks, lock test 4 of 4, the phone's signed chain verified by the server's Python code ([store proof](../store-proof.md)) |
+| #75 This review | Threat model and MASVS statuses moved to built only where the app and the phone prove it; a guard that stops stale plans |
+
+**Measured:**
+- Tests: 669 (backend 202, scripts 116, main app 216, encryption lab 50, document lab 62, speech lab 23),
+  up from 423.
+- Threat model: 27 built, 6 spike, 22 planned, 5 accepted (was 19, 12, 24, 5). MASVS: 10 built, 2 spike,
+  5 planned, 5 accepted, 2 not applicable (was 4, 5, 8, 5, 2). Self-assessed, **not independently audited**.
+- Mutation checks: 149 counted in #69 to #72, #62, #74 and #75, all caught or shown to be equivalent; #68
+  and #73 were checked step by step without a count. OpenSSF Scorecard 6.6.
+
+**Learned:**
+- **The real phone found two bugs that every simulator test missed.** Chip keys never worked on a phone:
+  the Keychain item that holds a Secure Enclave key's blob was saved with a rule only the chip key can use
+  (error -25293), so mission keys and signing failed on the iPhone while all tests passed. And a read while
+  the phone was locked crashed the app (SIGBUS): the pause stopped writes only, but a read still touches the
+  database's index file, which iOS had locked. Both were fixed test-first and the phone run passed after.
+- **Run the whole test suite on the phone, not only the new tests.** It also showed a test flake (a fake
+  lock in one test paused another suite's store, because the signal is app-wide) and tests that needed
+  files only the Mac has. Both fixed at the cause, not skipped.
+- **A failed phone run can be the user's step, not the code.** The first lock test recorded no lock at
+  all; the results file showed it, so we read the data before changing any code.
+- **Statuses drift quietly.** Four rows still pointed at Phase 4 for work that was never part of it. A new
+  guard rule now fails any plan that names a finished phase, and the MASVS count is checked against the rows.
+
+**Changed in the plan:**
+- Every read goes through one door that pauses with the writes; the database pool is private, so nothing
+  can skip it.
+- The model time limit (#62) moved into this iteration; the phone side of the shred order stays in
+  Phase 8 (#60).
+- T02, T03 and T05 now point to Phase 6, MASVS-PRIVACY-3 to Phase 9.
+
+**Open** (each is an issue): a store proof in a Release build (#84), a lock test over hours with the app
+ended by iOS (#85), plus the open items from Iteration 3 (#60, #63 to #66).
+
+**Next:** Iteration 5 · Mission pack: the backend prepares a mission, the phone downloads it and works
+offline.

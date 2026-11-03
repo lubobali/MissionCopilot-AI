@@ -2,7 +2,8 @@
 
 Every threat row (T01, P01, ...) needs a known status. "built" must name a file that exists;
 "spike" must name its proof and the phase or issue that rebuilds it in the app; "planned" must
-name a phase or issue; "accepted" must give a reason.
+name a phase or issue; "accepted" must give a reason. A finished phase is no plan: raise
+LAST_FINISHED_PHASE in each iteration review, and every row still pointing at it fails.
 
 Usage: python scripts/check_threat_model.py   (checks docs/threat-model.md)
 """
@@ -14,7 +15,9 @@ from pathlib import Path
 
 MODEL = Path("docs/threat-model.md")
 ROW = re.compile(r"^\|\s*([TP]\d{2})\s*\|")
-PHASE_OR_ISSUE = re.compile(r"Phase \d+|#\d+")
+PHASE = re.compile(r"Phase (\d+)")
+ISSUE = re.compile(r"#\d+")
+LAST_FINISHED_PHASE = 4
 PATH = re.compile(r"`([^`\s]+)`")
 
 
@@ -62,11 +65,16 @@ def check_claim(
     if status not in {"built", "spike", "planned"} | reasoned:
         return [f"{row_id}: unknown status '{status}'"]
     has_file = any((root / path).exists() for path in PATH.findall(where))
-    has_phase = bool(PHASE_OR_ISSUE.search(where))
+    phases = [int(number) for number in PHASE.findall(where)]
+    open_phase = any(number > LAST_FINISHED_PHASE for number in phases)
+    has_phase = open_phase or bool(ISSUE.search(where))
     if status == "built" and not has_file:
         return [f"{row_id}: built, but no existing file is named (got: {where})"]
     if status == "spike" and not has_file:
         return [f"{row_id}: spike, but its proof file does not exist (got: {where})"]
+    if status in {"spike", "planned"} and phases and not has_phase:
+        finished = f"Phase {max(phases)} is finished"
+        return [f"{row_id}: {status}, but {finished}; name a later phase or an issue"]
     if status == "spike" and not has_phase:
         return [f"{row_id}: spike, but no phase or issue rebuilds it in the app"]
     if status == "planned" and not has_phase:

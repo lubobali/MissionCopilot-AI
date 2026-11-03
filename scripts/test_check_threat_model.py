@@ -5,7 +5,7 @@ that fixes it. These tests feed the guard small tables and check what it reports
 from pathlib import Path
 
 import pytest
-from check_threat_model import parse_rows, problems
+from check_threat_model import LAST_FINISHED_PHASE, parse_rows, problems
 
 pytestmark = pytest.mark.unit
 
@@ -27,7 +27,7 @@ def test_a_complete_table_passes(repo):
     rows = (
         "| T01 | S | Fake phone | Enrollment | planned | #46 |\n"
         "| T02 | T | Changed payload | Signatures | built | `tests/test_real.py` |\n"
-        "| T03 | I | Copied DB | SQLCipher | spike | `tests/test_real.py`, rebuild Phase 4 |\n"
+        "| T03 | I | Copied DB | SQLCipher | spike | `tests/test_real.py`, rebuild Phase 6 |\n"
         "| T04 | D | Lost unsynced | Deliberate | accepted | Accepted: safer than leaking |\n"
     )
 
@@ -57,10 +57,10 @@ def test_spike_needs_its_proof_and_the_phase_that_rebuilds_it(repo):
 
 
 def test_spike_proof_must_exist(repo):
-    found = check("| T01 | I | x | y | spike | `tests/gone.py`, Phase 4 |\n", repo)
+    found = check("| T01 | I | x | y | spike | `tests/gone.py`, Phase 6 |\n", repo)
 
     assert found == [
-        "T01: spike, but its proof file does not exist (got: `tests/gone.py`, Phase 4)"
+        "T01: spike, but its proof file does not exist (got: `tests/gone.py`, Phase 6)"
     ]
 
 
@@ -88,3 +88,38 @@ def test_a_row_with_missing_cells_is_reported(repo):
 
 def test_an_empty_model_is_a_problem(repo):
     assert problems([], repo) == ["no threat rows found"]
+
+
+@pytest.mark.parametrize("status", ["spike", "planned"])
+def test_a_finished_phase_alone_is_no_plan(repo, status):
+    # Phases up to LAST_FINISHED_PHASE are done: "rebuild Phase 4" now means the row drifted.
+    found = check(f"| T01 | I | x | y | {status} | `tests/test_real.py`, rebuild Phase 4 |\n", repo)
+
+    assert found == [f"T01: {status}, but Phase 4 is finished; name a later phase or an issue"]
+
+
+@pytest.mark.parametrize("where", ["Phase 4 and Phase 8", "Phase 4, #60", "Phase 5"])
+def test_an_open_phase_or_an_issue_is_still_a_plan(repo, where):
+    assert check(f"| T01 | I | x | y | spike | `tests/test_real.py`, {where} |\n", repo) == []
+
+
+def test_every_phase_up_to_the_last_finished_one_counts_as_finished(repo):
+    assert LAST_FINISHED_PHASE == 4
+    found = check("| T01 | E | x | y | planned | Phase 0 |\n", repo)
+
+    assert found == ["T01: planned, but Phase 0 is finished; name a later phase or an issue"]
+
+
+def test_the_repo_model_passes():
+    root = Path(__file__).resolve().parents[1]
+
+    assert (
+        problems(parse_rows((root / "docs" / "threat-model.md").read_text(encoding="utf-8")), root)
+        == []
+    )
+
+
+def test_the_message_names_the_latest_finished_phase(repo):
+    found = check("| T01 | E | x | y | planned | Phase 1, then Phase 3 |\n", repo)
+
+    assert found == ["T01: planned, but Phase 3 is finished; name a later phase or an issue"]

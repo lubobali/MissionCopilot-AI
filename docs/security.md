@@ -1,11 +1,11 @@
 # How Mission Copilot protects field data
 
-**Status: draft. Proven in a feasibility spike on an iPhone 13 Pro Max and being rebuilt test-first in the
-main app (Phase 4): the encrypted store, its Keychain key, the protected folder and the pause on lock (#69),
+**Status: draft. Built test-first in the main app (Phase 4) and proven on an iPhone 13 Pro Max: the encrypted
+store, its Keychain key, the protected folder and the pause on lock (#69),
 per-mission keys in the Secure Enclave with the 14-day lease and recorded shreds (#70), signed, sealed
 evidence (#71), facts and sentences that trace back to evidence with an append-only, hash-chained audit
-log (#72), and the app lock (#73, checked on the iPhone) are in the app, and the whole store is proven on the
-iPhone, lock included ([store proof, #74](store-proof.md)). Not independently audited.** Every threat and its status: [threat model](threat-model.md).
+log (#72), and the app lock (#73). The whole store was run on the iPhone, lock included
+([store proof, #74](store-proof.md)). Not independently audited.** Every threat and its status: [threat model](threat-model.md).
 Decision record: [ADR 0008](adr/0008-data-storage-isolation-encryption.md). Evidence and how to repeat it:
 [spike #16](spikes/03-encryption.md).
 
@@ -117,7 +117,8 @@ and every request it sends is signed with that key.
 
 ## Check it yourself
 The code is open source. The [spike report](spikes/03-encryption.md) shows how to copy the database off a phone
-you own and try to read it with standard tools. The same check runs automatically in CI on the spike package.
+you own and try to read it with standard tools. The same check runs automatically in CI on the spike package
+and in the app's tests, and was done on a copy from the iPhone ([store proof](store-proof.md)).
 
 ## What it does not protect against (honest limits)
 - **An unlocked phone in the wrong hands.** While unlocked, the app can read its data, and so can whoever holds
@@ -137,7 +138,9 @@ you own and try to read it with standard tools. The same check runs automaticall
 
 ## Status
 - For a reviewer: a 10-minute path through all of this, with checks to run: [security-review.md](security-review.md).
-- Mobile security self-assessment against OWASP MASVS v2.1, all 24 controls: [masvs.md](masvs.md)
-  (7 built, 5 spike, 5 planned, 5 accepted, 2 not applicable).
-- Feasibility proven on a real iPhone (October 31, 2026); production code is rebuilt test-first in Phase 4.
+- Mobile security self-assessment against OWASP MASVS v2.1, all 24 controls, each with its status and a
+  count checked on every commit: [masvs.md](masvs.md).
+- Feasibility proven on a real iPhone (October 31, 2026). The store, keys, evidence and app lock were built
+  test-first in Phase 4 and proven on the iPhone (November 2, 2026); documents, speech and the model's checks
+  are rebuilt in the app in Phase 6.
 - **Not independently audited** and no bug bounty. Treat this as a portfolio project, not certified software.

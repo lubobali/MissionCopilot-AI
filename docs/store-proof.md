@@ -42,7 +42,7 @@ crash report from the phone.
 - The phone's chip-signed chain verifies in the Python server code, and one changed byte in any item breaks
   it (`backend/tests/unit/test_evidence_v2.py`).
 - `sqlite3` cannot open the database copied off the phone ("file is not a database"), and the proof's marker
-  text appears nowhere in its bytes.
+  text appears nowhere in its bytes, nor any table name (`mission`, `note`, `audit_event`, `CREATE TABLE`).
 
 ## Bugs the phone found (the Simulator hid both)
 1. **Chip keys never worked on a real phone.** The Keychain item that holds a Secure Enclave key's blob was

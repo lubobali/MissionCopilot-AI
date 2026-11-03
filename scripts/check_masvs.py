@@ -16,6 +16,8 @@ from check_threat_model import Row, check_claim
 
 MATRIX = Path("docs/masvs.md")
 ROW = re.compile(r"^\|\s*(MASVS-[A-Z]+-\d)\s*\|")
+COUNT = re.compile(r"^\*\*Count:\*\* (.+?)\.", re.MULTILINE)
+STATUSES = ["built", "spike", "planned", "accepted", "not applicable"]
 REASONED = frozenset({"accepted", "not applicable"})
 OFFICIAL = {
     "MASVS-STORAGE-1": "The app securely stores sensitive data.",
@@ -78,8 +80,21 @@ def problems(rows: list[Row], root: Path) -> list[str]:
     return found
 
 
+def count_problems(text: str) -> list[str]:
+    """The **Count:** line under the matrix must say what the rows say, so it cannot go stale."""
+    line = COUNT.search(text)
+    if not line:
+        return ["no **Count:** line"]
+    statuses = [row.cells[2] for row in parse_rows(text)]
+    counted = ", ".join(f"{statuses.count(s)} {s}" for s in STATUSES if s in statuses)
+    if line.group(1) != counted:
+        return [f"count line says '{line.group(1)}', the rows say '{counted}'"]
+    return []
+
+
 def main() -> int:
-    found = problems(parse_rows(MATRIX.read_text(encoding="utf-8")), Path("."))
+    text = MATRIX.read_text(encoding="utf-8")
+    found = problems(parse_rows(text), Path(".")) + count_problems(text)
     for problem in found:
         print(f"MASVS: {problem}")
     if not found:
