@@ -117,6 +117,15 @@ def test_every_build_reads_the_server_from_the_build_settings_and_public_builds_
     assert "MC_SERVER_HOST =\n" in base and "MC_SERVER_KEYS =\n" in base
 
 
+def test_the_release_build_has_no_transport_security_exception():
+    # MASVS-NETWORK-1: TLS only. The one exception is in the Debug build, for the local server.
+    assert "NSAppTransportSecurity" not in _plist("Info.plist")
+
+
+def test_the_debug_build_allows_only_local_networking():
+    assert _plist("Info-Debug.plist")["NSAppTransportSecurity"] == {"NSAllowsLocalNetworking": True}
+
+
 def test_the_app_icon_is_1024_square_with_no_transparency():
     icon = Image.open(
         ROOT / "ios" / "MissionCopilot" / "Assets.xcassets" / "AppIcon.appiconset" / "AppIcon.png"

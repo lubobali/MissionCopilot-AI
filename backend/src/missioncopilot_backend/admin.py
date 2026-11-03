@@ -7,6 +7,10 @@ Usage (uv run --directory backend missioncopilot-admin <command>):
   seed-demo          the fictional Kandor organization, two missions and their teams
   make-signing-key   the server's key for packs and shred orders (once); prints its public half
   publish-demo-pack  the Kandor roads pack, built from the demo dataset, signed, as the next version
+  issue-code <org> <user> [--label]  a one-time code for one person's phone (15 minutes)
+  list-devices <org>                 the organization's phones
+  approve-device <id> --by <you>     approve a pending phone (never your own)
+  revoke-device <id> --by <you>      revoke a phone: its next request gets a shred order
 
 The Postgres admin address comes from MISSIONCOPILOT_ADMIN_URL (or _FILE); locally, backend/.env.
 The directory database is mc_directory unless MISSIONCOPILOT_DIRECTORY_DB names another.
@@ -29,6 +33,8 @@ import psycopg
 from cryptography.hazmat.primitives import serialization
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
+from missioncopilot_backend import admin_devices
+from missioncopilot_backend.admin_common import AdminError, as_admin, directory_url
 from missioncopilot_backend.db.directory import Directory
 from missioncopilot_backend.db.migrations import load, migrate
 from missioncopilot_backend.db.missions import ORG_MIGRATIONS
@@ -57,10 +63,6 @@ DEMO = {  # fictional: Kandor is not a real country
 }
 
 
-class AdminError(Exception):
-    """The command cannot go on; the message says why."""
-
-
 def _write_secret(path: Path, text: str) -> None:
     """Owner-only, and never over an existing file."""
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -70,18 +72,6 @@ def _write_secret(path: Path, text: str) -> None:
         raise AdminError(f"{path} already exists; not overwriting it") from None
     with os.fdopen(descriptor, "w", encoding="utf-8") as file:
         file.write(text + "\n")
-
-
-def _directory_url(address_dir: Path) -> str:
-    path = address_dir / "directory.url"
-    if not path.exists():
-        raise AdminError("no directory yet; run setup first")
-    return path.read_text(encoding="utf-8").strip()
-
-
-def _as_admin(admin_url: str, app_url: str) -> str:
-    """The admin's address into the same database as an app login's address."""
-    return make_conninfo(admin_url, dbname=conninfo_to_dict(app_url)["dbname"])
 
 
 def setup(admin_url: str, address_dir: Path, directory: str = DIRECTORY) -> Path:
@@ -96,12 +86,12 @@ def setup(admin_url: str, address_dir: Path, directory: str = DIRECTORY) -> Path
 
 
 def add_org(admin_url: str, address_dir: Path, org_id: str) -> Path:
-    directory_url = _directory_url(address_dir)
+    directory = directory_url(address_dir)
     target = address_dir / "orgs" / f"{org_id}.url"
     if target.exists():
         raise AdminError(f"{target} already exists; {org_id} is set up")
     org = provision(admin_url, org_id, load(ORG_MIGRATIONS))
-    with psycopg.connect(_as_admin(admin_url, directory_url)) as conn:
+    with psycopg.connect(as_admin(admin_url, directory)) as conn:
         conn.execute(
             "INSERT INTO organizations (id, database) VALUES (%s, %s)", [org_id, org.database]
         )
@@ -114,12 +104,10 @@ def add_org(admin_url: str, address_dir: Path, org_id: str) -> Path:
 
 def migrate_all(admin_url: str, address_dir: Path) -> dict[str, list[int]]:
     """Every database brought up to date, as its owner; what each one applied."""
-    directory_url = _as_admin(admin_url, _directory_url(address_dir))
-    directory = str(conninfo_to_dict(directory_url)["dbname"])
-    applied = {
-        "directory": migrate(directory_url, load(Directory.MIGRATIONS), f"{directory}_owner")
-    }
-    with psycopg.connect(directory_url) as conn:
+    url = as_admin(admin_url, directory_url(address_dir))
+    directory = str(conninfo_to_dict(url)["dbname"])
+    applied = {"directory": migrate(url, load(Directory.MIGRATIONS), f"{directory}_owner")}
+    with psycopg.connect(url) as conn:
         organizations = conn.execute(
             "SELECT id, database FROM organizations ORDER BY id"
         ).fetchall()
@@ -183,46 +171,83 @@ def _config(env: Mapping[str, str]) -> tuple[str, Path, str]:
     return admin_url, address_dir, merged.get("MISSIONCOPILOT_DIRECTORY_DB", DIRECTORY)
 
 
-def main(argv: list[str] | None = None, env: Mapping[str, str] = os.environ) -> int:
+DEVICE_COMMANDS = {"issue-code", "list-devices", "approve-device", "revoke-device"}
+
+
+def _devices(args: argparse.Namespace, admin_url: str, address_dir: Path) -> None:
+    if args.command == "issue-code":
+        code, expires = admin_devices.issue_code(
+            admin_url, address_dir, args.org_id, args.user_id, args.label
+        )
+        print(f"OK: one-time code for {args.user_id}: {code}")
+        print(f"It works once, for 15 minutes (until {expires}). Give it to them in person.")
+    elif args.command == "list-devices":
+        for device in admin_devices.list_devices(admin_url, address_dir, args.org_id):
+            print(f"{device.id}  {device.status:8}  {device.user_id}  {device.label}")
+    elif args.command == "approve-device":
+        device = admin_devices.approve(admin_url, address_dir, args.device_id, args.by)
+        print(f"OK: {device.id} ({device.user_id}) approved")
+    else:
+        device = admin_devices.revoke(admin_url, address_dir, args.device_id, args.by)
+        print(f"OK: {device.id} ({device.user_id}) revoked; its next request gets a shred order")
+
+
+def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="missioncopilot-admin", description=__doc__.split("\n")[0]
     )
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("setup")
+    for name in ("setup", "migrate", "seed-demo", "make-signing-key", "publish-demo-pack"):
+        commands.add_parser(name)
     commands.add_parser("add-org").add_argument("org_id")
-    commands.add_parser("migrate")
-    commands.add_parser("seed-demo")
-    commands.add_parser("make-signing-key")
-    commands.add_parser("publish-demo-pack")
-    args = parser.parse_args(argv)
-    if args.command == "make-signing-key":  # needs no database
-        try:
-            found, public = make_signing_key(_key_path(env))
-        except SigningKeyError as error:
-            print(f"FAILED: {error}", file=sys.stderr)
-            return 1
-        der = base64.b64decode(public)
-        print(f"OK: signing key {found} written to {_key_path(env)}; pin its public key: {public}")
-        print(f"For the app (Local.xcconfig): MC_SERVER_KEYS = {der.hex()}")
-        return 0
+    code = commands.add_parser("issue-code")
+    code.add_argument("org_id")
+    code.add_argument("user_id")
+    code.add_argument("--label", default="iPhone")
+    commands.add_parser("list-devices").add_argument("org_id")
+    for name in ("approve-device", "revoke-device"):
+        phone = commands.add_parser(name)
+        phone.add_argument("device_id")
+        phone.add_argument("--by", required=True, help="your own name, for the audit log")
+    return parser
+
+
+def _signing_key_command(env: Mapping[str, str]) -> None:
+    found, public = make_signing_key(_key_path(env))
+    der = base64.b64decode(public)
+    print(f"OK: signing key {found} written to {_key_path(env)}; pin its public key: {public}")
+    print(f"For the app (Local.xcconfig): MC_SERVER_KEYS = {der.hex()}")
+
+
+def _database_command(args: argparse.Namespace, env: Mapping[str, str]) -> None:
+    admin_url, address_dir, directory = _config(env)
+    if args.command in DEVICE_COMMANDS:
+        _devices(args, admin_url, address_dir)
+    elif args.command == "setup":
+        path = setup(admin_url, address_dir, directory)
+        print(f"OK: directory set up; its address is in {path}")
+    elif args.command == "add-org":
+        path = add_org(admin_url, address_dir, args.org_id)
+        print(f"OK: {args.org_id} set up; its address is in {path}")
+    elif args.command == "migrate":
+        for name, versions in migrate_all(admin_url, address_dir).items():
+            print(f"OK: {name}: applied {versions or 'nothing, up to date'}")
+    elif args.command == "publish-demo-pack":
+        pack = publish_demo_pack(admin_url, _key_path(env))
+        print(f"OK: Kandor roads pack version {pack.version} published, signed by key "
+              f"{pack.signature['keyId']}")  # fmt: skip
+    else:
+        seed_demo(admin_url, address_dir)
+        print(f"OK: demo loaded into {DEMO_ORG}")
+
+
+def main(argv: list[str] | None = None, env: Mapping[str, str] = os.environ) -> int:
+    args = _parser().parse_args(argv)
     try:
-        admin_url, address_dir, directory = _config(env)
-        if args.command == "setup":
-            path = setup(admin_url, address_dir, directory)
-            print(f"OK: directory set up; its address is in {path}")
-        elif args.command == "add-org":
-            path = add_org(admin_url, address_dir, args.org_id)
-            print(f"OK: {args.org_id} set up; its address is in {path}")
-        elif args.command == "migrate":
-            for name, versions in migrate_all(admin_url, address_dir).items():
-                print(f"OK: {name}: applied {versions or 'nothing, up to date'}")
-        elif args.command == "publish-demo-pack":
-            pack = publish_demo_pack(admin_url, _key_path(env))
-            print(f"OK: Kandor roads pack version {pack.version} published, signed by key "
-                  f"{pack.signature['keyId']}")  # fmt: skip
+        if args.command == "make-signing-key":  # needs no database
+            _signing_key_command(env)
         else:
-            seed_demo(admin_url, address_dir)
-            print(f"OK: demo loaded into {DEMO_ORG}")
+            _database_command(args, env)
     except (AdminError, StartupError, SigningKeyError, ValueError) as error:
         print(f"FAILED: {error}", file=sys.stderr)
         return 1
