@@ -32,6 +32,7 @@ uv run --directory backend missioncopilot-admin setup       # the directory and 
 uv run --directory backend missioncopilot-admin seed-demo   # org kandor-works, two missions, three people
 uv run --directory backend missioncopilot-admin migrate     # after pulling new migrations
 uv run --directory backend missioncopilot-admin make-signing-key  # once: signs packs and shred orders
+uv run --directory backend missioncopilot-admin publish-demo-pack # the Kandor roads pack, next version
 cd backend && MISSIONCOPILOT_DIRECTORY_URL_FILE=.db-addresses/directory.url \
   MISSIONCOPILOT_ORG_URLS_DIR=.db-addresses/orgs \
   MISSIONCOPILOT_SIGNING_KEY_FILE=.keys/signing-key.pem uv run missioncopilot-backend
@@ -65,7 +66,8 @@ Limits (in `Settings`): 120 requests a minute per client address, 1 MiB per requ
    phone's enrolled Secure Enclave key (see docs/security.md). Only `/v1/health` and
    `/v1/devices/enroll` (authenticated by its one-time code) need neither.
 5. Data only from the caller's organization's own database, as the caller: another team's or
-   another organization's mission answers exactly like a missing one.
+   another organization's mission answers exactly like a missing one. Phones download their
+   mission's signed pack (manifest, signature, files by SHA-256, resumable with byte ranges).
 6. Errors as RFC 9457 Problem Details; a crash shows no stack trace; bad input is never echoed.
 7. Security events go to an append-only, hash-chained audit log, never with tokens or bodies.
 

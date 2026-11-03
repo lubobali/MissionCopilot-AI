@@ -115,6 +115,18 @@ and every request it sends is signed with that key.
 - **Limit:** once unlocked, the app can show the active missions to whoever holds the phone; that is why
   only active missions are on it and keys expire (ADR 0012).
 
+## Mission packs (signed, #89)
+- Before going offline the phone downloads its mission's **pack**: a manifest listing every file by SHA-256,
+  size and type, the version, the expiry and the key id, plus the files themselves.
+- The server signs the manifest's exact bytes with its P-256 key and a **pack label**, so a pack signature can
+  never pass as a shred order. The phone pins the server's public key (#90) and checks the signature before it
+  reads anything, then checks the rules again and each file's hash (#91).
+- Limits live in the contract: 64 files, 20 MiB a file, 50 MiB a pack, three fixed folders, no "..".
+- Packs live in the organization's own database: only the mission's team can read them (row-level security),
+  nothing published can be changed, and a mission's version only goes up by one, so an older pack can be
+  refused. Downloads resume after a lost signal (byte ranges); every manifest download is in the audit log.
+- Production would keep the signing key in an HSM or cloud KMS (Iteration 9).
+
 ## Check it yourself
 The code is open source. The [spike report](spikes/03-encryption.md) shows how to copy the database off a phone
 you own and try to read it with standard tools. The same check runs automatically in CI on the spike package
