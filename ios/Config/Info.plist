@@ -5,6 +5,12 @@
      and scripts/test_ios_project.py checks the two stay the same. -->
 <plist version="1.0">
 <dict>
+    <key>MCServerScheme</key>
+    <string>$(MC_SERVER_SCHEME)</string>
+    <key>MCServerHost</key>
+    <string>$(MC_SERVER_HOST)</string>
+    <key>MCServerKeys</key>
+    <string>$(MC_SERVER_KEYS)</string>
     <key>UILaunchScreen</key>
     <dict>
         <key>UIImageName</key>

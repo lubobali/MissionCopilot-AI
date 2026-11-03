@@ -201,7 +201,9 @@ def main(argv: list[str] | None = None, env: Mapping[str, str] = os.environ) -> 
         except SigningKeyError as error:
             print(f"FAILED: {error}", file=sys.stderr)
             return 1
+        der = base64.b64decode(public)
         print(f"OK: signing key {found} written to {_key_path(env)}; pin its public key: {public}")
+        print(f"For the app (Local.xcconfig): MC_SERVER_KEYS = {der.hex()}")
         return 0
     try:
         admin_url, address_dir, directory = _config(env)

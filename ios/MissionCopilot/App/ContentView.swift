@@ -19,9 +19,11 @@ struct ContentView: View {
                         .multilineTextAlignment(.center)
                         .padding(.top, 8)
                 }
-                NavigationLink("Licenses") { AcknowledgementsView() }
+                NavigationLink("Connect this iPhone") { ConnectionScreen(user: AppSession.localProfile) }
                     .buttonStyle(.fieldSecondary)
                     .padding(.top, 24)
+                NavigationLink("Licenses") { AcknowledgementsView() }
+                    .buttonStyle(.fieldSecondary)
                 #if DEBUG
                 NavigationLink("Lab (debug only)") { LabView() }
                     .buttonStyle(.fieldSecondary)

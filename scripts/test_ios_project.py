@@ -106,6 +106,17 @@ def test_every_build_shows_the_same_logo_launch_screen():
     assert _plist("Info-Debug.plist")["UILaunchScreen"] == launch
 
 
+def test_every_build_reads_the_server_from_the_build_settings_and_public_builds_have_none():
+    server = {"MCServerScheme", "MCServerHost", "MCServerKeys"}
+    release, debug = _plist("Info.plist"), _plist("Info-Debug.plist")
+
+    assert {k: release[k] for k in server} == {k: debug[k] for k in server}
+    assert release["MCServerHost"] == "$(MC_SERVER_HOST)"
+    base = (ROOT / "ios" / "Config" / "Base.xcconfig").read_text(encoding="utf-8")
+    # Empty unless Local.xcconfig sets them, so a public build has no server.
+    assert "MC_SERVER_HOST =\n" in base and "MC_SERVER_KEYS =\n" in base
+
+
 def test_the_app_icon_is_1024_square_with_no_transparency():
     icon = Image.open(
         ROOT / "ios" / "MissionCopilot" / "Assets.xcassets" / "AppIcon.appiconset" / "AppIcon.png"
