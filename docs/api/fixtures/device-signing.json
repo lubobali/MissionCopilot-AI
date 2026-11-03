@@ -1,0 +1,47 @@
+{
+  "enrollment": [
+    {
+      "code": "kq3X9vYb0M2tQ7wE1rLs",
+      "publicKeyDER": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWg==",
+      "message": "bWlzc2lvbmNvcGlsb3QtZW5yb2xsLXYxCmtxM1g5dlliME0ydFE3d0UxckxzCgABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj9AQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVo="
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/v1/missions/6f1d2c3a-0000-4000-8000-000000000001/pack/manifest",
+      "deviceId": "6f1d2c3a-1111-4000-8000-000000000007",
+      "seq": 1,
+      "at": 1793000000,
+      "body": "",
+      "message": "bWlzc2lvbmNvcGlsb3QtcmVxdWVzdC12MQpHRVQKL3YxL21pc3Npb25zLzZmMWQyYzNhLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMS9wYWNrL21hbmlmZXN0CjZmMWQyYzNhLTExMTEtNDAwMC04MDAwLTAwMDAwMDAwMDAwNwoxCjE3OTMwMDAwMDAKZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NQ=="
+    },
+    {
+      "method": "GET",
+      "path": "/v1/missions/6f1d2c3a-0000-4000-8000-000000000001/pack/files/061fe12456fa15b79e78cf04d1cc36059d46673ab0fd1a805f16afb5b330beb0",
+      "deviceId": "6f1d2c3a-1111-4000-8000-000000000007",
+      "seq": 2,
+      "at": 1793000001,
+      "body": "",
+      "message": "bWlzc2lvbmNvcGlsb3QtcmVxdWVzdC12MQpHRVQKL3YxL21pc3Npb25zLzZmMWQyYzNhLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMS9wYWNrL2ZpbGVzLzA2MWZlMTI0NTZmYTE1Yjc5ZTc4Y2YwNGQxY2MzNjA1OWQ0NjY3M2FiMGZkMWE4MDVmMTZhZmI1YjMzMGJlYjAKNmYxZDJjM2EtMTExMS00MDAwLTgwMDAtMDAwMDAwMDAwMDA3CjIKMTc5MzAwMDAwMQplM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/missions/6f1d2c3a-0000-4000-8000-000000000001/sync",
+      "deviceId": "6f1d2c3a-1111-4000-8000-000000000007",
+      "seq": 3,
+      "at": 1793000002,
+      "body": "eyJpdGVtcyI6W119",
+      "message": "bWlzc2lvbmNvcGlsb3QtcmVxdWVzdC12MQpQT1NUCi92MS9taXNzaW9ucy82ZjFkMmMzYS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEvc3luYwo2ZjFkMmMzYS0xMTExLTQwMDAtODAwMC0wMDAwMDAwMDAwMDcKMwoxNzkzMDAwMDAyCmVlZjQ2NzQxYWRmYzNhOWY3NjI5NGQzYjc4ZjM3YTQ1ZjExMzA5MmFjOWQ0NGVlNzdjN2EwMzhhODhmZjA5YTE="
+    },
+    {
+      "method": "GET",
+      "path": "/v1/devices?status=pending&limit=10",
+      "deviceId": "6f1d2c3a-1111-4000-8000-000000000007",
+      "seq": 41,
+      "at": 1793000003,
+      "body": "",
+      "message": "bWlzc2lvbmNvcGlsb3QtcmVxdWVzdC12MQpHRVQKL3YxL2RldmljZXM/c3RhdHVzPXBlbmRpbmcmbGltaXQ9MTAKNmYxZDJjM2EtMTExMS00MDAwLTgwMDAtMDAwMDAwMDAwMDA3CjQxCjE3OTMwMDAwMDMKZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NQ=="
+    }
+  ]
+}
