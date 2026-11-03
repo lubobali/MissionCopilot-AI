@@ -65,7 +65,7 @@ extension MissionStore {
 
     func sentences(in mission: String) throws -> [Sentence] {
         let key = try missionKey(for: mission)
-        return try store.pool.read { database in
+        return try store.read { database in
             try Row.fetchAll(database, sql: "SELECT * FROM sentence WHERE mission_id = ? ORDER BY created_at, id",
                              arguments: [mission]).map { row in
                 let factIds = try String.fetchAll(database, sql: """
@@ -96,7 +96,7 @@ extension MissionStore {
 
     /// The texts as stored, for the proof that the words are not in the row.
     func sealedSentenceTexts(in mission: String) throws -> [Data] {
-        try store.pool.read { database in
+        try store.read { database in
             try Data.fetchAll(database, sql: "SELECT sealed_text FROM sentence WHERE mission_id = ?",
                               arguments: [mission])
         }

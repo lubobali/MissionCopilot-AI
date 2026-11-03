@@ -22,7 +22,7 @@ struct ShredRecord: Equatable, Sendable {
 /// ADR 0012 in the store: each mission's lease is kept with it, checked on launch and unlock.
 extension MissionStore {
     func lease(for mission: String) throws -> KeyLease? {
-        try store.pool.read { database in
+        try store.read { database in
             try Row.fetchOne(database, sql: "SELECT renewed_at, days FROM mission_lease WHERE mission_id = ?",
                              arguments: [mission])
         }.map { KeyLease(mission: mission, renewedAt: Date(timeIntervalSince1970: $0["renewed_at"]), days: $0["days"]) }
@@ -73,7 +73,7 @@ extension MissionStore {
     }
 
     func shredRecords() throws -> [ShredRecord] {
-        try store.pool.read { database in
+        try store.read { database in
             try Row.fetchAll(database, sql: "SELECT mission_id, reason, at FROM shred_record ORDER BY mission_id")
         }.map { row in
             guard let reason = ShredRecord.Reason(rawValue: row["reason"]) else { throw ShredRecord.UnknownReason() }

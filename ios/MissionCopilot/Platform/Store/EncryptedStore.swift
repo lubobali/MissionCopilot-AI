@@ -7,14 +7,15 @@ import GRDB
 struct EncryptedStore: Sendable {
     enum Failure: Error, Equatable {
         case wrongKey
-        /// The phone locked or the app left the screen: nothing is written until it resumes.
+        /// The phone locked or the app left the screen: nothing is read or written until it resumes.
         case suspended
     }
 
-    /// Used only inside Platform/Store, which keeps GRDB away from the rest of the app.
-    let pool: DatabasePool
+    /// Private: every read and write goes through `read` and `write`, so none skips the pause.
+    private let pool: DatabasePool
     /// Opened to pause on StoreSuspension's signals.
     let isSuspendable: Bool
+    private let readPause: ReadPause?
 
     /// - Parameter suspendable: pauses on StoreSuspension's signals (the app's store always is, #69).
     static func open(at file: URL, key: DataKey, suspendable: Bool = false) throws -> EncryptedStore {
@@ -26,7 +27,7 @@ struct EncryptedStore: Sendable {
         do {
             let pool = try DatabasePool(path: file.path, configuration: config)
             try StoreSchema.migrator.migrate(pool)
-            return EncryptedStore(pool: pool, isSuspendable: suspendable)
+            return EncryptedStore(pool: pool, isSuspendable: suspendable, readPause: suspendable ? ReadPause() : nil)
         } catch let error as DatabaseError where error.resultCode == .SQLITE_NOTADB {
             throw Failure.wrongKey
         }
@@ -47,14 +48,21 @@ struct EncryptedStore: Sendable {
         }
     }
 
+    /// Every read goes through here. GRDB pauses writes only, but a read still maps the -shm file, and
+    /// while the phone is locked that file is unreadable: the app is killed (SIGBUS, found on the iPhone, #74).
+    func read<T>(_ body: (Database) throws -> T) throws -> T {
+        if readPause?.isPaused == true { throw Failure.suspended }
+        return try pool.read(body)
+    }
+
     func info(_ key: String) throws -> String? {
-        try pool.read { database in
+        try read { database in
             try String.fetchOne(database, sql: "SELECT value FROM store_info WHERE key = ?", arguments: [key])
         }
     }
 
     func appliedMigrations() throws -> [String] {
-        try pool.read { database in try StoreSchema.migrator.appliedMigrations(database) }
+        try read { database in try StoreSchema.migrator.appliedMigrations(database) }
     }
 
     /// Tests only: raw SQL, to prove the database's own rules (a fact needs a source, records cannot be
@@ -65,6 +73,27 @@ struct EncryptedStore: Sendable {
 
     /// Read on a reader connection (not the writer): proves readers got the key too.
     func readerCipherVersion() throws -> String {
-        try pool.read { database in try String.fetchOne(database, sql: "PRAGMA cipher_version") ?? "" }
+        try read { database in try String.fetchOne(database, sql: "PRAGMA cipher_version") ?? "" }
     }
+}
+
+/// Follows the same pause and resume signals GRDB follows for writes, so reads stop at the same moment.
+private final class ReadPause: @unchecked Sendable {
+    private let lock = NSLock()
+    private var paused = false
+    private var observers: [NSObjectProtocol] = []
+
+    init() {
+        observers = [(Database.suspendNotification, true), (Database.resumeNotification, false)].map { name, pause in
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
+                self?.set(pause)
+            }
+        }
+    }
+
+    var isPaused: Bool { lock.withLock { paused } }
+
+    private func set(_ pause: Bool) { lock.withLock { paused = pause } }
+
+    deinit { observers.forEach(NotificationCenter.default.removeObserver) }
 }

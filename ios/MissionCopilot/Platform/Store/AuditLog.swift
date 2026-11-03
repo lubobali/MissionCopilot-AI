@@ -60,7 +60,7 @@ extension EncryptedStore {
     }
 
     func auditEvents() throws -> [AuditEvent] {
-        try pool.read { database in
+        try read { database in
             try Row.fetchAll(database, sql: "SELECT * FROM audit_event ORDER BY seq").compactMap { row in
                 guard let action = AuditEvent.Action(rawValue: row["action"]) else { return nil }
                 return AuditEvent(seq: row["seq"], time: row["at"], actor: row["actor"], action: action,
@@ -73,7 +73,7 @@ extension EncryptedStore {
     /// Recomputes every hash and link in order: a changed, removed or renumbered event breaks the chain.
     /// The number is inside each hash and any gap breaks the next link, so no separate number check.
     func verifyAudit() throws -> AuditVerification {
-        let rows = try pool.read { database in
+        let rows = try read { database in
             try Row.fetchAll(database, sql: "SELECT * FROM audit_event ORDER BY seq")
         }
         var prev = EvidenceChain.genesisHash

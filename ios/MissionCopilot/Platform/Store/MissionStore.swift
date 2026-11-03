@@ -62,19 +62,19 @@ struct MissionStore: Sendable {
 
     /// The notes as stored: sealed bytes, for the proof that the text is not in the row.
     func sealedNotes(in mission: String) throws -> [Data] {
-        try store.pool.read { database in
+        try store.read { database in
             try Data.fetchAll(database, sql: "SELECT sealed FROM note WHERE mission_id = ? ORDER BY id",
                               arguments: [mission])
         }
     }
 
     func missionIDs() throws -> [String] {
-        try store.pool.read { database in try String.fetchAll(database, sql: "SELECT id FROM mission ORDER BY id") }
+        try store.read { database in try String.fetchAll(database, sql: "SELECT id FROM mission ORDER BY id") }
     }
 
     /// Throws MissionKeyNotFound for an unknown or shredded mission.
     func missionKey(for mission: String) throws -> SymmetricKey {
-        let row = try store.pool.read { database in
+        let row = try store.read { database in
             try Row.fetchOne(database, sql: "SELECT encapsulated_key, wrapped_key FROM mission WHERE id = ?",
                              arguments: [mission])
         }

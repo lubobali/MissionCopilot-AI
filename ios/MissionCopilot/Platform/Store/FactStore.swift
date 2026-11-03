@@ -66,7 +66,7 @@ extension MissionStore {
     /// The mission's facts, oldest first, each with its sources in evidence order.
     func facts(in mission: String) throws -> [Fact] {
         let key = try missionKey(for: mission)
-        return try store.pool.read { database in
+        return try store.read { database in
             try Row.fetchAll(database, sql: "SELECT * FROM fact WHERE mission_id = ? ORDER BY created_at, id",
                              arguments: [mission]).map { row in
                 let sources = try Row.fetchAll(database, sql: """
@@ -85,14 +85,14 @@ extension MissionStore {
 
     /// The values as stored, for the proof that the text is not in the row.
     func sealedFactValues(in mission: String) throws -> [Data] {
-        try store.pool.read { database in
+        try store.read { database in
             try Data.fetchAll(database, sql: "SELECT sealed_value FROM fact WHERE mission_id = ?", arguments: [mission])
         }
     }
 
     /// NIST FIPS 199 "high water mark": a derived item is as sensitive as its most sensitive input.
     private func strictestLabel(of sources: [FactSource], in mission: String) throws -> Classification {
-        let labels = try store.pool.read { database in
+        let labels = try store.read { database in
             try sources.map { source in
                 guard let raw = try String.fetchOne(database, sql: """
                     SELECT classification FROM evidence WHERE mission_id = ? AND seq = ?
