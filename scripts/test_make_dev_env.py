@@ -16,6 +16,7 @@ def test_it_writes_a_random_admin_password_and_the_test_address(tmp_path):
     assert len(password) == 48 and int(password, 16) >= 0
     url = f"postgresql://missioncopilot_admin:{password}@127.0.0.1:{PORT}/postgres"
     assert values["MISSIONCOPILOT_TEST_ADMIN_URL"] == url
+    assert values["MISSIONCOPILOT_ADMIN_URL"] == url
 
 
 def test_every_machine_gets_its_own_password(tmp_path):

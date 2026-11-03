@@ -18,6 +18,7 @@ dependencies = [
 
 [project.scripts]
 missioncopilot-backend = "missioncopilot_backend:main"
+missioncopilot-admin = "missioncopilot_backend.admin:main"
 
 [build-system]
 requires = ["uv_build>=0.13.6,<0.14.0"]

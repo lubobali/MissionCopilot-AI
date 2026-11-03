@@ -50,10 +50,11 @@ def _password_hash(admin: psycopg.Connection, role: str, password: str) -> str:
     ).decode()
 
 
-def provision(admin_url: str, org_id: str, migrations: list[Migration]) -> OrgDatabase:
-    """Make the organization's database and roles, then bring its tables up to date. If any part
-    fails, everything made so far is removed."""
-    database, owner, app = names_for(org_id)
+def create_database(
+    admin_url: str, database: str, owner: str, app: str, migrations: list[Migration]
+) -> str:
+    """A database with its own owner (cannot log in) and app login (rows only), brought up to date;
+    returns the app login's new password. If any part fails, everything made so far is removed."""
     password = secrets.token_hex(24)
     try:
         with psycopg.connect(admin_url, autocommit=True) as admin:
@@ -99,17 +100,27 @@ def provision(admin_url: str, org_id: str, migrations: list[Migration]) -> OrgDa
             ):
                 db.execute(sql.SQL(statement).format(app=sql.Identifier(app)))
     except BaseException:
-        drop_organization(admin_url, org_id)
+        drop_database(admin_url, database, owner, app)
         raise
-    return OrgDatabase(org_id, database, owner, app, password)
+    return password
 
 
-def drop_organization(admin_url: str, org_id: str) -> None:
-    """Remove the organization's database and both roles (also cleans up a failed provisioning)."""
-    database, owner, app = names_for(org_id)
+def drop_database(admin_url: str, database: str, owner: str, app: str) -> None:
+    """Remove a database and both its roles (also cleans up a failed create)."""
     with psycopg.connect(admin_url, autocommit=True) as admin:
         admin.execute(
             sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(database))
         )
         for role in (app, owner):
             admin.execute(sql.SQL("DROP ROLE IF EXISTS {}").format(sql.Identifier(role)))
+
+
+def provision(admin_url: str, org_id: str, migrations: list[Migration]) -> OrgDatabase:
+    """Make the organization's database and roles, then bring its tables up to date."""
+    database, owner, app = names_for(org_id)
+    password = create_database(admin_url, database, owner, app, migrations)
+    return OrgDatabase(org_id, database, owner, app, password)
+
+
+def drop_organization(admin_url: str, org_id: str) -> None:
+    drop_database(admin_url, *names_for(org_id))

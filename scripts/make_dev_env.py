@@ -1,5 +1,6 @@
-"""Write backend/.env for the local Postgres (#88): a random admin password and the address the
-database tests use. Run once per machine; an existing file is never overwritten.
+"""Write backend/.env for the local Postgres (#88): a random admin password, the address the
+database tests use and the one missioncopilot-admin uses. Run once per machine; an existing file
+is never overwritten.
 
 Usage: uv run --directory backend python ../scripts/make_dev_env.py
 Then:  docker compose --project-directory backend up -d --wait
@@ -28,6 +29,7 @@ def write_dev_env(path: Path = ENV_FILE) -> bool:
         "# Local development only (scripts/make_dev_env.py). Never commit, never for production.\n"
         f"MISSIONCOPILOT_PG_ADMIN_PASSWORD={password}\n"
         f"MISSIONCOPILOT_TEST_ADMIN_URL={url}\n"
+        f"MISSIONCOPILOT_ADMIN_URL={url}\n"  # missioncopilot-admin, local only
     )
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(descriptor, "w", encoding="utf-8") as file:

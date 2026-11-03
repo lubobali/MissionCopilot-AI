@@ -1,5 +1,6 @@
 # --- Secrets (never commit) ---
 .env
+backend/.secrets/
 .env.*
 !.env.example
 *.pem

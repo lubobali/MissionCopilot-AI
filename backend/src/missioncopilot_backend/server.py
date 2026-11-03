@@ -39,7 +39,7 @@ def _private_text(path: Path) -> str:
     return path.read_text(encoding="utf-8").strip()
 
 
-def _setting(env: Mapping[str, str], name: str) -> str:
+def read_setting(env: Mapping[str, str], name: str) -> str:
     value, file = env.get(name), env.get(f"{name}_FILE")
     if value and file:
         raise StartupError(f"set {name} or {name}_FILE, not both")
@@ -51,7 +51,7 @@ def _setting(env: Mapping[str, str], name: str) -> str:
 
 
 def _org_urls(env: Mapping[str, str]) -> dict[str, str]:
-    folder = Path(_setting(env, ORG_URLS_DIR))
+    folder = Path(read_setting(env, ORG_URLS_DIR))
     return {path.stem: _private_text(path) for path in sorted(folder.glob("*.url"))}
 
 
@@ -88,7 +88,7 @@ def _org_pools(
 def build(env: Mapping[str, str] = os.environ) -> FastAPI:
     """The server for this environment; raises StartupError instead of starting half-ready."""
     settings = Settings.from_env(env)
-    directory_url = _setting(env, DIRECTORY)
+    directory_url = read_setting(env, DIRECTORY)
     urls = _org_urls(env)
     _check_migrated("the directory", directory_url, Directory.MIGRATIONS)
     stack = ExitStack()
