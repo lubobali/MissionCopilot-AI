@@ -1,0 +1,803 @@
+{
+  "bad": [
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "something-else",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 1,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 0
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "not-hex",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "kandor-roads",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "latest",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        },
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "extra": "field",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "../etc/passwd",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/../../x.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "/sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "other/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/Project.JSON",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 20971521
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": -1
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "mediaType": "application/x-sh",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    },
+    {
+      "createdAt": "2026-11-03T12:00:00Z",
+      "expiresAt": "2026-12-03T12:00:00Z",
+      "files": [
+        {
+          "extra": "field",
+          "mediaType": "application/json",
+          "path": "sections/project.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1234
+        }
+      ],
+      "format": "missioncopilot-pack",
+      "formatVersion": 2,
+      "keyId": "0123456789abcdef",
+      "minAppVersion": "0.5",
+      "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+      "orgId": "kandor-works",
+      "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+      "version": 1
+    }
+  ],
+  "good": {
+    "createdAt": "2026-11-03T12:00:00Z",
+    "expiresAt": "2026-12-03T12:00:00Z",
+    "files": [
+      {
+        "mediaType": "application/json",
+        "path": "sections/project.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size": 1234
+      }
+    ],
+    "format": "missioncopilot-pack",
+    "formatVersion": 2,
+    "keyId": "0123456789abcdef",
+    "minAppVersion": "0.5",
+    "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
+    "orgId": "kandor-works",
+    "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
+    "version": 1
+  }
+}
