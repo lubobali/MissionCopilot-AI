@@ -10,7 +10,7 @@ configFiles:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "0.5.0"  # the phase; packs name the oldest app version that may read them
     CURRENT_PROJECT_VERSION: "1"
 packages:
   # GRDB 7.12.0 linked to SQLCipher 4.20.0 (exact): our fork changes only Package.swift, as GRDB's

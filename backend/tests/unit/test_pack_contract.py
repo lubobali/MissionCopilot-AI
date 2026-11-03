@@ -4,6 +4,7 @@ lost signal. Example manifests are checked against the contract's own schema, so
 real."""
 
 import copy
+import json
 from pathlib import Path
 from typing import Any
 
@@ -22,68 +23,17 @@ PACK_OPERATIONS = {
     f"GET {BASE}/signature": "getPackSignature",
     f"GET {BASE}/files/{{sha256}}": "getPackFile",
 }
-GOOD: dict[str, Any] = {
-    "format": "missioncopilot-pack",
-    "formatVersion": 2,
-    "packId": "0b6f0a52-6a0b-4c55-9d0e-3f1a2b3c4d5e",
-    "orgId": "kandor-works",
-    "missionId": "6f1d2c3a-0000-4000-8000-000000000001",
-    "version": 1,
-    "createdAt": "2026-11-03T12:00:00Z",
-    "expiresAt": "2026-12-03T12:00:00Z",
-    "minAppVersion": "0.5",
-    "keyId": "0123456789abcdef",
-    "files": [
-        {
-            "path": "sections/project.json",
-            "sha256": "a" * 64,
-            "size": 1234,
-            "mediaType": "application/json",
-        }
-    ],
-}
+# One source for the example manifests, read by these tests, the pack code's tests and the app's.
+CASES = json.loads(
+    (SPEC_PATH.parent / "fixtures" / "pack-manifest-cases.json").read_text(encoding="utf-8")
+)
+GOOD: dict[str, Any] = CASES["good"]
+BAD: list[dict[str, Any]] = CASES["bad"]
 
 
 def _validator(name: str) -> Validator:
     root = dict(SPEC) | {"$ref": f"#/components/schemas/{name}"}  # resolves the contract's own refs
     return Draft202012Validator(root)
-
-
-def _with(**changes) -> dict[str, Any]:
-    manifest = copy.deepcopy(GOOD)
-    for key, value in changes.items():
-        manifest[key] = value
-    return manifest
-
-
-def _with_file(**changes) -> dict[str, Any]:
-    manifest = copy.deepcopy(GOOD)
-    manifest["files"][0] |= changes
-    return manifest
-
-
-BAD = [
-    _with(format="something-else"),
-    _with(formatVersion=1),
-    _with(version=0),
-    _with(keyId="not-hex"),
-    _with(missionId="kandor-roads"),
-    _with(minAppVersion="latest"),
-    _with(files=[]),
-    _with(files=[GOOD["files"][0]] * 65),
-    _with(extra="field"),
-    _with_file(path="../etc/passwd"),
-    _with_file(path="sections/../../x.json"),
-    _with_file(path="/sections/project.json"),
-    _with_file(path="other/project.json"),
-    _with_file(path="sections/Project.JSON"),
-    _with_file(sha256="A" * 64),
-    _with_file(sha256="a" * 63),
-    _with_file(size=20 * 1024 * 1024 + 1),
-    _with_file(size=-1),
-    _with_file(mediaType="application/x-sh"),
-    _with_file(extra="field"),
-]
 
 
 def _operations():

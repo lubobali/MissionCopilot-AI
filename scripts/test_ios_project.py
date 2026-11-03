@@ -133,3 +133,69 @@ def test_the_app_icon_is_1024_square_with_no_transparency():
 
     assert icon.size == (1024, 1024)
     assert icon.mode == "RGB"
+
+
+PACK_TASKS = ["$(PRODUCT_BUNDLE_IDENTIFIER).pack.*"]
+
+
+def test_every_build_permits_only_the_pack_download_to_keep_going_outside_the_app():
+    # BGContinuedProcessingTask (#91): one wildcard, each download submits its own id under it.
+    for name in ("Info.plist", "Info-Debug.plist"):
+        assert _plist(name)["BGTaskSchedulerPermittedIdentifiers"] == PACK_TASKS, name
+
+
+def test_no_build_asks_for_background_modes():
+    # No background session or fetch: it would replay old signed requests (#91), and nothing
+    # else runs while the app is away.
+    for name in ("Info.plist", "Info-Debug.plist"):
+        assert "UIBackgroundModes" not in _plist(name), name
+    assert not any(k.startswith("INFOPLIST_KEY_UIBackgroundModes") for k in APP["settings"]["base"])
+
+
+def _privacy() -> dict:
+    return plistlib.loads((ROOT / "ios" / "MissionCopilot" / "PrivacyInfo.xcprivacy").read_bytes())
+
+
+def test_the_privacy_manifest_says_no_tracking_and_nothing_collected_by_the_app_maker():
+    manifest = _privacy()
+
+    assert manifest["NSPrivacyTracking"] is False
+    assert manifest["NSPrivacyTrackingDomains"] == []
+    assert manifest["NSPrivacyCollectedDataTypes"] == []
+
+
+def test_the_privacy_manifest_declares_free_space_only_to_check_room_to_write():
+    accessed = _privacy()["NSPrivacyAccessedAPITypes"]
+
+    assert accessed == [
+        {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
+            "NSPrivacyAccessedAPITypeReasons": ["E174.1"],
+        }
+    ]
+
+
+REQUIRED_REASON_APIS = {
+    # Apple's required-reason APIs beyond disk space: none may appear without a declared reason.
+    "NSPrivacyAccessedAPICategoryUserDefaults": ("UserDefaults", "@AppStorage"),
+    "NSPrivacyAccessedAPICategorySystemBootTime": ("systemUptime", "mach_absolute_time"),
+    "NSPrivacyAccessedAPICategoryFileTimestamp": (
+        "creationDate",
+        "modificationDate",
+        "ModificationDate",
+        "CreationDate",
+    ),
+    "NSPrivacyAccessedAPICategoryActiveKeyboards": ("activeInputModes",),
+}
+
+
+def test_the_app_uses_no_other_required_reason_api_than_it_declares():
+    declared = {a["NSPrivacyAccessedAPIType"] for a in _privacy()["NSPrivacyAccessedAPITypes"]}
+    code = "\n".join(
+        p.read_text(encoding="utf-8") for p in (ROOT / "ios" / "MissionCopilot").rglob("*.swift")
+    )
+
+    for category, names in REQUIRED_REASON_APIS.items():
+        used = [n for n in names if n in code]
+        assert category in declared or not used, f"{category}: {used}"
+    assert "volumeAvailableCapacity" in code  # the one that is declared is really used

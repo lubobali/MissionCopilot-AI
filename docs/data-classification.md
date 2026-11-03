@@ -53,6 +53,7 @@ Key names: **MK** = the mission key (one per mission, wrapped by a Secure Enclav
 | Data item | Owner | Label | Lives in | Encrypted by | Leaves the phone? | May reach cloud AI? |
 |---|---|---|---|---|---|---|
 | Mission pack (budget, payments, milestones, last report) | Organization | Official Use Only | Phone store; org database | DK + MK; TK | Arrives from server; not re-sent | No |
+| Mission pack while it downloads (half-done and checked files) | Organization | Official Use Only | Phone, download folder (not the store) | iOS file protection until first unlock; signed by the server, checked by hash | No | No |
 | Voice debrief audio | Field officer | Official Use Only | Phone store | DK + MK | **Never** | No |
 | Debrief transcript and notes | Field officer | Official Use Only (or Strictly Confidential if marked) | Phone store | DK + MK | Only inside an approved report | No |
 | Photo or scanned page (evidence) | Field officer | Official Use Only | Phone store; org database after approval | DK + MK, signed with SE | After approval, with signature and hash chain | Only if a person labels it Public |

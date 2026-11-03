@@ -138,6 +138,8 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | T42 | T | A forged "approve" request (CSRF) | SameSite cookies and a CSRF token, or bearer tokens only | planned | Phase 8 |
 | T43 | R | A manager denies having approved a mission | Approvals recorded in the audit log with who and when | planned | Phase 8 |
 | T53 | T | Another website calls the API from a browser, or a forged Host header | CORS only for the dashboard origin, no credentials; unknown hosts refused; nosniff, no framing, a 'none' content policy, no-referrer, no-store and HSTS on every answer | built | `backend/tests/unit/test_browser_and_hosts.py` |
+| T54 | T | A genuine pack carries a checklist crafted to break or mislead the app | The pack's signature proves who sent it, not that its checklist is safe: the checklist is read by its own schema with limits and never run as code | planned | #93 |
+| T55 | I | Half-downloaded pack files are read on a phone that is locked but was unlocked once since it started | They exist only while a pack downloads: protected until first unlock (a download goes on while the phone is locked, and a Complete file cannot be written then), never backed up, named by hash inside the app, checked before use; removed once the pack is in the encrypted store. Folder protection and backup exclusion built (`ios/MissionCopilotTests/PackStagingTests.swift`) | planned | #92 (removal after import) |
 
 ### B8 Backend ↔ cloud AI
 | ID | STRIDE | Threat | Control | Status | Test or phase |
@@ -153,7 +155,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | T48 | T | A compromised CI action steals secrets | Actions pinned to commit SHAs, minimal token permissions, zizmor lint | built | `.github/workflows/ci.yml` |
 | T49 | I | A secret is committed | gitleaks on every commit and in CI over the full history | built | `.github/workflows/ci.yml` |
 | T50 | T | The SQLCipher database library (our GRDB fork) drifts | Pinned revision, recorded in the SBOM; a commit check fails if Package.resolved and the SBOM differ | built | `scripts/test_check_bom.py` |
-| T51 | T | A malicious checklist or mission pack is imported | Packs signed by the server (P-256 over a pack label and the exact manifest bytes), every file listed by SHA-256 and size, limits in the contract (64 files, 20 MiB a file, 50 MiB a pack, fixed folders), rules checked again after the signature, versions only go up, expiry; served only to the mission's team. Server side built: `backend/tests/unit/test_pack_verify.py`, `backend/tests/db/test_packs.py`, `backend/tests/db/test_pack_routes.py`; the phone's own check and refusal come in #91, the checklist's own checks in #93 | planned | #91, #93 |
+| T51 | T | A malicious or old mission pack is imported | Packs signed by the server (P-256 over a pack label and the exact manifest bytes), every file listed by SHA-256 and size, limits in the contract (64 files, 20 MiB a file, 50 MiB a pack, fixed folders), versions only go up, expiry; served only to the mission's team. The phone checks the same before it keeps anything: the signature with a pinned key and the pack label, the contract's rules again after the signature, the key id, expiry and app version, the mission and organization it asked for, a version above the last one it accepted (a genuine older pack played back is refused), free space for three times the pack, then each file's size and SHA-256. Every piece is its own freshly signed request: no background session, which would send old signed requests again (T27) | built | `backend/tests/unit/test_pack_verify.py`, `backend/tests/db/test_packs.py`, `backend/tests/db/test_pack_routes.py`, `ios/MissionCopilotTests/PackVerifierTests.swift`, `ios/MissionCopilotTests/PackAcceptanceTests.swift`, `ios/MissionCopilotTests/PackDownloaderTests.swift`, `ios/MissionCopilotTests/LocalServerPackSteps.swift` |
 | T52 | T | The model was poisoned upstream (ATLAS AML.T0020) | Frozen public model, source, revision, hash and license in the ML-BOM (checked against the signature), outputs checked by code | built | `docs/sbom/app.cdx.json`, `scripts/test_check_bom.py` |
 
 ## 3. Privacy (LINDDUN)
@@ -202,12 +204,12 @@ against the current release before quoting.
 | M1 Credential usage | T11, T49 | API1 Object-level authorization | T31 |
 | M2 Supply chain | T46-T52 | API2 Authentication | T30, T26 |
 | M3 Authentication / authorization | T17, T26 | API3 Object property authorization | T36 |
-| M4 Input / output validation | T01-T07, T51 | API4 Resource consumption | T34 |
+| M4 Input / output validation | T01-T07, T51, T54 | API4 Resource consumption | T34 |
 | M5 Communication | T24, T25 | API5 Function-level authorization | T31, T33 |
 | M6 Privacy controls | P01-P07 | API6 Sensitive business flows | T42, T43 (approval) |
 | M7 Binary protections | T21 (accepted) | API7 Server-side request forgery | Not applicable: no URL fetching |
 | M8 Misconfiguration | T23, T35 | API8 Misconfiguration | T35, T41, T53 |
-| M9 Data storage | T14-T16, T19 | API9 Inventory management | T37 |
+| M9 Data storage | T14-T16, T19, T55 | API9 Inventory management | T37 |
 | M10 Cryptography | T14, T19, T25 | API10 Unsafe consumption of APIs | T45 |
 
 ## 6. Limits we accept (and the production upgrade)
