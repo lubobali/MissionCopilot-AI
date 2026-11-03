@@ -106,6 +106,8 @@ def main() -> int:
             "TEST_RUNNER_MC_E2E_MISSION": admin.ROADS,
             "TEST_RUNNER_MC_E2E_SIGNALS": str(signals),
         }
+        # The project file is generated: without this a new test file is not built (#91).
+        subprocess.run(["xcodegen", "generate", "-q"], cwd=ROOT / "ios", check=True)  # noqa: S607
         # To a file: a pipe nobody reads fills up and stalls xcodebuild (it did, the first run).
         log = (BACKEND / ".e2e-xcodebuild.log").open("w")  # noqa: SIM115 - closed after the run
         test = subprocess.Popen(
