@@ -62,6 +62,30 @@ def _with_file(**changes) -> dict[str, Any]:
     return manifest
 
 
+BAD = [
+    _with(format="something-else"),
+    _with(formatVersion=1),
+    _with(version=0),
+    _with(keyId="not-hex"),
+    _with(missionId="kandor-roads"),
+    _with(minAppVersion="latest"),
+    _with(files=[]),
+    _with(files=[GOOD["files"][0]] * 65),
+    _with(extra="field"),
+    _with_file(path="../etc/passwd"),
+    _with_file(path="sections/../../x.json"),
+    _with_file(path="/sections/project.json"),
+    _with_file(path="other/project.json"),
+    _with_file(path="sections/Project.JSON"),
+    _with_file(sha256="A" * 64),
+    _with_file(sha256="a" * 63),
+    _with_file(size=20 * 1024 * 1024 + 1),
+    _with_file(size=-1),
+    _with_file(mediaType="application/x-sh"),
+    _with_file(extra="field"),
+]
+
+
 def _operations():
     for path, item in SPEC["paths"].items():
         for method, op in item.items():
@@ -87,31 +111,7 @@ def test_a_good_manifest_matches_the_contract():
     assert list(_validator("MissionPack").iter_errors(GOOD)) == []
 
 
-@pytest.mark.parametrize(
-    "bad",
-    [
-        _with(format="something-else"),
-        _with(formatVersion=1),
-        _with(version=0),
-        _with(keyId="not-hex"),
-        _with(missionId="kandor-roads"),
-        _with(minAppVersion="latest"),
-        _with(files=[]),
-        _with(files=[GOOD["files"][0]] * 65),
-        _with(extra="field"),
-        _with_file(path="../etc/passwd"),
-        _with_file(path="sections/../../x.json"),
-        _with_file(path="/sections/project.json"),
-        _with_file(path="other/project.json"),
-        _with_file(path="sections/Project.JSON"),
-        _with_file(sha256="A" * 64),
-        _with_file(sha256="a" * 63),
-        _with_file(size=20 * 1024 * 1024 + 1),
-        _with_file(size=-1),
-        _with_file(mediaType="application/x-sh"),
-        _with_file(extra="field"),
-    ],
-)
+@pytest.mark.parametrize("bad", BAD)
 def test_a_manifest_outside_the_limits_is_refused(bad):
     assert list(_validator("MissionPack").iter_errors(bad)) != []
 
