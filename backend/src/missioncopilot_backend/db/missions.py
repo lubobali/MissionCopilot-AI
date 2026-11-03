@@ -25,7 +25,7 @@ def as_user(pool: ConnectionPool, user_id: str) -> Generator[psycopg.Connection]
 
 class PostgresMissions:
     def __init__(self, pool: ConnectionPool, org_id: str):
-        self._pool, self._org_id = pool, org_id
+        self._pool, self.org_id = pool, org_id
 
     def get(self, user_id: str, mission_id: str) -> Mission | None:
         """The mission if this user is on its team; another team's mission and a missing one both
@@ -34,9 +34,9 @@ class PostgresMissions:
             row = conn.execute(
                 "SELECT id, title FROM missions WHERE id = %s", [mission_id]
             ).fetchone()
-        return Mission(row[0], self._org_id, row[1]) if row else None
+        return Mission(row[0], self.org_id, row[1]) if row else None
 
     def for_user(self, user_id: str) -> list[Mission]:
         with as_user(self._pool, user_id) as conn:
             rows = conn.execute("SELECT id, title FROM missions ORDER BY id").fetchall()
-        return [Mission(mission_id, self._org_id, title) for mission_id, title in rows]
+        return [Mission(mission_id, self.org_id, title) for mission_id, title in rows]

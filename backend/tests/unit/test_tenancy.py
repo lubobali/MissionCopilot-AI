@@ -16,6 +16,7 @@ from missioncopilot_backend.auth import TokenVerifier, secured_router
 from missioncopilot_backend.models import StrictModel
 from missioncopilot_backend.settings import Settings
 from missioncopilot_backend.tenancy import (
+    CallerMissions,
     Mission,
     MissionStore,
     OrgDatabases,
@@ -28,7 +29,7 @@ from tests.unit.route_listing import served_routes
 pytestmark = pytest.mark.unit
 
 ISSUER, AUDIENCE = "https://login.example.org", "missioncopilot-api"
-OWN, OTHER, MISSING = "m-a1", "m-b1", "m-none"
+OWN, OTHER, MISSING, OTHER_TEAM = "m-a1", "m-b1", "m-none", "m-a2"
 
 
 class NoteIn(StrictModel):
@@ -40,16 +41,20 @@ def signer() -> ec.EllipticCurvePrivateKey:
     return ec.generate_private_key(ec.SECP256R1())
 
 
-def bearer(signer, org: str) -> dict[str, str]:
+def bearer(signer, org: str, user: str = "u1") -> dict[str, str]:
     now = int(time.time())
-    claims = {"iss": ISSUER, "aud": AUDIENCE, "sub": "u1", "org": org, "iat": now, "exp": now + 300}
+    claims = {"iss": ISSUER, "aud": AUDIENCE, "sub": user, "org": org, "iat": now, "exp": now + 300}
     return {"Authorization": f"Bearer {jwt.encode(claims, signer, algorithm='ES256')}"}
 
 
 def databases() -> OrgDatabases:
     dbs = OrgDatabases()
-    dbs.create("org-a").add(Mission(id=OWN, org_id="org-a", title="Kandor roads, package 1"))
-    dbs.create("org-b").add(Mission(id=OTHER, org_id="org-b", title="Another org's mission"))
+    org_a = dbs.create("org-a")
+    org_a.add(Mission(id=OWN, org_id="org-a", title="Kandor roads, package 1"), team=("u1",))
+    org_a.add(Mission(id=OTHER_TEAM, org_id="org-a", title="Kandor bridges"), team=("u2",))
+    dbs.create("org-b").add(
+        Mission(id=OTHER, org_id="org-b", title="Another org's mission"), ("u1",)
+    )
     return dbs
 
 
@@ -62,12 +67,12 @@ def build_app(signer) -> FastAPI:
     router = secured_router()
 
     @router.get("/test/missions/{mission_id}")
-    def read(mission_id: str, store: MissionStore = Depends(org_store)) -> dict[str, str]:
+    def read(mission_id: str, store: CallerMissions = Depends(org_store)) -> dict[str, str]:
         return {"title": mission_or_404(store, mission_id).title}
 
     @router.post("/test/missions/{mission_id}/notes")
     def add_note(
-        mission_id: str, note: NoteIn, store: MissionStore = Depends(org_store)
+        mission_id: str, note: NoteIn, store: CallerMissions = Depends(org_store)
     ) -> dict[str, str]:
         return {"mission": mission_or_404(store, mission_id).id, "note": note.text}
 
@@ -85,8 +90,8 @@ def test_a_store_holds_only_its_own_organization():
     store_a, store_b = dbs.for_org("org-a"), dbs.for_org("org-b")
 
     assert store_a is not None and store_b is not None
-    assert store_a.get(OTHER) is None
-    assert store_b.get(OWN) is None
+    assert store_a.get("u1", OTHER) is None
+    assert store_b.get("u1", OWN) is None
 
 
 def test_a_store_refuses_another_organizations_mission():
@@ -102,6 +107,21 @@ def test_own_mission_is_readable(client, signer):
     response = client.get(f"/v1/test/missions/{OWN}", headers=bearer(signer, "org-a"))
 
     assert response.json() == {"title": "Kandor roads, package 1"}
+
+
+def test_another_teams_mission_looks_like_it_does_not_exist(client, signer):
+    headers = bearer(signer, "org-a", user="u1")
+    other_team = client.get(f"/v1/test/missions/{OTHER_TEAM}", headers=headers)
+    missing = client.get(f"/v1/test/missions/{MISSING}", headers=headers)
+
+    assert other_team.status_code == missing.status_code == 404
+    assert other_team.json() == missing.json()
+
+
+def test_the_other_team_reads_its_own_mission(client, signer):
+    response = client.get(f"/v1/test/missions/{OTHER_TEAM}", headers=bearer(signer, "org-a", "u2"))
+
+    assert response.json() == {"title": "Kandor bridges"}
 
 
 def test_another_organizations_mission_looks_like_it_does_not_exist(client, signer):
@@ -164,10 +184,18 @@ def test_the_cross_tenant_guard_sees_a_leaky_route(signer):
     def leaky(mission_id: str) -> dict[str, str]:
         for org in ("org-a", "org-b"):  # the mistake: looks in every organization
             store = everything.for_org(org)
-            if store and (mission := store.get(mission_id)):
+            if store and (mission := store.get("u1", mission_id)):
                 return {"title": mission.title}
         return {}
 
     app.include_router(router)
 
     assert cross_tenant_leaks(app, signer) == ["GET /v1/test/leaky/{mission_id}"]
+
+
+def test_the_callers_own_list_holds_only_their_teams_missions():
+    store = databases().for_org("org-a")
+    assert store is not None
+
+    assert [m.id for m in CallerMissions(store, "u1").mine()] == [OWN]
+    assert [m.id for m in CallerMissions(store, "u2").mine()] == [OTHER_TEAM]
