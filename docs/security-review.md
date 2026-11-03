@@ -26,9 +26,13 @@ Backend controls, each with its test: [backend/README.md](../backend/README.md).
 ## What is proven, and where
 - **Built and tested** (backend and the main app): signed device requests with no token on the phone,
   organization isolation, strict input and limits, a hash-chained audit log, the signed shred order, the
-  model signature check, the app lock's rules.
-- **Proven on a real iPhone 13 Pro Max, offline** (lab code, rebuilt test-first in the app from Phase 4):
-  the encrypted store and crypto-shred, signed evidence, expiring mission keys, document checks and the
+  model signature check, the app lock.
+- **Built in the app and proven on a real iPhone 13 Pro Max** ([store proof](store-proof.md)): the encrypted
+  store that pauses before the phone locks, mission keys in the Secure Enclave with a 14-day lease,
+  crypto-shred, signed and sealed evidence, facts that trace back to it. The phone found two bugs the
+  simulator hid, both fixed. Check the phone's signed chain with the server's own code:
+  `uv run --directory backend pytest tests/unit/test_evidence_v2.py`.
+- **Proven on the iPhone in lab code, rebuilt in the app in Phase 6:** document checks and the
   prompt-injection results. Raw results are in [spikes/results](spikes/results).
 
 ## Honest limits
@@ -36,6 +40,7 @@ Backend controls, each with its test: [backend/README.md](../backend/README.md).
 - **No protection on a compromised phone** (jailbreak, malware) and no App Attest: those need a paid Apple
   team and device management, which a real deployment would add.
 - **A forced unlock shows the active missions.** Least data and expiring keys limit what that is.
+- **The phone proof is one phone,** one iOS version, a Debug build and a lock of about two minutes.
 - **The prompt-injection set is small and ours:** 30 attacks, one model, nobody adapting to the checks.
 - **Much is still spike or planned:** see the status columns; nothing is claimed without its proof.
 
