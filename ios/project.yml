@@ -27,7 +27,12 @@ targets:
       properties:
         # ADR 0008 layer A: every file the app creates is unreadable while the phone is locked.
         com.apple.developer.default-data-protection: NSFileProtectionComplete
-    sources: [MissionCopilot]
+    sources:
+      - path: MissionCopilot
+      # The pack sections schema itself, not a copy (#92): the phone checks pack files against the same
+      # file the server's tests use.
+      - path: ../docs/api/pack-sections.schema.json
+        buildPhase: resources
     dependencies:
       - package: GRDB
         product: GRDB

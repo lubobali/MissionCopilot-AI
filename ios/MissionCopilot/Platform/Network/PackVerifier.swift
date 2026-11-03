@@ -10,6 +10,8 @@ enum PackRefusal: Error, Equatable, Sendable {
     case wrongMission, older, replaced
     /// The store could not say what was accepted before (paused while locked): refuse, never assume.
     case storeUnavailable
+    /// A section or the checklist is missing or does not match the pack sections schema (#92).
+    case badSection
 }
 
 struct PackFileEntry: Equatable, Sendable {
