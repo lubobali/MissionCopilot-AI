@@ -32,6 +32,15 @@ struct KeychainItems: Sendable {
         return true
     }
 
+    /// Replaces an existing item's value in one step; false if there is no such item.
+    func update(_ data: Data, account: String) throws -> Bool {
+        let change = [kSecValueData as String: data]
+        let status = SecItemUpdate(query(account, context: nil) as CFDictionary, change as CFDictionary)
+        if status == errSecItemNotFound { return false }
+        guard status == errSecSuccess else { throw KeychainFailure(status: status) }
+        return true
+    }
+
     func delete(_ account: String) throws {
         let status = SecItemDelete(query(account, context: nil) as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw KeychainFailure(status: status) }
