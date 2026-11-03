@@ -5,7 +5,7 @@ planned names a phase or issue, and accepted or not applicable gives a reason.""
 from pathlib import Path
 
 import pytest
-from check_masvs import OFFICIAL, parse_rows, problems
+from check_masvs import OFFICIAL, count_problems, main, parse_rows, problems
 
 pytestmark = pytest.mark.unit
 
@@ -97,3 +97,41 @@ def test_an_unknown_status_is_reported():
 
 def test_the_repo_matrix_passes():
     assert check((ROOT / "docs" / "masvs.md").read_text(encoding="utf-8")) == []
+
+
+def test_the_count_line_must_match_the_rows():
+    built = f"| MASVS-CODE-1 | {OFFICIAL['MASVS-CODE-1']} | built | `scripts` |"
+    rows = table({"MASVS-CODE-1": built})
+
+    assert count_problems(rows + "**Count:** 1 built, 23 planned.\n") == []
+    assert count_problems(rows + "**Count:** 2 built, 22 planned.\n") == [
+        "count line says '2 built, 22 planned', the rows say '1 built, 23 planned'"
+    ]
+    assert count_problems(rows) == ["no **Count:** line"]
+
+
+def test_the_count_lists_every_status_in_a_fixed_order():
+    statuses = {"MASVS-CODE-1": "built", "MASVS-CODE-2": "accepted", "MASVS-CODE-3": "spike"}
+    rows = table(
+        {cid: f"| {cid} | {OFFICIAL[cid]} | {status} | x |" for cid, status in statuses.items()}
+    )
+
+    assert count_problems(rows + "**Count:** 1 built, 1 spike, 21 planned, 1 accepted.\n") == []
+
+
+def test_the_repo_count_line_matches():
+    assert count_problems((ROOT / "docs" / "masvs.md").read_text(encoding="utf-8")) == []
+
+
+def test_the_command_fails_on_a_stale_count(tmp_path, monkeypatch, capsys):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "masvs.md").write_text(
+        table() + "**Count:** 1 built, 23 planned.\n", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+
+    assert main() == 1
+    assert (
+        "count line says '1 built, 23 planned', the rows say '24 planned'"
+        in capsys.readouterr().out
+    )
