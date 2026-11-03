@@ -19,10 +19,25 @@ final class FakePackServer: Transport, @unchecked Sendable {
     var manifestStatus: (Int, Data)?
     var onFileRequest: (@Sendable (Int) -> Void)?  // told the number of each file request
     var cancelCutsOff = false  // like URLSession: a request whose task was cancelled throws
+    var offline = false  // every request: no signal
+    var missionList: (status: Int, body: Data)?  // GET /v1/missions; nil: roads with the fixture's pack, bridges none
     private(set) var requests: [URLRequest] = []
     private(set) var fileRequests = 0
     private(set) var bytesSent = 0
     private let lock = NSLock()
+
+    /// The list the server gives officer-7: roads with the fixture's pack (as `version`), bridges with none.
+    static func missions(version: Int, expires: String? = nil) -> Data {
+        let manifest = (try? JSONSerialization.jsonObject(with: file("manifest.json"))) as? [String: Any] ?? [:]
+        let pack: [String: Any] = ["version": version, "createdAt": manifest["createdAt"] ?? "",
+                                   "expiresAt": expires ?? manifest["expiresAt"] ?? ""]
+        let list: [String: Any] = ["orgId": "kandor-works", "missions": [
+            ["id": "6f1d2c3a-0000-4000-8000-000000000001", "title": "Kandor Rural Roads Project, Package 1",
+             "pack": pack],
+            ["id": "6f1d2c3a-0000-4000-8000-000000000002", "title": "Kandor Bridges", "pack": NSNull()]
+        ]]
+        return (try? JSONSerialization.data(withJSONObject: list)) ?? Data()
+    }
 
     static func file(_ path: String) -> Data {
         // swiftlint:disable:next force_try
@@ -54,6 +69,11 @@ final class FakePackServer: Transport, @unchecked Sendable {
 
     private func answer(_ request: URLRequest) throws -> Answer {
         let path = request.url?.path() ?? ""
+        if offline { throw URLError(.notConnectedToInternet) }
+        if path == MissionList.path {
+            if let missionList { return Answer(missionList.status, [:], missionList.body) }
+            return Answer(200, [:], Self.missions(version: 1))
+        }
         if path.hasSuffix("/pack/manifest") {
             if let (status, body) = manifestStatus { return Answer(status, [:], body) }
             return Answer(200, ["ETag": "\"m\""], Self.file("manifest.json"))

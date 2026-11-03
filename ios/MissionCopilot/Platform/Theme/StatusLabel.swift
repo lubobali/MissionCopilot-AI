@@ -3,7 +3,7 @@ import SwiftUI
 /// The states a mission pack can be in. Each has its own icon and words, so color is never the only
 /// signal (WCAG 1.4.1, #87); the screens that set them come with the pack (#92).
 enum StatusKind: CaseIterable, Sendable {
-    case ready, downloading, paused, expiring, expired, notDownloaded
+    case ready, downloading, paused, expiring, expired, notDownloaded, failed
 
     var words: String {
         switch self {
@@ -13,6 +13,7 @@ enum StatusKind: CaseIterable, Sendable {
         case .expiring: "Expires soon"
         case .expired: "Expired"
         case .notDownloaded: "Not downloaded"
+        case .failed: "Download failed"
         }
     }
 
@@ -24,6 +25,7 @@ enum StatusKind: CaseIterable, Sendable {
         case .expiring: "exclamationmark.triangle.fill"
         case .expired: "xmark.octagon.fill"
         case .notDownloaded: "icloud.and.arrow.down"
+        case .failed: "exclamationmark.octagon"
         }
     }
 
@@ -32,7 +34,7 @@ enum StatusKind: CaseIterable, Sendable {
         case .ready: .success
         case .downloading: .accent
         case .paused, .expiring: .warning
-        case .expired: .danger
+        case .expired, .failed: .danger
         case .notDownloaded: .secondaryText
         }
     }
