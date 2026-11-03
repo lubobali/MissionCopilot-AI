@@ -3,7 +3,7 @@
 -- missions lives here: that is in each organization's own database.
 
 CREATE TABLE organizations (
-    id         text PRIMARY KEY CHECK (id ~ '^[a-z0-9][a-z0-9-]{1,62}$'),
+    id         text PRIMARY KEY CHECK (id ~ '^[a-z0-9][a-z0-9-]{1,39}$'),  -- see names_for()
     database   text NOT NULL UNIQUE CHECK (database ~ '^[a-z][a-z0-9_]{1,62}$'),
     created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -30,3 +30,11 @@ CREATE TABLE devices (
 );
 
 CREATE INDEX devices_by_org ON devices (org_id, enrolled_at);
+
+-- A fresh database lets every login connect (PUBLIC has CONNECT). Organization logins must never
+-- reach the directory, so only its owner and the server's own login keep access.
+DO $$
+BEGIN
+    EXECUTE format('REVOKE ALL ON DATABASE %I FROM PUBLIC', current_database());
+END
+$$;

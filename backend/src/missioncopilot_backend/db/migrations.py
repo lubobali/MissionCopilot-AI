@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import psycopg
+from psycopg import sql
 
 NAME = re.compile(r"^(\d{4})_[a-z0-9_]+\.sql$")
 LOCK = 0x4D43_4D49  # pg_advisory_lock key ("MCMI"): one migration run at a time per database
@@ -65,9 +66,12 @@ def _check(done: dict[int, tuple[str, str]], migrations: list[Migration]) -> Non
             raise MigrationError(f"{name} was edited after it ran; add a new migration instead")
 
 
-def migrate(url: str, migrations: list[Migration]) -> list[int]:
-    """Run the pending migrations; returns the versions it applied (none: [])."""
+def migrate(url: str, migrations: list[Migration], role: str | None = None) -> list[int]:
+    """Run the pending migrations, as `role` if given (so the tables belong to it); returns the
+    versions it applied (none: [])."""
     with psycopg.connect(url, autocommit=True) as conn:
+        if role:
+            conn.execute(sql.SQL("SET ROLE {}").format(sql.Identifier(role)))
         # A session lock: a second server waits here, and closing the connection releases it.
         conn.execute("SELECT pg_advisory_lock(%s)", [LOCK])
         conn.execute(RECORDS)
