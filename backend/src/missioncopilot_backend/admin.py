@@ -59,8 +59,8 @@ def _write_secret(path: Path, text: str) -> None:
         file.write(text + "\n")
 
 
-def _directory_url(secrets: Path) -> str:
-    path = secrets / "directory.url"
+def _directory_url(address_dir: Path) -> str:
+    path = address_dir / "directory.url"
     if not path.exists():
         raise AdminError("no directory yet; run setup first")
     return path.read_text(encoding="utf-8").strip()
@@ -71,20 +71,20 @@ def _as_admin(admin_url: str, app_url: str) -> str:
     return make_conninfo(admin_url, dbname=conninfo_to_dict(app_url)["dbname"])
 
 
-def setup(admin_url: str, secrets: Path, directory: str = DIRECTORY) -> Path:
-    if (secrets / "directory.url").exists():
-        raise AdminError(f"{secrets / 'directory.url'} already exists; the directory is set up")
+def setup(admin_url: str, address_dir: Path, directory: str = DIRECTORY) -> Path:
+    if (address_dir / "directory.url").exists():
+        raise AdminError(f"{address_dir / 'directory.url'} already exists; the directory is set up")
     harden_cluster(admin_url)
     owner, app = f"{directory}_owner", f"{directory}_app"
     password = create_database(admin_url, directory, owner, app, load(Directory.MIGRATIONS))
     url = make_conninfo(admin_url, user=app, password=password, dbname=directory)
-    _write_secret(secrets / "directory.url", url)
-    return secrets / "directory.url"
+    _write_secret(address_dir / "directory.url", url)
+    return address_dir / "directory.url"
 
 
-def add_org(admin_url: str, secrets: Path, org_id: str) -> Path:
-    directory_url = _directory_url(secrets)
-    target = secrets / "orgs" / f"{org_id}.url"
+def add_org(admin_url: str, address_dir: Path, org_id: str) -> Path:
+    directory_url = _directory_url(address_dir)
+    target = address_dir / "orgs" / f"{org_id}.url"
     if target.exists():
         raise AdminError(f"{target} already exists; {org_id} is set up")
     org = provision(admin_url, org_id, load(ORG_MIGRATIONS))
@@ -99,9 +99,9 @@ def add_org(admin_url: str, secrets: Path, org_id: str) -> Path:
     return target
 
 
-def migrate_all(admin_url: str, secrets: Path) -> dict[str, list[int]]:
+def migrate_all(admin_url: str, address_dir: Path) -> dict[str, list[int]]:
     """Every database brought up to date, as its owner; what each one applied."""
-    directory_url = _as_admin(admin_url, _directory_url(secrets))
+    directory_url = _as_admin(admin_url, _directory_url(address_dir))
     directory = str(conninfo_to_dict(directory_url)["dbname"])
     applied = {
         "directory": migrate(directory_url, load(Directory.MIGRATIONS), f"{directory}_owner")
@@ -117,10 +117,10 @@ def migrate_all(admin_url: str, secrets: Path) -> dict[str, list[int]]:
     return applied
 
 
-def seed_demo(admin_url: str, secrets: Path, org_id: str = DEMO_ORG) -> None:
+def seed_demo(admin_url: str, address_dir: Path, org_id: str = DEMO_ORG) -> None:
     """The fictional demo; safe to run again. Written as the admin, past row-level security."""
-    if not (secrets / "orgs" / f"{org_id}.url").exists():
-        add_org(admin_url, secrets, org_id)
+    if not (address_dir / "orgs" / f"{org_id}.url").exists():
+        add_org(admin_url, address_dir, org_id)
     database, _, _ = names_for(org_id)
     with psycopg.connect(make_conninfo(admin_url, dbname=database)) as conn:
         for mission_id, (title, team) in DEMO.items():
@@ -141,8 +141,8 @@ def _config(env: Mapping[str, str]) -> tuple[str, Path, str]:
         admin_url = read_setting(merged, "MISSIONCOPILOT_ADMIN_URL")
     except StartupError as error:
         raise AdminError(f"{error}; locally, run scripts/make_dev_env.py") from None
-    secrets = Path(merged.get("MISSIONCOPILOT_SECRETS_DIR", BACKEND / ".secrets"))
-    return admin_url, secrets, merged.get("MISSIONCOPILOT_DIRECTORY_DB", DIRECTORY)
+    address_dir = Path(merged.get("MISSIONCOPILOT_SECRETS_DIR", BACKEND / ".secrets"))
+    return admin_url, address_dir, merged.get("MISSIONCOPILOT_DIRECTORY_DB", DIRECTORY)
 
 
 def main(argv: list[str] | None = None, env: Mapping[str, str] = os.environ) -> int:
@@ -156,17 +156,18 @@ def main(argv: list[str] | None = None, env: Mapping[str, str] = os.environ) -> 
     commands.add_parser("seed-demo")
     args = parser.parse_args(argv)
     try:
-        admin_url, secrets, directory = _config(env)
+        admin_url, address_dir, directory = _config(env)
         if args.command == "setup":
-            print(f"OK: directory set up; its address is in {setup(admin_url, secrets, directory)}")
+            path = setup(admin_url, address_dir, directory)
+            print(f"OK: directory set up; its address is in {path}")
         elif args.command == "add-org":
-            path = add_org(admin_url, secrets, args.org_id)
+            path = add_org(admin_url, address_dir, args.org_id)
             print(f"OK: {args.org_id} set up; its address is in {path}")
         elif args.command == "migrate":
-            for name, versions in migrate_all(admin_url, secrets).items():
+            for name, versions in migrate_all(admin_url, address_dir).items():
                 print(f"OK: {name}: applied {versions or 'nothing, up to date'}")
         else:
-            seed_demo(admin_url, secrets)
+            seed_demo(admin_url, address_dir)
             print(f"OK: demo loaded into {DEMO_ORG}")
     except (AdminError, StartupError, ValueError) as error:
         print(f"FAILED: {error}", file=sys.stderr)
