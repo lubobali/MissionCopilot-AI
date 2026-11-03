@@ -127,7 +127,14 @@ and every request it sends is signed with that key.
   size and type, the version, the expiry and the key id, plus the files themselves.
 - The server signs the manifest's exact bytes with its P-256 key and a **pack label**, so a pack signature can
   never pass as a shred order. The phone pins the server's public key (#90) and checks the signature before it
-  reads anything, then checks the rules again and each file's hash (#91).
+  reads anything, then checks the rules again, the mission it asked for, the expiry and that the version is
+  above the last one it accepted, so a genuine older pack played back is refused (#91).
+- **The phone downloads in pieces**, each its own freshly signed request, and keeps a file only if its SHA-256
+  matches. A lost signal or the system taking the time back pauses the download; the next run goes on from
+  the bytes on the phone. It can go on outside the app (iOS 26 continued processing), but never in a
+  background session, which would send old signed requests again.
+- **While it downloads**, a pack waits in its own folder, never backed up, protected until first unlock so it
+  can go on while the phone is locked. Once the pack is in the encrypted store, that folder is deleted (#92).
 - Limits live in the contract: 64 files, 20 MiB a file, 50 MiB a pack, three fixed folders, no "..".
 - Packs live in the organization's own database: only the mission's team can read them (row-level security),
   nothing published can be changed, and a mission's version only goes up by one, so an older pack can be
