@@ -6,6 +6,7 @@ import GRDB
 struct AuditEvent: Sendable, Equatable {
     enum Action: String, Codable, Sendable {
         case missionCreated, evidenceAdded, factAdded, sentenceAdded, leaseRenewed, missionShredded, missionPurged
+        case packImported  // #92: the target is the version ("v3"), never any content
     }
 
     let seq: Int
