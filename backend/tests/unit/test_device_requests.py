@@ -239,3 +239,35 @@ def test_every_route_on_the_device_router_needs_a_signature(world):
     client, *_ = world
 
     assert client.post("/v1/test/ping").status_code == 401
+
+
+def _me(client, phone, clock):
+    path = "/v1/devices/me"
+    message = request_message("GET", path, phone.id, phone.seq + 1, int(clock.now), b"")
+    phone.seq += 1
+    signature = phone.key.sign(message, ec.ECDSA(hashes.SHA256()))
+    headers = {"X-Device-Id": phone.id, "X-Device-Seq": str(phone.seq),
+               "X-Device-Time": str(int(clock.now)),
+               "X-Device-Signature": base64.b64encode(signature).decode()}  # fmt: skip
+    return client.get(path, headers=headers)
+
+
+def test_an_approved_phone_sees_its_own_record():
+    clock, log = Clock(), AuditLog()
+    devices = DeviceRegistry(clock=clock)
+    client = local_client(create_app(Settings(), devices=devices, audit=log))
+    phone, other = Phone(devices), Phone(devices)
+
+    answer = _me(client, phone, clock)
+
+    assert answer.status_code == 200
+    assert answer.json()["id"] == phone.id and answer.json()["status"] == "active"
+    assert other.id not in answer.text
+
+
+def test_a_phone_waiting_for_approval_is_refused():
+    clock, log = Clock(), AuditLog()
+    devices = DeviceRegistry(clock=clock)
+    client = local_client(create_app(Settings(), devices=devices, audit=log))
+
+    assert _me(client, Phone(devices, status="pending"), clock).status_code == 401

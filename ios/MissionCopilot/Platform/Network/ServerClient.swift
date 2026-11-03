@@ -132,7 +132,7 @@ struct ServerClient: Sendable {
 
     private static func outcome(status: Int, data: Data, response: HTTPURLResponse) -> Outcome {
         switch status {
-        case 200, 206:
+        case 200, 201, 206:
             let headers = response.allHeaderFields.reduce(into: [String: String]()) { all, field in
                 if let name = field.key as? String, let value = field.value as? String {
                     all[name.lowercased()] = value

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from missioncopilot_backend.auth import Principal, audit, require_role, secured_router
+from missioncopilot_backend.device_auth import DevicePrincipal, device_router, require_device
 from missioncopilot_backend.devices import CodeStore, Device, DeviceStore, enroll
 from missioncopilot_backend.models import StrictModel
 
@@ -63,6 +64,7 @@ def _iso(timestamp: float) -> str:
 # Included by create_app. enroll is public: its one-time code authenticates it.
 public = APIRouter(prefix="/v1")
 router = secured_router()
+phone = device_router()  # a device signature is the default on these
 
 
 @public.post("/devices/enroll", status_code=201)
@@ -133,5 +135,18 @@ def revoke_device(
     return DeviceOut.of(device)
 
 
+@phone.get("/devices/me")
+def get_own_device(
+    request: Request, caller: DevicePrincipal = Depends(require_device)
+) -> DeviceOut:
+    """The calling phone's own record: a pending phone never gets here (401), so a 200 means
+    approved. A phone only ever sees itself."""
+    devices: DeviceStore = request.app.state.devices
+    device = devices.find(caller.device_id)
+    if device is None:  # removed between the signature check and now
+        raise HTTPException(401)
+    return DeviceOut.of(device)
+
+
 def device_routes() -> list[APIRouter]:
-    return [public, router]
+    return [public, router, phone]
