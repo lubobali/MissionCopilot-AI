@@ -111,7 +111,7 @@ def test_migrate_brings_everything_up_to_date_and_says_so(ops):
     assert admin.migrate_all(admin_url(), ops.secrets) == {"directory": [], org_id: []}
 
 
-def test_the_demo_starts_a_real_server_where_each_officer_sees_their_own_mission(ops):
+def test_the_demo_starts_a_real_server_where_each_officer_sees_only_their_team_missions(ops):
     admin.setup(admin_url(), ops.secrets, ops.directory)
     demo = ops.org()
     admin.seed_demo(admin_url(), ops.secrets, demo)
@@ -120,7 +120,7 @@ def test_the_demo_starts_a_real_server_where_each_officer_sees_their_own_mission
     app = build(_server_env(ops))
     with local_client(app):
         store = app.state.databases.for_org(demo)
-        assert [m.id for m in store.for_user("officer-7")] == [admin.ROADS]
+        assert [m.id for m in store.for_user("officer-7")] == [admin.ROADS, admin.BRIDGES]
         assert [m.id for m in store.for_user("officer-8")] == [admin.BRIDGES]
         assert [m.id for m in store.for_user("manager-1")] == [admin.ROADS, admin.BRIDGES]
 

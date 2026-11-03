@@ -43,6 +43,37 @@ paths:
                     const: ok
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /v1/missions:
+    get:
+      tags: [missions]
+      operationId: listMyMissions
+      security:
+        - deviceSignature: []
+      summary: This phone's missions, each with its newest pack or none
+      description: >
+        The calling officer's team missions in the phone's own organization (#92), so the phone can
+        show which are ready for offline, which need a download and which packs expire soon. The
+        organization and the officer come from the enrolled phone, never from the request; another
+        team's or organization's mission is never listed. Only a summary of each pack: the phone
+        fetches and checks the signed manifest itself (getPackManifest).
+      responses:
+        "200":
+          description: The missions, by id
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyMissions"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "410":
+          $ref: "#/components/responses/ShredOrder"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/missions/{missionId}/pack/manifest:
     get:
       tags: [missions]
@@ -664,6 +695,43 @@ components:
           type: string
           contentEncoding: base64
           description: ECDSA P-256 SHA-256 DER signature over the enrollment message
+    MyMissions:
+      type: object
+      additionalProperties: false
+      required: [orgId, missions]
+      properties:
+        orgId:
+          type: string
+          description: The phone's organization; every pack it accepts must name it
+        missions:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, title, pack]
+            properties:
+              id:
+                type: string
+                format: uuid
+              title:
+                type: string
+              pack:
+                description: The newest pack's summary, or null when none is published yet
+                oneOf:
+                  - type: "null"
+                  - type: object
+                    additionalProperties: false
+                    required: [version, createdAt, expiresAt]
+                    properties:
+                      version:
+                        type: integer
+                        minimum: 1
+                      createdAt:
+                        type: string
+                        format: date-time
+                      expiresAt:
+                        type: string
+                        format: date-time
     Device:
       type: object
       required: [id, userId, label, status, enrolledAt]
