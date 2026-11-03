@@ -395,6 +395,30 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /v1/devices/me:
+    get:
+      tags: [devices]
+      operationId: getOwnDevice
+      security:
+        - deviceSignature: []
+      summary: The calling phone's own record, to learn that it was approved
+      description: >
+        A phone waiting for a manager's approval gets 401 on every signed request; once approved
+        this answers with its own record. A revoked phone gets its shred order. A phone only ever
+        sees itself.
+      responses:
+        "200":
+          description: This phone, approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "410":
+          $ref: "#/components/responses/ShredOrder"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/devices/enroll:
     post:
       tags: [devices]

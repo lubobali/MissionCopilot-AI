@@ -1,0 +1,150 @@
+import Foundation
+
+/// How a request reaches the network; the app uses URLSessionTransport, tests a fake.
+protocol Transport: Sendable {
+    func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse)
+}
+
+/// The real network: an ephemeral session, so no answer is cached and no cookie is kept on the phone.
+struct URLSessionTransport: Transport {
+    private let session = URLSession(configuration: Self.configuration())
+
+    static func configuration() -> URLSessionConfiguration {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.urlCache = nil
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.timeoutIntervalForRequest = 30
+        return configuration
+    }
+
+    func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        return (data, http)
+    }
+}
+
+/// The app's only way to the server (#90). Every request is signed by the phone's chip key over exactly
+/// the bytes the server checks (DeviceSigning), carries a number that only rises (RequestCounter), and
+/// becomes one plain outcome. Only https, except plain http to this machine or the local network when the
+/// Debug build allows it (the local server); only paths under /v1/.
+struct ServerClient: Sendable {
+    enum Kind: Equatable, Sendable {
+        case success, refused, notFound, shredOrder, rangeOutside, slowDown, offline, failed, notSent
+    }
+
+    enum Outcome: Equatable, Sendable {
+        case success(Data, status: Int, headers: [String: String])
+        case refused  // 401: not enrolled, not approved yet, or a signature the server does not accept
+        case notFound  // 404: missing, or not this phone's to see
+        case shredOrder(Data)  // 410: a signed order to destroy every mission, to be checked first
+        case rangeOutside  // 416
+        case slowDown(Int)  // 429: seconds to wait
+        case offline  // no signal or the server cannot be reached
+        case failed(Int)  // any other answer, or a broken one (0)
+        case notSent  // refused before sending: an address or path the phone never uses
+
+        var kind: Kind {
+            switch self {
+            case .success: .success
+            case .refused: .refused
+            case .notFound: .notFound
+            case .shredOrder: .shredOrder
+            case .rangeOutside: .rangeOutside
+            case .slowDown: .slowDown
+            case .offline: .offline
+            case .failed: .failed
+            case .notSent: .notSent
+            }
+        }
+    }
+
+    let base: URL
+    let deviceId: String
+    let signer: EvidenceSigner
+    let counter: RequestCounter
+    var transport: Transport = URLSessionTransport()
+    var now: @Sendable () -> Date = { Date() }
+    var allowLocalHTTP = false
+
+    func get(_ path: String, headers: [String: String] = [:]) async -> Outcome {
+        await send("GET", path, body: Data(), headers: headers)
+    }
+
+    func post(_ path: String, body: Data) async -> Outcome {
+        await send("POST", path, body: body, headers: ["Content-Type": "application/json"])
+    }
+
+    private func send(_ method: String, _ path: String, body: Data, headers: [String: String]) async -> Outcome {
+        guard path.hasPrefix("/v1/"), Self.allowed(base, local: allowLocalHTTP),
+              let url = URL(string: base.absoluteString + path) else { return .notSent }
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.httpBody = body.isEmpty ? nil : body
+        for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
+        do {
+            for (name, value) in try await signedHeaders(method, path, body) {
+                request.setValue(value, forHTTPHeaderField: name)  // after the extras: these always win
+            }
+        } catch {
+            return .notSent
+        }
+        return await Self.outcome { try await transport.send(request) }
+    }
+
+    private func signedHeaders(_ method: String, _ path: String, _ body: Data) async throws -> [String: String] {
+        let seq = try await counter.next()
+        let time = Int(now().timeIntervalSince1970)
+        let request = SignedRequest(method: method, path: path, deviceId: deviceId, seq: seq, time: time, body: body)
+        let signature = try signer.sign(try DeviceSigning.requestMessage(request))
+        return ["X-Device-Id": deviceId, "X-Device-Seq": String(seq), "X-Device-Time": String(time),
+                "X-Device-Signature": signature.base64EncodedString()]
+    }
+
+    /// https anywhere; plain http only to this machine or a .local name, and only when allowed.
+    static func allowed(_ base: URL, local: Bool) -> Bool {
+        switch base.scheme {
+        case "https": return true
+        case "http":
+            let host = base.host() ?? ""
+            return local && (["127.0.0.1", "localhost", "::1"].contains(host) || host.hasSuffix(".local"))
+        default: return false
+        }
+    }
+
+    static func outcome(_ call: () async throws -> (Data, HTTPURLResponse)) async -> Outcome {
+        do {
+            let (data, response) = try await call()
+            return outcome(status: response.statusCode, data: data, response: response)
+        } catch let error as URLError where offlineCodes.contains(error.code) {
+            return .offline
+        } catch {
+            return .failed(0)
+        }
+    }
+
+    private static let offlineCodes: Set<URLError.Code> = [
+        .notConnectedToInternet, .timedOut, .networkConnectionLost, .cannotFindHost, .cannotConnectToHost,
+        .dataNotAllowed, .internationalRoamingOff
+    ]
+
+    private static func outcome(status: Int, data: Data, response: HTTPURLResponse) -> Outcome {
+        switch status {
+        case 200, 201, 206:
+            let headers = response.allHeaderFields.reduce(into: [String: String]()) { all, field in
+                if let name = field.key as? String, let value = field.value as? String {
+                    all[name.lowercased()] = value
+                }
+            }
+            return .success(data, status: status, headers: headers)
+        case 401: return .refused
+        case 404: return .notFound
+        case 410: return .shredOrder(data)
+        case 416: return .rangeOutside
+        case 429: return .slowDown(Int(response.value(forHTTPHeaderField: "Retry-After") ?? "") ?? 60)
+        default: return .failed(status)
+        }
+    }
+}

@@ -4,6 +4,8 @@ struct ContentView: View {
     /// Missions the lease check just destroyed, in plain words (nil when none).
     var notice: String?
     var onLock: () -> Void = {}
+    /// The open store's missions, for a shred order (nil while locked).
+    var missions: @MainActor () -> MissionStore? = { nil }
 
     var body: some View {
         NavigationStack {
@@ -19,9 +21,13 @@ struct ContentView: View {
                         .multilineTextAlignment(.center)
                         .padding(.top, 8)
                 }
-                NavigationLink("Licenses") { AcknowledgementsView() }
+                NavigationLink("Connect this iPhone") {
+                    ConnectionScreen(user: AppSession.localProfile, missions: missions)
+                }
                     .buttonStyle(.fieldSecondary)
                     .padding(.top, 24)
+                NavigationLink("Licenses") { AcknowledgementsView() }
+                    .buttonStyle(.fieldSecondary)
                 #if DEBUG
                 NavigationLink("Lab (debug only)") { LabView() }
                     .buttonStyle(.fieldSecondary)

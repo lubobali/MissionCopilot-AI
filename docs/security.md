@@ -61,7 +61,14 @@ and every request it sends is signed with that key.
    id, sequence number, Unix time and the body's SHA-256 (hex), one per line. The sequence number must
    rise with every request, so a captured request cannot be sent again; the time must be within 5
    minutes. A refused request never moves the sequence on, so forged requests cannot lock a phone out.
-5. **A manager or admin can revoke a phone** at any time; its next request is refused.
+5. **A manager or admin can revoke a phone** at any time; its next signed request gets a shred order
+   signed by the server. The phone checks it before acting (a pinned key, its own device id, issued in
+   the last 5 minutes), then destroys every mission and records it; any other order changes nothing.
+6. **The app side is built (#90):** the phone signs with its chip key, keeps a request number that only
+   rises (at least the clock in milliseconds, so it never falls), pins the server's key by key id, and
+   talks https only (plain http to the local server in Debug builds). Until the dashboard exists, an
+   operator issues codes and approves phones with `missioncopilot-admin`. An end-to-end test runs the
+   whole path against the real server (`scripts/e2e_phone_local.py`).
 
 **Limits (honest):**
 - **Trust on first use.** Without Apple's App Attest the server cannot prove that the key really lives in

@@ -112,6 +112,7 @@ PHONE_OPERATIONS = {
     "getPackManifest",
     "getPackSignature",
     "getPackFile",
+    "getOwnDevice",
     "uploadSyncBatch",
     "submitForReview",
 }

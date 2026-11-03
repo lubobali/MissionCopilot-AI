@@ -10,7 +10,7 @@ struct RootView: View {
                 LockScreen(session: session)
             } else {
                 ContentView(notice: ShreddedNotice.text(for: session.opened?.shredded ?? []),
-                            onLock: session.lock)
+                            onLock: session.lock, missions: { session.opened?.missions })
             }
             if session.state.coversContent, !session.state.isLocked {
                 PrivacyCover()

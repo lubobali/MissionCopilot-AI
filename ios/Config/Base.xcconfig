@@ -1,3 +1,10 @@
 // Shared build settings. Personal values (signing team ID) go in Local.xcconfig,
 // which is git-ignored. The "?" makes the include optional, so CI builds without it.
+// The organization's server (#90): empty here, so a public build has none and the app says so.
+// Local.xcconfig sets them for the local server; MC_SERVER_KEYS is the signing key's DER in hex,
+// as missioncopilot-admin make-signing-key prints it (hex: an xcconfig reads // as a comment).
+MC_SERVER_SCHEME = https
+MC_SERVER_HOST =
+MC_SERVER_KEYS =
+
 #include? "Local.xcconfig"

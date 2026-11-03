@@ -33,10 +33,15 @@ uv run --directory backend missioncopilot-admin seed-demo   # org kandor-works, 
 uv run --directory backend missioncopilot-admin migrate     # after pulling new migrations
 uv run --directory backend missioncopilot-admin make-signing-key  # once: signs packs and shred orders
 uv run --directory backend missioncopilot-admin publish-demo-pack # the Kandor roads pack, next version
+uv run --directory backend missioncopilot-admin issue-code kandor-works officer-7   # a phone's one-time code
+uv run --directory backend missioncopilot-admin approve-device <id> --by <you>      # never your own phone
 cd backend && MISSIONCOPILOT_DIRECTORY_URL_FILE=.db-addresses/directory.url \
   MISSIONCOPILOT_ORG_URLS_DIR=.db-addresses/orgs \
   MISSIONCOPILOT_SIGNING_KEY_FILE=.keys/signing-key.pem uv run missioncopilot-backend
 ```
+The whole phone path (enroll, approve, signed pack download, revoke, shred) runs end to end against
+this local server with `uv run --directory backend python ../scripts/e2e_phone_local.py`.
+
 Addresses with passwords live in `backend/.db-addresses` (gitignored, owner-only files) and are never
 printed. The server never migrates by itself, and it refuses to start if a database is missing,
 behind the code, or named differently from the directory.
