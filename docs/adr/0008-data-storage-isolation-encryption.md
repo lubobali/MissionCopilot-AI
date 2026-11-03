@@ -95,6 +95,12 @@ flowchart TB
   deployment, device management (MDM).
 - **SQLCipher is an extra dependency** (open source); its version and licence are tracked.
 - **More keys to test.** Iteration 2 proves the stack on the real phone; Iteration 3 threat-models it.
+- **Server side built in Iteration 5 (#88).** Each organization has its own database with two roles: an
+  owner that cannot log in and an app login for rows only; one organization's login cannot connect to
+  another's database. Row-level security per mission team is forced, the owner included. What must be
+  found before the organization is known (phones, enrollment codes, the security audit log) lives in
+  one shared **directory** database that holds ids, never mission data. Rule 3 (per-organization keys
+  for data at rest and backups) is not built yet: it comes with deployment hardening (Iteration 9).
 
 ## Revisit when
 - An organization needs managers to read raw evidence without trusting the server (then consider
