@@ -31,8 +31,10 @@ Set up locally and load the fictional Kandor demo, then start the server:
 uv run --directory backend missioncopilot-admin setup       # the directory and its own login
 uv run --directory backend missioncopilot-admin seed-demo   # org kandor-works, two missions, three people
 uv run --directory backend missioncopilot-admin migrate     # after pulling new migrations
+uv run --directory backend missioncopilot-admin make-signing-key  # once: signs packs and shred orders
 cd backend && MISSIONCOPILOT_DIRECTORY_URL_FILE=.db-addresses/directory.url \
-  MISSIONCOPILOT_ORG_URLS_DIR=.db-addresses/orgs uv run missioncopilot-backend
+  MISSIONCOPILOT_ORG_URLS_DIR=.db-addresses/orgs \
+  MISSIONCOPILOT_SIGNING_KEY_FILE=.keys/signing-key.pem uv run missioncopilot-backend
 ```
 Addresses with passwords live in `backend/.db-addresses` (gitignored, owner-only files) and are never
 printed. The server never migrates by itself, and it refuses to start if a database is missing,
@@ -48,6 +50,7 @@ Nothing configured means **production**, the safe default. An unknown value stop
 | `MISSIONCOPILOT_ALLOWED_ORIGINS` | none | Browser origins allowed to call the API (the dashboard). No wildcard. |
 | `MISSIONCOPILOT_DIRECTORY_URL` (or `_FILE`) | required | The directory database's app login address. |
 | `MISSIONCOPILOT_ORG_URLS_DIR` | required | A folder with `<org id>.url` per organization (owner-only files). |
+| `MISSIONCOPILOT_SIGNING_KEY_FILE` | required | The P-256 key that signs mission packs and shred orders (owner-only file; never as a variable). |
 
 Limits (in `Settings`): 120 requests a minute per client address, 1 MiB per request body.
 

@@ -34,7 +34,7 @@ def create_app(
     audit: AuditStore | None = None,
     enrollment_codes: CodeStore | None = None,
     devices: DeviceStore | None = None,
-    shred_key: ec.EllipticCurvePrivateKey | None = None,
+    signing_key: ec.EllipticCurvePrivateKey | None = None,
     lifespan: Lifespan | None = None,
 ) -> FastAPI:
     """Build the app for one set of settings; tests build their own instead of patching globals."""
@@ -52,7 +52,7 @@ def create_app(
     app.state.enrollment_codes = enrollment_codes or EnrollmentCodes()
     app.state.devices = devices or DeviceRegistry()
     install_error_handlers(app)
-    install_shred_orders(app, shred_key)
+    install_shred_orders(app, signing_key)
     # Middleware runs outermost last-added: headers on every answer, then the host check, the
     # limits, and browser origins closest to the routes.
     app.add_middleware(

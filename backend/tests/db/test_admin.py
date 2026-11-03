@@ -14,7 +14,9 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from missioncopilot_backend import admin
 from missioncopilot_backend.db.organizations import drop_database, drop_organization
+from missioncopilot_backend.pack_format import key_id
 from missioncopilot_backend.server import build
+from missioncopilot_backend.signing_key import load_signing_key
 from tests.db.postgres import admin_url
 from tests.unit.clients import local_client
 
@@ -46,10 +48,14 @@ def ops(tmp_path) -> Generator[Ops]:
 
 
 def _server_env(ops: Ops) -> dict[str, str]:
+    key = ops.secrets.parent / "keys" / "signing-key.pem"
+    if not key.exists():
+        admin.make_signing_key(key)
     return {
         "MISSIONCOPILOT_ENV": "test",
         "MISSIONCOPILOT_DIRECTORY_URL_FILE": str(ops.secrets / "directory.url"),
         "MISSIONCOPILOT_ORG_URLS_DIR": str(ops.secrets / "orgs"),
+        "MISSIONCOPILOT_SIGNING_KEY_FILE": str(key),
     }
 
 
@@ -145,3 +151,23 @@ def test_a_failing_command_says_why_and_exits_non_zero(ops, capsys):
 
     assert admin.main(["migrate"], env) == 1
     assert "setup first" in capsys.readouterr().err
+
+
+def test_make_signing_key_prints_only_the_public_half(tmp_path, capsys):
+    path = tmp_path / "keys" / "signing-key.pem"
+
+    assert admin.main(["make-signing-key"], {"MISSIONCOPILOT_SIGNING_KEY_FILE": str(path)}) == 0
+
+    out = capsys.readouterr().out
+    assert "PRIVATE" not in out and path.read_bytes().decode().splitlines()[1] not in out
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    key = load_signing_key(path)
+    assert key_id(key.public_key()) in out
+
+
+def test_make_signing_key_never_overwrites(tmp_path, capsys):
+    env = {"MISSIONCOPILOT_SIGNING_KEY_FILE": str(tmp_path / "signing-key.pem")}
+    admin.main(["make-signing-key"], env)
+
+    assert admin.main(["make-signing-key"], env) == 1
+    assert "already exists" in capsys.readouterr().err

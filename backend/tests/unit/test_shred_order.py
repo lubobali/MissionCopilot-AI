@@ -30,7 +30,7 @@ SERVER_KEY = ec.generate_private_key(ec.SECP256R1())
 
 
 def build_app(devices: DeviceRegistry, log: AuditLog, key=SERVER_KEY) -> FastAPI:
-    app = create_app(Settings(), devices=devices, audit=log, shred_key=key)
+    app = create_app(Settings(), devices=devices, audit=log, signing_key=key)
     router = device_router()
 
     @router.post("/test/missions/{mission_id}/sync")

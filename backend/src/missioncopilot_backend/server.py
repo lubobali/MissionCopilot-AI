@@ -7,6 +7,8 @@ an operator does (scripts/admin.py), then starts it.
 Settings, each VAR or VAR_FILE (a file holding the value, for container secrets), never both:
   MISSIONCOPILOT_DIRECTORY_URL  the directory database (organizations, phones, codes, audit log)
   MISSIONCOPILOT_ORG_URLS_DIR   a folder with <org id>.url per organization: its app login's address
+And, as a file only (a private key never travels in an environment variable):
+  MISSIONCOPILOT_SIGNING_KEY_FILE  the P-256 key that signs mission packs and shred orders
 """
 
 import os
@@ -15,6 +17,7 @@ from contextlib import ExitStack, asynccontextmanager
 from pathlib import Path
 
 import psycopg
+from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import FastAPI
 from psycopg.conninfo import conninfo_to_dict
 from psycopg_pool import ConnectionPool
@@ -24,9 +27,11 @@ from missioncopilot_backend.db.directory import Directory
 from missioncopilot_backend.db.migrations import MigrationError, load, pending
 from missioncopilot_backend.db.missions import ORG_MIGRATIONS, PostgresOrgDatabases
 from missioncopilot_backend.settings import Settings
+from missioncopilot_backend.signing_key import SigningKeyError, load_signing_key
 
 DIRECTORY = "MISSIONCOPILOT_DIRECTORY_URL"
 ORG_URLS_DIR = "MISSIONCOPILOT_ORG_URLS_DIR"
+SIGNING_KEY = "MISSIONCOPILOT_SIGNING_KEY"
 
 
 class StartupError(Exception):
@@ -85,9 +90,22 @@ def _org_pools(
     return PostgresOrgDatabases(pools)
 
 
+def _signing_key(env: Mapping[str, str]) -> ec.EllipticCurvePrivateKey:
+    if env.get(SIGNING_KEY):
+        raise StartupError(f"{SIGNING_KEY} is not read; give the key as a file: {SIGNING_KEY}_FILE")
+    file = env.get(f"{SIGNING_KEY}_FILE")
+    if not file:
+        raise StartupError(f"set {SIGNING_KEY}_FILE (missioncopilot-admin make-signing-key)")
+    try:
+        return load_signing_key(Path(file))
+    except SigningKeyError as error:
+        raise StartupError(str(error)) from None
+
+
 def build(env: Mapping[str, str] = os.environ) -> FastAPI:
     """The server for this environment; raises StartupError instead of starting half-ready."""
     settings = Settings.from_env(env)
+    signing_key = _signing_key(env)
     directory_url = read_setting(env, DIRECTORY)
     urls = _org_urls(env)
     _check_migrated("the directory", directory_url, Directory.MIGRATIONS)
@@ -110,5 +128,6 @@ def build(env: Mapping[str, str] = os.environ) -> FastAPI:
         audit=directory.audit,
         enrollment_codes=directory.codes,
         devices=directory.devices,
+        signing_key=signing_key,
         lifespan=lifespan,
     )

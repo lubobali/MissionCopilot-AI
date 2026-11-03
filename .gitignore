@@ -1,6 +1,7 @@
 # --- Secrets (never commit) ---
 .env
 backend/.db-addresses/
+backend/.keys/
 .env.*
 !.env.example
 *.pem

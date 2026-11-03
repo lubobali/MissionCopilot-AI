@@ -5,22 +5,26 @@ Usage (uv run --directory backend missioncopilot-admin <command>):
   add-org <org id>   an organization's database, logins and address file
   migrate            every database up to the code's migrations (the server never does this itself)
   seed-demo          the fictional Kandor organization, two missions and their teams
+  make-signing-key   the server's key for packs and shred orders (once); prints its public half
 
 The Postgres admin address comes from MISSIONCOPILOT_ADMIN_URL (or _FILE); locally, backend/.env.
 The directory database is mc_directory unless MISSIONCOPILOT_DIRECTORY_DB names another.
 Addresses with passwords go into MISSIONCOPILOT_ADDRESS_DIR (default backend/.db-addresses,
 gitignored): directory.url and orgs/<org id>.url, each readable by its owner only, never printed.
 Start the server with MISSIONCOPILOT_DIRECTORY_URL_FILE=<dir>/directory.url and
-MISSIONCOPILOT_ORG_URLS_DIR=<dir>/orgs.
+MISSIONCOPILOT_ORG_URLS_DIR=<dir>/orgs. The signing key goes to MISSIONCOPILOT_SIGNING_KEY_FILE
+(default backend/.keys/signing-key.pem, gitignored, owner-only); only its public half is printed.
 """
 
 import argparse
+import base64
 import os
 import sys
 from collections.abc import Mapping
 from pathlib import Path
 
 import psycopg
+from cryptography.hazmat.primitives import serialization
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from missioncopilot_backend.db.directory import Directory
@@ -32,8 +36,10 @@ from missioncopilot_backend.db.organizations import (
     names_for,
     provision,
 )
+from missioncopilot_backend.pack_format import key_id
 from missioncopilot_backend.server import StartupError, read_setting
 from missioncopilot_backend.settings import read_env_file
+from missioncopilot_backend.signing_key import SigningKeyError, new_signing_key
 
 BACKEND = Path(__file__).resolve().parents[2]
 DIRECTORY = "mc_directory"
@@ -135,6 +141,21 @@ def seed_demo(admin_url: str, address_dir: Path, org_id: str = DEMO_ORG) -> None
                 )
 
 
+def make_signing_key(path: Path) -> tuple[str, str]:
+    """A new signing key in an owner-only file; its key id and public key (DER, base64) to pin."""
+    public = new_signing_key(path)
+    der = public.public_bytes(
+        serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+    return key_id(public), base64.b64encode(der).decode()
+
+
+def _key_path(env: Mapping[str, str]) -> Path:
+    merged = read_env_file(BACKEND / ".env") | dict(env)
+    default = BACKEND / ".keys" / "signing-key.pem"
+    return Path(merged.get("MISSIONCOPILOT_SIGNING_KEY_FILE", default))
+
+
 def _config(env: Mapping[str, str]) -> tuple[str, Path, str]:
     merged = read_env_file(BACKEND / ".env") | dict(env)
     try:
@@ -154,7 +175,16 @@ def main(argv: list[str] | None = None, env: Mapping[str, str] = os.environ) -> 
     commands.add_parser("add-org").add_argument("org_id")
     commands.add_parser("migrate")
     commands.add_parser("seed-demo")
+    commands.add_parser("make-signing-key")
     args = parser.parse_args(argv)
+    if args.command == "make-signing-key":  # needs no database
+        try:
+            found, public = make_signing_key(_key_path(env))
+        except SigningKeyError as error:
+            print(f"FAILED: {error}", file=sys.stderr)
+            return 1
+        print(f"OK: signing key {found} written to {_key_path(env)}; pin its public key: {public}")
+        return 0
     try:
         admin_url, address_dir, directory = _config(env)
         if args.command == "setup":
