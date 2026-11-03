@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from missioncopilot_backend.auth import Principal, audit, require_role, secured_router
-from missioncopilot_backend.devices import Device, DeviceRegistry, EnrollmentCodes, enroll
+from missioncopilot_backend.devices import CodeStore, Device, DeviceStore, enroll
 from missioncopilot_backend.models import StrictModel
 
 
@@ -86,7 +86,7 @@ def issue_enrollment_code(
     request: Request,
     admin: Principal = Depends(require_role("admin")),
 ) -> EnrollmentCode:
-    codes: EnrollmentCodes = request.app.state.enrollment_codes
+    codes: CodeStore = request.app.state.enrollment_codes
     code, grant = codes.issue(admin.org_id, body.userId, body.deviceLabel)
     audit(request, "enrollment_code_issued", org_id=admin.org_id, actor=admin.user_id)
     return EnrollmentCode(code=code, expiresAt=_iso(grant.expires_at))
@@ -96,7 +96,7 @@ def issue_enrollment_code(
 def list_devices(
     request: Request, manager: Principal = Depends(require_role("manager", "admin"))
 ) -> list[DeviceOut]:
-    devices: DeviceRegistry = request.app.state.devices
+    devices: DeviceStore = request.app.state.devices
     return [DeviceOut.of(device) for device in devices.of_org(manager.org_id)]
 
 
@@ -104,7 +104,7 @@ def list_devices(
 def approve_device(
     deviceId: str, request: Request, manager: Principal = Depends(require_role("manager"))
 ) -> DeviceOut:
-    devices: DeviceRegistry = request.app.state.devices
+    devices: DeviceStore = request.app.state.devices
     device = devices.in_org(manager.org_id, deviceId)
     if device is None:
         raise HTTPException(404)
@@ -124,7 +124,7 @@ def revoke_device(
     request: Request,
     manager: Principal = Depends(require_role("manager", "admin")),
 ) -> DeviceOut:
-    devices: DeviceRegistry = request.app.state.devices
+    devices: DeviceStore = request.app.state.devices
     device = devices.in_org(manager.org_id, deviceId)
     if device is None:
         raise HTTPException(404)

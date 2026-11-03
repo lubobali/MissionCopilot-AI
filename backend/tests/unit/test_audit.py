@@ -14,7 +14,7 @@ from missioncopilot_backend.app import create_app
 from missioncopilot_backend.audit import GENESIS, AuditLog
 from missioncopilot_backend.auth import TokenVerifier, secured_router
 from missioncopilot_backend.settings import Settings
-from missioncopilot_backend.tenancy import MissionStore, OrgDatabases, org_store
+from missioncopilot_backend.tenancy import CallerMissions, OrgDatabases, org_store
 from tests.unit.clients import local_client
 
 pytestmark = pytest.mark.unit
@@ -50,7 +50,7 @@ def test_a_removed_entry_is_found():
 
     del log._events[1]
 
-    assert log.verify() == ["entry 1 does not follow entry 0"]
+    assert log.verify() == ["entry 2 does not follow entry 0"]  # named by number, as stored
 
 
 def test_the_log_can_only_grow():
@@ -75,7 +75,7 @@ def build_app(signer, log: AuditLog, **settings) -> FastAPI:
     router = secured_router()
 
     @router.get("/test/store")
-    def store(store: MissionStore = Depends(org_store)) -> dict[str, str]:
+    def store(store: CallerMissions = Depends(org_store)) -> dict[str, str]:
         return {"org": store.org_id}
 
     app.include_router(router)

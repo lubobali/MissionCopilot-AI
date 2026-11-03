@@ -72,8 +72,8 @@ and every request it sends is signed with that key.
 - **Production upgrade:** a paid Apple developer team, App Attest at enrollment, and device management
   (MDM). Free signing, used for this prototype, also expires every 7 days, which a field deployment
   cannot accept.
-- Devices, codes and sequence numbers are kept in memory until the database arrives (Phase 5); there the
-  sequence check becomes one transaction.
+- Devices, codes and sequence numbers live in the directory database (#88). A code is deleted as it is
+  read and a sequence number is raised in one UPDATE, so neither can pass twice even when requests race.
 
 ## Which model may run (signed model)
 - The on-device model is signed with **OpenSSF Model Signing** (the official `model-signing` tool, pinned). The

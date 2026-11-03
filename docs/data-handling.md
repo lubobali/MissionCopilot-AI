@@ -10,7 +10,9 @@ key **MK**). **Org database** = the organization's own database, one per organiz
 key **TK**, hosted where the organization chooses. Nobody outside the organization, including the
 developer, can read either. **Lease** = a mission key works offline for 14 days (set by the organization,
 up to 30); every sync renews it. **Retention** = after the server confirms a mission, the phone keeps it
-30 days (set by the organization).
+30 days (set by the organization). **Directory** = the server's one shared database for what must be
+found before the organization is known (phones, enrollment codes, the audit log); it holds ids, never
+mission data.
 
 | Data | Where it lives | How long | Encryption | Who can see it | Hosted | How it ends |
 |---|---|---|---|---|---|---|
@@ -22,11 +24,11 @@ up to 30); every sync renews it. **Retention** = after the server confirms a mis
 | Risk flag | Phone; org database after approval | Phone: until retention or lease ends | DK + MK; TK | The mission team; integrity flags only the approver and managers | Phone; org database | Crypto-shred on the phone; org records policy |
 | Report sentence | Phone; org database after approval | Phone: until retention or lease ends | DK + MK; TK | The mission team | Phone; org database | Crypto-shred on the phone; org records policy |
 | Approval record | Phone; org database | Server: kept as a permanent record | DK + MK; TK, signed | The mission team and auditors | Phone; org database | Never changed or deleted on the server |
-| Audit event | Phone; org database | Server: append-only, org records policy | DK + MK; TK, hash-chained | Organization admins and auditors | Phone; org database | Never changed; removed only by org records policy |
+| Audit event | Phone; directory | Server: append-only, org records policy | DK + MK; hash-chained | Organization admins and auditors | Phone; directory | Never changed (the database refuses it); removed only by org records policy |
 | Device signing key | Phone's Secure Enclave chip | Until the app is removed | Hardware, cannot be exported | Nobody, not even the officer | Phone only | Destroyed with the app; the phone is revoked on the server |
 | Mission key | Phone's Keychain, wrapped by a chip key | Until retention or lease ends, a shred order, or the officer's shred | Secure Enclave | Nobody; it only unlocks its mission | Phone only | Destroyed: that mission becomes unreadable at once |
 | Database key | Phone's Keychain, this device only | While the app is installed and the phone has a passcode | Hardware-backed Keychain; released only after Face ID or passcode | Nobody; released to the app after Face ID or passcode | Phone only | Deleted with the app or when the phone's passcode is removed |
-| Device registration (public key, status) | Org database | Until an admin removes it; revoked stays revoked | TK | Organization admins | Org database | Removed by an admin; a revoked phone gets a shred order |
+| Device registration (public key, status) | Directory | Until an admin removes it; revoked stays revoked | Database access control | Organization admins | Directory | Removed by an admin; a revoked phone gets a shred order |
 | Shred record (mission, reason, time) | Phone; org database after sync | Phone: until synced; server: with the audit log | DK; TK | Organization admins and auditors | Phone; org database | Kept as evidence of what was destroyed and when |
 
 **Not on this sheet because they are not data about anyone:** the on-device model (public, signed, see

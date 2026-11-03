@@ -10,12 +10,15 @@ requires-python = ">=3.12"
 dependencies = [
     "cryptography>=50.0.2",
     "fastapi>=0.162.0",
+    "psycopg-pool>=3.3.3",
+    "psycopg[binary]>=3.3.6",
     "pyjwt[crypto]>=2.15.1",
     "uvicorn>=0.54.0",
 ]
 
 [project.scripts]
 missioncopilot-backend = "missioncopilot_backend:main"
+missioncopilot-admin = "missioncopilot_backend.admin:main"
 
 [build-system]
 requires = ["uv_build>=0.13.6,<0.14.0"]

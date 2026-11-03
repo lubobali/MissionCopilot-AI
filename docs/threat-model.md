@@ -111,7 +111,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 |---|---|---|---|---|---|
 | T24 | I | Sync traffic is read in transit | TLS 1.3 (iOS 27 requires modern TLS) plus signed payloads; HSTS already on every production answer | planned | Phase 8 |
 | T25 | T | A payload is changed in transit or at rest | Secure Enclave signatures and hash chain, verified by the backend | built | `backend/tests/unit/test_evidence_chain.py` |
-| T26 | S | A phone the organization never approved sends data | Enrollment: single-use hashed admin code, proof of key, manager approval (never their own), revocation; every request signed (trust on first use, see Limits) | built | `backend/tests/unit/test_enroll.py`, `backend/tests/unit/test_device_admin.py`, `backend/tests/unit/test_device_requests.py` |
+| T26 | S | A phone the organization never approved sends data | Enrollment: single-use hashed admin code, proof of key, manager approval (never their own), revocation; every request signed (trust on first use, see Limits); a code and a request number each pass once even when requests race | built | `backend/tests/unit/test_enroll.py`, `backend/tests/unit/test_device_admin.py`, `backend/tests/unit/test_device_requests.py`, `backend/tests/db/test_directory.py` |
 | T27 | T | An old signed batch is replayed | Strictly increasing signed sequence number and a 5-minute time window per request; the batch idempotency key arrives with sync in Phase 8 | built | `backend/tests/unit/test_device_requests.py` |
 | T28 | I | Unapproved data leaves the phone | The outbox holds approved, signed items only (ADR 0006) | planned | Phase 7, Phase 8 |
 | T29 | I | Key material crosses the network | The API contract never contains key references | built | `backend/tests/unit/test_openapi_contract.py` |
@@ -120,14 +120,14 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | ID | STRIDE | Threat | Control | Status | Test or phase |
 |---|---|---|---|---|---|
 | T30 | S | Unauthenticated calls | ES256 bearer token from one issuer on every route except health; secured router by default; every failure the same 401 | built | `backend/tests/unit/test_auth.py` |
-| T31 | E | Organization A reads organization B (BOLA, API1:2023) | Organization only from the token; one store per organization; another org's mission answers like a missing one; a cross-tenant test on every route | built | `backend/tests/unit/test_tenancy.py` |
+| T31 | E | Organization A reads organization B (BOLA, API1:2023) | Organization only from the token; one physical Postgres database per organization with its own owner and app login, so one organization's login cannot even connect to another's; inside it, forced row-level security per mission team (another team's mission answers like a missing one); a cross-tenant test on every route | built | `backend/tests/unit/test_tenancy.py`, `backend/tests/db/test_org_databases.py`, `backend/tests/db/test_row_security.py` |
 | T32 | I | Shared storage between organizations | One physical database per organization | planned | Phase 5 |
 | T33 | E | One mission team sees another team's mission | Row-level security per mission team | planned | Phase 8 |
 | T34 | D | Brute force, bots, flooding | Rate limit per client with 429 and Retry-After, capped memory; 1 MiB body limit, chunked bodies counted | built | `backend/tests/unit/test_limits.py` |
 | T35 | I | API docs pages hand out the attack map | `/docs`, `/redoc`, `/openapi.json` off in production; production is the default | built | `backend/tests/unit/test_app_surface.py` |
 | T36 | T | Unexpected fields change stored data (mass assignment) | Strict input: unknown fields rejected, a guard checks every request body; errors never echo input or leak a crash | built | `backend/tests/unit/test_errors_and_input.py` |
 | T37 | I | Routes exist that the contract does not describe | A test that every served route, routers included, is in the contract | built | `backend/tests/unit/test_app_surface.py` |
-| T38 | R | No record of security events | Append-only, hash-chained audit log; never tokens or bodies; stored in an insert-only table in Phase 8 | built | `backend/tests/unit/test_audit.py` |
+| T38 | R | No record of security events | Append-only, hash-chained audit log; never tokens or bodies; kept in the directory database, where a trigger refuses any change or removal and the chain still names an entry changed behind it | built | `backend/tests/unit/test_audit.py`, `backend/tests/db/test_audit_log.py` |
 | T39 | I | A database backup is stolen | Per-organization keys, encrypted at rest | planned | Phase 8 |
 
 ### B7 Manager browser ↔ backend

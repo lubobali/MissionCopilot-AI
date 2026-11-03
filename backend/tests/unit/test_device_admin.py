@@ -39,7 +39,9 @@ def phone(devices: DeviceRegistry, org: str, user: str) -> str:
     der = key.public_bytes(
         serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
     )
-    return devices.add(EnrollmentGrant(org, user, f"{user} iPhone", 0.0), der).id
+    device = devices.add(EnrollmentGrant(org, user, f"{user} iPhone", 0.0), der)
+    assert device is not None
+    return device.id
 
 
 @pytest.fixture

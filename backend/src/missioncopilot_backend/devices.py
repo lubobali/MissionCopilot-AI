@@ -1,7 +1,9 @@
 """Device enrollment (threat model T26, docs/security.md). An admin issues a one-time code for one
 named person's phone in the admin's organization. The code is 128 random bits, works once, expires
 after 15 minutes, and only its SHA-256 hash is stored (fine for a random secret, unlike a password),
-so a copy of the store reveals no live code. In memory until Postgres arrives in Phase 5."""
+so a copy of the store reveals no live code. The routes see two small protocols; the server keeps
+both in the directory database (db/directory.py) and the classes here are in-memory stand-ins for
+tests. One contract test runs on both (tests/db/test_directory.py)."""
 
 import dataclasses
 import hashlib
@@ -10,7 +12,7 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Protocol
 
 from missioncopilot_backend.signatures import is_signed_by, load_p256_public_key
 
@@ -29,11 +31,20 @@ class EnrollmentGrant:
     expires_at: float
 
 
+class CodeStore(Protocol):
+    def issue(
+        self, org_id: str, user_id: str, device_label: str
+    ) -> tuple[str, EnrollmentGrant]: ...
+    def consume(self, code: str) -> EnrollmentGrant | None: ...
+
+
 def _digest(code: str) -> str:
     return hashlib.sha256(code.encode()).hexdigest()
 
 
 class EnrollmentCodes:
+    """In memory, for tests."""
+
     def __init__(self, clock: Callable[[], float] = time.time):
         self._clock = clock
         self._grants: dict[str, EnrollmentGrant] = {}  # by SHA-256 of the code
@@ -72,8 +83,21 @@ class Device:
     last_seq: int = 0  # the highest signed request sequence number accepted (46.5)
 
 
-class DeviceRegistry:
+class DeviceStore(Protocol):
     """Enrolled phones. A device id is a random UUID; routes check the caller's organization."""
+
+    def find(self, device_id: str) -> Device | None: ...
+    def now(self) -> float: ...
+    def accept_seq(self, device_id: str, seq: int) -> bool: ...
+    def in_org(self, org_id: str, device_id: str) -> Device | None: ...
+    def of_org(self, org_id: str) -> list[Device]: ...
+    def has_key(self, public_key_der: bytes) -> bool: ...
+    def add(self, grant: EnrollmentGrant, public_key_der: bytes) -> Device | None: ...
+    def update(self, device: Device, **changes: object) -> Device: ...
+
+
+class DeviceRegistry:
+    """Enrolled phones, in memory, for tests."""
 
     def __init__(self, clock: Callable[[], float] = time.time):
         self._clock = clock
@@ -108,7 +132,10 @@ class DeviceRegistry:
     def has_key(self, public_key_der: bytes) -> bool:
         return hashlib.sha256(public_key_der).hexdigest() in self._keys
 
-    def add(self, grant: EnrollmentGrant, public_key_der: bytes) -> Device:
+    def add(self, grant: EnrollmentGrant, public_key_der: bytes) -> Device | None:
+        """A new pending device, or None if this key is already enrolled."""
+        if self.has_key(public_key_der):
+            return None
         device = Device(
             id=str(uuid.uuid4()),
             org_id=grant.org_id,
@@ -129,7 +156,7 @@ class DeviceRegistry:
 
 
 def enroll(
-    codes: EnrollmentCodes, devices: DeviceRegistry, code: str, public_key_der: bytes, proof: bytes
+    codes: CodeStore, devices: DeviceStore, code: str, public_key_der: bytes, proof: bytes
 ) -> Device | None:
     """A pending device, or None. The key and proof are checked before the code is used, so a
     failed proof does not burn it. A thief with a code can still make their own key: a manager's
