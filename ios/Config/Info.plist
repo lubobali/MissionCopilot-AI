@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Merged into the generated Info.plist. The launch screen shows the logo on the theme background
+     (#87); UILaunchScreen has no INFOPLIST_KEY_ build setting for an image. Info-Debug.plist repeats it,
+     and scripts/test_ios_project.py checks the two stay the same. -->
+<plist version="1.0">
+<dict>
+    <key>UILaunchScreen</key>
+    <dict>
+        <key>UIImageName</key>
+        <string>LaunchLogo</string>
+        <key>UIColorName</key>
+        <string>LaunchBackground</string>
+    </dict>
+</dict>
+</plist>

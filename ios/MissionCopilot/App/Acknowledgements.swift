@@ -28,9 +28,11 @@ struct AcknowledgementsView: View {
         List(licenses) { license in
             NavigationLink(license.name) {
                 ScrollView { Text(license.text).font(.footnote).padding() }
+                    .fieldScreen()
                     .navigationTitle(license.name)
             }
         }
+        .fieldList()
         .navigationTitle("Licenses")
     }
 }

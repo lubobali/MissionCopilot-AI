@@ -1,0 +1,74 @@
+# Field Navy theme
+
+The app's look (#87): a calm navy and blue palette that reads well outdoors, with the developer's logo.
+Every color on screen comes from one file, `ios/MissionCopilot/Platform/Theme/Palette.swift`, as a
+named role. Screens never use raw colors or fixed text sizes; a commit guard (`scripts/check_theme.py`)
+fails if they do.
+
+## Rules
+
+- **Readable text, checked by a test.** Every text role on every background it sits on reaches 4.5:1
+  (WCAG 2.2 AA) in light and dark, and 7:1 (AAA) when the phone's Increase Contrast is on
+  (`ios/MissionCopilotTests/ContrastTests.swift`).
+- **The cyan is decoration only.** It is 2.80:1 on the light background, too faint for text, so
+  it is not a text role and the test proves it is never used as one.
+- **Status is never color alone.** Every pack state shows an icon and words, each state its own
+  (`StatusLabel`, WCAG 1.4.1).
+- **Big enough to hit.** Main buttons at least 48 pt high, every other tap target at least 44 pt,
+  measured on a rendered button in the tests.
+- **Text follows the person's text size.** Only Dynamic Type text styles; the large icons and the logo
+  grow with the text size too.
+- **The logo sits on a white tile.** Its dark blue and black would vanish on the dark background, so
+  in the app and on the launch screen it sits on white, like the app icon.
+
+## Colors
+
+| Role | Light | Dark | Light, more contrast | Dark, more contrast |
+|---|---|---|---|---|
+| background | `#F5F7F9` | `#0B1220` | `#FFFFFF` | `#000000` |
+| surface | `#FFFFFF` | `#121A2B` | `#FFFFFF` | `#0B1220` |
+| border | `#E7EDF3` | `#24304A` | `#586E84` | `#8AA0B6` |
+| text | `#002244` | `#F5F7F9` | `#001126` | `#FFFFFF` |
+| secondaryText | `#586E84` | `#8AA0B6` | `#3E5266` | `#C2D0DD` |
+| accent | `#0071BC` | `#4DA3E0` | `#005A96` | `#8CC8F0` |
+| onAccent | `#FFFFFF` | `#0B1220` | `#FFFFFF` | `#000000` |
+| success | `#1B7A3A` | `#5CC27A` | `#0F5C2A` | `#8EDDA4` |
+| warning | `#8A5300` | `#F2B84B` | `#6B4000` | `#FFD285` |
+| danger | `#B3261E` | `#FF8A80` | `#8C1D17` | `#FFB3AD` |
+| decoration | `#009FDA` | `#33B5E5` | `#0071BC` | `#66CBEF` |
+
+## Contrast (computed from the values above)
+
+| Text on | Light | Dark | Light, more contrast | Dark, more contrast |
+|---|---|---|---|---|
+| text on background | 14.9 | 17.4 | 19.0 | 21.0 |
+| secondaryText on background | 4.9 | 6.9 | 8.1 | 13.4 |
+| accent on background | 4.8 | 6.8 | 7.2 | 11.6 |
+| success on background | 5.0 | 8.4 | 8.1 | 13.0 |
+| warning on background | 5.9 | 10.5 | 8.9 | 14.8 |
+| danger on background | 6.1 | 8.2 | 9.1 | 12.3 |
+| onAccent on accent | 5.1 | 6.8 | 7.2 | 11.6 |
+
+Lowest in each mode: 4.8, 6.8, 7.2, 11.6. The same pairs on the
+surface color are in the test too.
+
+## Screens
+
+Light, dark and the largest text size. Lock screen and cover are drawn by
+`ios/MissionCopilotTests/ScreenshotTests.swift` (the system Face ID sheet hides them on a live screen);
+the home screens are Simulator screenshots of the Debug build.
+
+| Lock, light | Lock, dark | Lock, largest text | Cover, dark |
+|---|---|---|---|
+| ![Lock screen, light](img/lock-light.png) | ![Lock screen, dark](img/lock-dark.png) | ![Lock screen, largest text](img/lock-largest-text.png) | ![Privacy cover, dark](img/cover-dark.png) |
+
+| Home, light | Home, dark | Home, largest text |
+|---|---|---|
+| ![Home, light](img/home-light.png) | ![Home, dark](img/home-dark.png) | ![Home, largest text](img/home-largest-text.png) |
+
+## The logo
+
+The L and the key belong to Lubo Bali and are **not** covered by the MIT license (README). The app icon
+(logo on white, 72% of the square, no transparency), the logo images and the launch tile are built from
+the source file by `scripts/make_brand_assets.py`, which also reads the launch background from
+`Palette.swift` so the two cannot drift.

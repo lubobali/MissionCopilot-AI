@@ -8,18 +8,18 @@ struct LockScreen: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "lock.fill")
-                .font(.system(size: 56))
-                .accessibilityHidden(true)
+            LogoMark()
             Text("Mission Copilot")
                 .font(.title.bold())
             Text(Self.message(for: session.lastError))
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color(.secondaryText))
             Button("Unlock") { Task { await session.unlock() } }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.fieldPrimary)
+                .padding(.top, 8)
         }
-        .padding()
+        .padding(24)
+        .fieldScreen()
         .task {
             guard !askedOnce else { return }
             askedOnce = true
@@ -41,12 +41,7 @@ struct LockScreen: View {
 /// Covers everything whenever the app is not in front, so the app switcher never shows mission data.
 struct PrivacyCover: View {
     var body: some View {
-        ZStack {
-            Color(.systemBackground).ignoresSafeArea()
-            Image(systemName: "lock.shield")
-                .font(.system(size: 64))
-                .foregroundStyle(.secondary)
-                .accessibilityLabel("Mission Copilot is hidden")
-        }
+        LogoMark(label: "Mission Copilot is hidden")
+            .fieldScreen()
     }
 }

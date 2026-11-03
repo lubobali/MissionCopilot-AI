@@ -25,7 +25,7 @@ struct LabView: View {
             Section("Models") {
                 if models.isEmpty {
                     Text("No models yet. Copy them into the app with Finder, then import.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(.secondaryText))
                 }
                 ForEach(models, id: \.self) { Text($0).font(.footnote.monospaced()) }
                 Button("Import from Finder inbox", action: importModels)
@@ -41,6 +41,7 @@ struct LabView: View {
                 }
             }
         }
+        .fieldList()
         .navigationTitle("Lab")
         .onAppear(perform: refresh)
     }

@@ -88,7 +88,7 @@ struct StoreProofView: View {
         List {
             if lab.lastRunKilled {
                 Text("The last lock test never finished: iOS stopped the app while it ran.")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Color(.danger))
             }
             Section("1. Store proof") {
                 Button("Run store proof") { Task { await lab.runProof() } }
@@ -110,6 +110,7 @@ struct StoreProofView: View {
             }
             if !lab.message.isEmpty { Text(lab.message).font(.footnote) }
         }
+        .fieldList()
         .navigationTitle("Store proof (#74)")
     }
 
@@ -117,7 +118,7 @@ struct StoreProofView: View {
         ForEach(checks, id: \.name) { check in
             VStack(alignment: .leading) {
                 Label(check.name, systemImage: check.passed ? "checkmark.circle" : "xmark.octagon")
-                    .foregroundStyle(check.passed ? .green : .red)
+                    .foregroundStyle(Color(check.passed ? .success : .danger))
                 Text(check.detail).font(.caption.monospaced())
             }
         }

@@ -16,6 +16,7 @@ struct RootView: View {
                 PrivacyCover()
             }
         }
+        .tint(Color(.accent))  // toolbars and alerts too, not only screen content
     }
 }
 

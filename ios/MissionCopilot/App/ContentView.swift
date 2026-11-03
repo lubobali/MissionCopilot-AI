@@ -8,13 +8,11 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
-                Image(systemName: "airplane.circle")
-                    .font(.system(size: 64))
-                    .accessibilityHidden(true)
+                HeroIcon(systemName: "airplane.circle")
                 Text("Mission Copilot")
                     .font(.title.bold())
                 Text("Offline AI for field missions")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(.secondaryText))
                 if let notice {
                     Text(notice)
                         .font(.footnote)
@@ -22,13 +20,15 @@ struct ContentView: View {
                         .padding(.top, 8)
                 }
                 NavigationLink("Licenses") { AcknowledgementsView() }
+                    .buttonStyle(.fieldSecondary)
                     .padding(.top, 24)
                 #if DEBUG
                 NavigationLink("Lab (debug only)") { LabView() }
-                    .padding(.top, 24)
+                    .buttonStyle(.fieldSecondary)
                 #endif
             }
-            .padding()
+            .padding(24)
+            .fieldScreen()
             .toolbar {
                 Button("Lock", systemImage: "lock", action: onLock)
             }
