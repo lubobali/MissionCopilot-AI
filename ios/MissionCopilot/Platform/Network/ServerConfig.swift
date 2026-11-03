@@ -52,6 +52,9 @@ struct ServerConfig: Sendable {
 
     func key(for keyId: String) -> P256.Signing.PublicKey? { keys[keyId] }
 
+    /// Every pinned key: a shred order names none, so each is tried.
+    var pinnedKeys: [P256.Signing.PublicKey] { Array(keys.values) }
+
     private static func hex(_ text: String) -> Data? {
         guard text.count.isMultiple(of: 2), text.allSatisfy(\.isHexDigit) else { return nil }
         var bytes = Data(capacity: text.count / 2)

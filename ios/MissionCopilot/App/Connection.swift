@@ -14,13 +14,21 @@ import SwiftUI
         return made
     }
 
-    static func enrollment(_ config: ServerConfig, user: String) -> EnrollmentModel {
+    static func enrollment(_ config: ServerConfig, user: String,
+                           missions: @escaping @MainActor () -> MissionStore?) -> EnrollmentModel {
         let signer = SecureEnclaveEvidenceSigner(user: user)
         let enroller = Enroller(base: config.base, signer: signer, allowLocalHTTP: config.allowLocalHTTP)
-        return EnrollmentModel(enroller: enroller, records: DeviceRecordStore(user: user)) { deviceId in
-            ServerClient(base: config.base, deviceId: deviceId, signer: signer, counter: counter(for: deviceId),
-                         allowLocalHTTP: config.allowLocalHTTP)
-        }
+        let records = DeviceRecordStore(user: user)
+        return EnrollmentModel(
+            enroller: enroller, records: records,
+            client: { deviceId in
+                ServerClient(base: config.base, deviceId: deviceId, signer: signer, counter: counter(for: deviceId),
+                             allowLocalHTTP: config.allowLocalHTTP)
+            },
+            onShredOrder: { body in
+                ShredOrderAction.handle(body, records: records, missions: missions(), keys: config.pinnedKeys,
+                                        now: Date())
+            })
     }
 
     /// What a build without a usable server says.
@@ -38,6 +46,7 @@ import SwiftUI
 /// what is missing.
 struct ConnectionScreen: View {
     let user: String
+    let missions: @MainActor () -> MissionStore?
     @State private var model: EnrollmentModel?
     @State private var problem: ServerConfig.Problem?
 
@@ -54,7 +63,7 @@ struct ConnectionScreen: View {
         }
         .task {
             do throws(ServerConfig.Problem) {
-                model = Connection.enrollment(try ServerConfig.fromApp(), user: user)
+                model = Connection.enrollment(try ServerConfig.fromApp(), user: user, missions: missions)
             } catch {
                 problem = error
             }

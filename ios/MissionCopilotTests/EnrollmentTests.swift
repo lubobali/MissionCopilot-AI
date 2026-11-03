@@ -137,6 +137,45 @@ import UIKit
         #expect(model.state == .waitingForApproval && model.message == EnrollmentModel.text(.offline))
     }
 
+    @Test func aShredOrderWhileCheckingIsHandedOnAndAnActedOrderEndsTheEnrollment() async {
+        let order = Data(#"{"order":{}}"#.utf8)
+        let transport = FakeTransport([.success(.init(status: 201, body: Self.enrolled)),
+                                       .success(.init(status: 410, body: order))])
+        var handed: Data?
+        let model = EnrollmentModel(
+            enroller: enroller(transport), records: DeviceRecordStore(service: service, user: "officer-7"),
+            client: { deviceId in
+                ServerClient(base: Self.base, deviceId: deviceId, signer: signer,
+                             counter: RequestCounter(items: KeychainItems(service: service), account: deviceId),
+                             transport: transport)
+            },
+            onShredOrder: { body in handed = body; return .destroyed(2) })
+        await model.enroll(code: Self.code)
+
+        await model.checkApproval()
+
+        #expect(handed == order)
+        #expect(model.state == .notEnrolled && model.message == EnrollmentModel.revoked)
+    }
+
+    @Test func aShredOrderThatFailsTheCheckChangesNothingAndSaysSo() async {
+        let transport = FakeTransport([.success(.init(status: 201, body: Self.enrolled)),
+                                       .success(.init(status: 410, body: Data("{}".utf8)))])
+        let model = EnrollmentModel(
+            enroller: enroller(transport), records: DeviceRecordStore(service: service, user: "officer-7"),
+            client: { deviceId in
+                ServerClient(base: Self.base, deviceId: deviceId, signer: signer,
+                             counter: RequestCounter(items: KeychainItems(service: service), account: deviceId),
+                             transport: transport)
+            },
+            onShredOrder: { _ in .ignored(.badSignature) })
+        await model.enroll(code: Self.code)
+
+        await model.checkApproval()
+
+        #expect(model.state == .waitingForApproval && model.message == EnrollmentModel.text(.failed))
+    }
+
     @Test func everyStateTellsThePersonWhatToDoNext() {
         for result in [EnrollmentResult.badCode, .slowDown(60), .offline, .failed] {
             #expect(!EnrollmentModel.text(result).isEmpty)

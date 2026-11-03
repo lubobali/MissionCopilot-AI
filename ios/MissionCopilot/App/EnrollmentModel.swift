@@ -13,11 +13,18 @@ import Observation
     private let enroller: Enroller
     private let records: DeviceRecordStore
     private let client: (String) -> ServerClient
+    private let onShredOrder: (Data) -> ShredOrderAction.Result
 
-    init(enroller: Enroller, records: DeviceRecordStore, client: @escaping (String) -> ServerClient) {
+    static let revoked =
+        "This iPhone was revoked, so its missions were destroyed. Ask your admin before connecting again."
+
+    /// - Parameter onShredOrder: checks a shred order and acts on it only if it passes (ShredOrderAction).
+    init(enroller: Enroller, records: DeviceRecordStore, client: @escaping (String) -> ServerClient,
+         onShredOrder: @escaping (Data) -> ShredOrderAction.Result = { _ in .ignored(.notAnOrder) }) {
         self.enroller = enroller
         self.records = records
         self.client = client
+        self.onShredOrder = onShredOrder
         state = Self.state(of: records.load())
     }
 
@@ -51,6 +58,13 @@ import Observation
         case .refused: message = "Not approved yet. Ask your manager to approve this iPhone."
         case .offline: message = Self.text(.offline)
         case .slowDown(let seconds): message = Self.text(.slowDown(seconds))
+        case .shredOrder(let body):
+            if case .destroyed = onShredOrder(body) {
+                state = .notEnrolled
+                message = Self.revoked
+            } else {
+                message = Self.text(.failed)  // an order that fails the check changes nothing
+            }
         default: message = Self.text(.failed)
         }
     }
