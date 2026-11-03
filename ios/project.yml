@@ -36,7 +36,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.lubobali.missioncopilot
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Mission Copilot
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_FILE: Config/Info.plist
         TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         CODE_SIGN_STYLE: Automatic

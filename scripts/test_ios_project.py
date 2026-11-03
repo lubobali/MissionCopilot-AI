@@ -4,11 +4,13 @@ the app creates (ADR 0008 layer A). Dropping either fails here, not on someone's
 simulator that can run it."""
 
 import json
+import plistlib
 from pathlib import Path
 
 import pytest
 import yaml
 from newest_iphone import newest_iphone
+from PIL import Image
 
 pytestmark = pytest.mark.unit
 
@@ -89,3 +91,25 @@ def test_the_app_says_why_it_uses_face_id():
     reason = APP["settings"]["base"].get("INFOPLIST_KEY_NSFaceIDUsageDescription", "")
 
     assert "Face ID" in reason and len(reason) > 20
+
+
+def _plist(name: str) -> dict:
+    return plistlib.loads((ROOT / "ios" / "Config" / name).read_bytes())
+
+
+def test_every_build_shows_the_same_logo_launch_screen():
+    # Debug uses its own Info file, so the launch screen is written twice; it must not drift.
+    assert APP["settings"]["base"]["INFOPLIST_FILE"] == "Config/Info.plist"
+    launch = _plist("Info.plist")["UILaunchScreen"]
+
+    assert launch == {"UIImageName": "Logo", "UIColorName": "LaunchBackground"}
+    assert _plist("Info-Debug.plist")["UILaunchScreen"] == launch
+
+
+def test_the_app_icon_is_1024_square_with_no_transparency():
+    icon = Image.open(
+        ROOT / "ios" / "MissionCopilot" / "Assets.xcassets" / "AppIcon.appiconset" / "AppIcon.png"
+    )
+
+    assert icon.size == (1024, 1024)
+    assert icon.mode == "RGB"

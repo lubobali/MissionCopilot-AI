@@ -8,7 +8,7 @@ struct LockScreen: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            HeroIcon(systemName: "lock.fill")
+            LogoMark()
             Text("Mission Copilot")
                 .font(.title.bold())
             Text(Self.message(for: session.lastError))
@@ -41,7 +41,7 @@ struct PrivacyCover: View {
     var body: some View {
         ZStack {
             Color(.background).ignoresSafeArea()
-            HeroIcon(systemName: "lock.shield", role: .secondaryText, label: "Mission Copilot is hidden")
+            LogoMark(label: "Mission Copilot is hidden")
         }
     }
 }
