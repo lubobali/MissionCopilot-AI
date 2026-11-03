@@ -82,7 +82,7 @@ def _refuse(request: Request, device_id: str | None) -> DevicePrincipal:
 
 
 def _shred(request: Request, device_id: str, now: int) -> DevicePrincipal:
-    if request.app.state.shred_key is None:
+    if request.app.state.signing_key is None:
         return _refuse(request, device_id)
     audit(request, "shred_order_sent", subject=device_id)
     raise ShredOrder(device_id, now)

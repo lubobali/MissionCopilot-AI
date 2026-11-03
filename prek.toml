@@ -4,8 +4,9 @@
 [[repos]]
 repo = "builtin"
 hooks = [
-    { id = "trailing-whitespace" },
-    { id = "end-of-file-fixer" },
+    # Signed fixtures must stay byte-exact: one added newline breaks their signature.
+    { id = "trailing-whitespace", exclude = "^docs/api/fixtures/pack-v2-kandor/" },
+    { id = "end-of-file-fixer", exclude = "^docs/api/fixtures/pack-v2-kandor/" },
     { id = "check-merge-conflict" },
     { id = "check-toml" },
     { id = "check-yaml" },

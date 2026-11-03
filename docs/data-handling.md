@@ -16,7 +16,7 @@ mission data.
 
 | Data | Where it lives | How long | Encryption | Who can see it | Hosted | How it ends |
 |---|---|---|---|---|---|---|
-| Mission pack (budget, payments, milestones, last report) | Phone; org database | Phone: until retention or lease ends | DK + MK; TK | The mission's officer and manager | Phone; org database | Crypto-shred on the phone; org records policy on the server |
+| Mission pack (budget, payments, milestones, last report) | Phone; org database (each version kept, never changed) | Phone: until retention or lease ends | DK + MK; TK; signed by the server | The mission's team only (row-level security) | Phone; org database | Crypto-shred on the phone; org records policy on the server |
 | Voice debrief audio | Phone only | Until retention or lease ends | DK + MK | The officer only | Phone only, never uploaded | Crypto-shred |
 | Debrief transcript and notes | Phone; org database inside an approved report | Phone: until retention or lease ends | DK + MK; TK | The officer; after approval, the mission team | Phone; org database | Crypto-shred on the phone; org records policy |
 | Photo or scanned page (evidence) | Phone; org database after approval | Phone: until retention or lease ends | DK + MK (file and signed record both sealed), signed by the phone's chip key over hash, kind, time and location; TK | The officer; after approval, the mission team | Phone; org database | Crypto-shred on the phone; org records policy |

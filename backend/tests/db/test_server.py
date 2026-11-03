@@ -18,6 +18,7 @@ from missioncopilot_backend.db.migrations import load, migrate
 from missioncopilot_backend.db.missions import ORG_MIGRATIONS
 from missioncopilot_backend.db.organizations import OrgDatabase, drop_organization, provision
 from missioncopilot_backend.server import StartupError, build
+from missioncopilot_backend.signing_key import load_signing_key, new_signing_key
 from tests.db.postgres import admin_url, throwaway_database
 from tests.unit.clients import local_client
 
@@ -29,12 +30,14 @@ class World:
     directory_url: str
     secrets: Path
     org: OrgDatabase
+    signing_key: Path
 
     def env(self, **extra: str) -> dict[str, str]:
         return {
             "MISSIONCOPILOT_ENV": "test",
             "MISSIONCOPILOT_DIRECTORY_URL": self.directory_url,
             "MISSIONCOPILOT_ORG_URLS_DIR": str(self.secrets),
+            "MISSIONCOPILOT_SIGNING_KEY_FILE": str(self.signing_key),
         } | extra
 
 
@@ -60,7 +63,9 @@ def _world(tmp_path: Path) -> Generator[World]:
             directory.add_organization(org_id, org.database)
         try:
             _secret(secrets / f"{org_id}.url", _app_url(org))
-            yield World(directory_url, secrets, org)
+            key = tmp_path / "keys" / "signing-key.pem"
+            new_signing_key(key)
+            yield World(directory_url, secrets, org, key)
         finally:
             drop_organization(admin_url(), org_id)
 
@@ -202,3 +207,26 @@ def test_migrating_again_after_the_check_brings_it_back(world):
 
     with local_client(build(world.env())) as client:
         assert client.get("/v1/health").status_code == 200
+
+
+def test_the_server_signs_with_the_key_in_its_file(world):
+    app = build(world.env())
+
+    assert app.state.signing_key.public_key() == load_signing_key(world.signing_key).public_key()
+
+
+def test_without_a_signing_key_the_server_does_not_start(world):
+    env = world.env()
+    del env["MISSIONCOPILOT_SIGNING_KEY_FILE"]
+
+    _refused(env, "MISSIONCOPILOT_SIGNING_KEY_FILE")
+
+
+def test_a_private_key_in_an_environment_variable_is_refused(world):
+    _refused(world.env(MISSIONCOPILOT_SIGNING_KEY="a key pasted here"), "as a file")
+
+
+def test_a_signing_key_others_can_read_is_refused(world):
+    os.chmod(world.signing_key, 0o644)
+
+    _refused(world.env(), "readable by others")

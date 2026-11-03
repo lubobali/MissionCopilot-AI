@@ -1,0 +1,27 @@
+{
+  "asOf": "2026-05-29",
+  "environmentalSocial": {
+    "current": "Moderately Satisfactory",
+    "previous": "Satisfactory"
+  },
+  "financialManagement": {
+    "current": "Moderately Unsatisfactory",
+    "previous": "Moderately Satisfactory"
+  },
+  "implementationProgress": {
+    "current": "Moderately Unsatisfactory",
+    "previous": "Moderately Satisfactory"
+  },
+  "overallRisk": {
+    "current": "High",
+    "previous": "Substantial"
+  },
+  "pdoProgress": {
+    "current": "Moderately Unsatisfactory",
+    "previous": "Moderately Satisfactory"
+  },
+  "procurement": {
+    "current": "Satisfactory",
+    "previous": "Satisfactory"
+  }
+}

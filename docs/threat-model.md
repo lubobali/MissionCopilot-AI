@@ -153,7 +153,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | T48 | T | A compromised CI action steals secrets | Actions pinned to commit SHAs, minimal token permissions, zizmor lint | built | `.github/workflows/ci.yml` |
 | T49 | I | A secret is committed | gitleaks on every commit and in CI over the full history | built | `.github/workflows/ci.yml` |
 | T50 | T | The SQLCipher database library (our GRDB fork) drifts | Pinned revision, recorded in the SBOM; a commit check fails if Package.resolved and the SBOM differ | built | `scripts/test_check_bom.py` |
-| T51 | T | A malicious checklist or mission pack is imported | Schema validation, size limits, packs signed by the backend | planned | Phase 5 |
+| T51 | T | A malicious checklist or mission pack is imported | Packs signed by the server (P-256 over a pack label and the exact manifest bytes), every file listed by SHA-256 and size, limits in the contract (64 files, 20 MiB a file, 50 MiB a pack, fixed folders), rules checked again after the signature, versions only go up, expiry; served only to the mission's team. Server side built: `backend/tests/unit/test_pack_verify.py`, `backend/tests/db/test_packs.py`, `backend/tests/db/test_pack_routes.py`; the phone's own check and refusal come in #91, the checklist's own checks in #93 | planned | #91, #93 |
 | T52 | T | The model was poisoned upstream (ATLAS AML.T0020) | Frozen public model, source, revision, hash and license in the ML-BOM (checked against the signature), outputs checked by code | built | `docs/sbom/app.cdx.json`, `scripts/test_check_bom.py` |
 
 ## 3. Privacy (LINDDUN)

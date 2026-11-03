@@ -43,36 +43,150 @@ paths:
                     const: ok
         "429":
           $ref: "#/components/responses/TooManyRequests"
-  /v1/missions/{missionId}/pack:
+  /v1/missions/{missionId}/pack/manifest:
     get:
       tags: [missions]
-      operationId: getMissionPack
+      operationId: getPackManifest
       security:
         - deviceSignature: []
-      summary: Download the mission pack before going offline
+      summary: The mission pack's manifest, before going offline
+      description: >
+        Lists every file of the newest pack by path, SHA-256, size and media type (threat T51).
+        The phone keeps these exact bytes and checks the signature (getPackSignature) over them
+        before it reads anything. Only a member of the mission's team gets it; another team's or
+        organization's mission answers like a missing one.
       parameters:
         - $ref: "#/components/parameters/MissionId"
       responses:
-        "410":
-          $ref: "#/components/responses/ShredOrder"
         "200":
-          description: The mission and its pack
+          description: The manifest, exactly as signed
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
           content:
             application/json:
               schema:
-                type: object
-                required: [mission, pack]
-                properties:
-                  mission:
-                    $ref: "#/components/schemas/Mission"
-                  pack:
-                    $ref: "#/components/schemas/MissionPack"
+                $ref: "#/components/schemas/MissionPack"
         "401":
           $ref: "#/components/responses/Unauthorized"
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
         "404":
           $ref: "#/components/responses/NotFound"
+        "410":
+          $ref: "#/components/responses/ShredOrder"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/missions/{missionId}/pack/signature:
+    get:
+      tags: [missions]
+      operationId: getPackSignature
+      security:
+        - deviceSignature: []
+      summary: The server's signature over the manifest bytes
+      description: >
+        ECDSA P-256 with SHA-256 over the bytes "missioncopilot-pack-v1" + newline + the manifest
+        exactly as served. The label keeps a pack signature from ever passing as a shred order. The
+        phone checks it with the server key pinned in the app, chosen by keyId.
+      parameters:
+        - $ref: "#/components/parameters/MissionId"
+      responses:
+        "200":
+          description: The signature of the newest pack's manifest
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PackSignature"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "410":
+          $ref: "#/components/responses/ShredOrder"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/missions/{missionId}/pack/files/{sha256}:
+    get:
+      tags: [missions]
+      operationId: getPackFile
+      security:
+        - deviceSignature: []
+      summary: One file of the pack, by its SHA-256, resumable
+      description: >
+        Files are addressed by content, so a file never changes under its name. A phone that lost
+        its signal asks for the rest with Range and If-Range (the ETag it saw); if the file changed
+        it gets the whole file again. The phone checks the SHA-256 before using the file.
+      parameters:
+        - $ref: "#/components/parameters/MissionId"
+        - name: sha256
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9a-f]{64}$"
+        - name: Range
+          in: header
+          required: false
+          description: One byte range, for example bytes=1048576-
+          schema:
+            type: string
+            pattern: "^bytes=[0-9]*-[0-9]*$"
+        - name: If-Range
+          in: header
+          required: false
+          description: The ETag the phone saw; a different one means send the whole file
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The whole file
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+            Accept-Ranges:
+              $ref: "#/components/headers/AcceptRanges"
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "206":
+          description: The requested part of the file
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+            Accept-Ranges:
+              $ref: "#/components/headers/AcceptRanges"
+            Cache-Control:
+              $ref: "#/components/headers/NoStore"
+            Content-Range:
+              description: The part sent, for example bytes 1048576-2097151/5242880
+              schema:
+                type: string
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "416":
+          description: The range is outside the file
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "410":
+          $ref: "#/components/responses/ShredOrder"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/missions/{missionId}/sync:
     post:
       tags: [sync]
@@ -419,6 +533,24 @@ components:
       schema:
         type: string
         format: uuid
+  headers:
+    ETag:
+      description: The file's or manifest's SHA-256, quoted; never changes for the same bytes
+      schema:
+        type: string
+        pattern: '^"[0-9a-f]{64}"$'
+    AcceptRanges:
+      description: The file can be fetched in parts
+      schema:
+        type: string
+        const: bytes
+    NoStore:
+      description: >
+        Mission data is never kept by a cache on the way; the server sends this on every answer
+        (security headers)
+      schema:
+        type: string
+        const: no-store
   responses:
     BadRequest:
       description: Malformed request
@@ -613,44 +745,84 @@ components:
               type: string
               enum: [preparing, in_field, drafting, approved, synced, confirmed, shredded]
     MissionPack:
-      allOf:
-        - $ref: "#/components/schemas/Base"
-        - type: object
-          properties:
-            budget:
-              type: number
-            contractValue:
-              type: number
-            payments:
-              type: array
-              items:
-                type: object
-                properties:
-                  date:
-                    type: string
-                    format: date
-                  amount:
-                    type: number
-                  reference:
-                    type: string
-            milestones:
-              type: array
-              items:
-                type: object
-                properties:
-                  title:
-                    type: string
-                  dueDate:
-                    type: string
-                    format: date
-                  dateMet:
-                    type: [string, "null"]
-                    format: date
-            lastReportSummary:
-              type: string
-            checklist:
-              type: object
-              description: Site checklist in XLSForm structure
+      description: >
+        The signed manifest of a mission pack (threat T51). Every file is listed with its SHA-256
+        and size, so a changed, missing or extra file is caught; a pack whose version is not above
+        the last one the phone accepted, or that has expired, is refused by the phone.
+      type: object
+      additionalProperties: false
+      required: [format, formatVersion, packId, orgId, missionId, version, createdAt, expiresAt,
+                 minAppVersion, keyId, files]
+      properties:
+        format:
+          const: missioncopilot-pack
+        formatVersion:
+          const: 2
+        packId:
+          type: string
+          format: uuid
+        orgId:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]{1,39}$"
+        missionId:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        version:
+          type: integer
+          minimum: 1
+          description: Goes up by one with every pack published for this mission
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        minAppVersion:
+          type: string
+          pattern: "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$"
+        keyId:
+          type: string
+          pattern: "^[0-9a-f]{16}$"
+          description: First 16 hex digits of the SHA-256 of the signing key's public key (DER)
+        files:
+          type: array
+          minItems: 1
+          maxItems: 64
+          items:
+            $ref: "#/components/schemas/PackFile"
+    PackFile:
+      type: object
+      additionalProperties: false
+      required: [path, sha256, size, mediaType]
+      properties:
+        path:
+          type: string
+          description: Only these folders and plain lowercase names; no "..", no leading slash
+          pattern: "^(sections|forms|documents)/[a-z0-9][a-z0-9-]{0,62}\\.(json|md|pdf|jpg)$"
+        sha256:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        size:
+          type: integer
+          minimum: 0
+          maximum: 20971520
+        mediaType:
+          enum: [application/json, text/markdown, application/pdf, image/jpeg]
+    PackSignature:
+      type: object
+      additionalProperties: false
+      required: [keyId, algorithm, signature]
+      properties:
+        keyId:
+          type: string
+          pattern: "^[0-9a-f]{16}$"
+        algorithm:
+          const: ecdsa-p256-sha256
+        signature:
+          type: string
+          description: DER, base64
+          maxLength: 200
     SourceDocument:
       allOf:
         - $ref: "#/components/schemas/Base"

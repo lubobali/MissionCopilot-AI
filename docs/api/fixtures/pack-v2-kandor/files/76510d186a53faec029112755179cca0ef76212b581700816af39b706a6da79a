@@ -1,0 +1,56 @@
+{
+  "contracts": [
+    {
+      "contractPeriod": {
+        "end": "2026-12-31",
+        "start": "2025-01-15"
+      },
+      "contractValue": 10000000,
+      "method": "Request for Bids",
+      "ocid": "ocds-kandor-krrp-p1-w01",
+      "paymentApprover": "program-manager-01",
+      "payments": [
+        {
+          "amount": 1000000,
+          "date": "2025-02-15",
+          "reference": "Advance payment"
+        },
+        {
+          "amount": 1500000,
+          "date": "2025-09-30",
+          "reference": "Invoice 6"
+        },
+        {
+          "amount": 1800000,
+          "date": "2026-01-31",
+          "reference": "Invoice 9"
+        },
+        {
+          "amount": 2000000,
+          "date": "2026-05-31",
+          "reference": "Invoice 11"
+        },
+        {
+          "amount": 1720000,
+          "date": "2026-08-31",
+          "reference": "Invoice 13"
+        },
+        {
+          "amount": 480000,
+          "date": "2026-10-12",
+          "reference": "Invoice 14"
+        }
+      ],
+      "physicalProgress": {
+        "asOf": "2026-09-30",
+        "kmBuilt": 32,
+        "kmTotal": 64,
+        "unit": "km of asphalt"
+      },
+      "status": "active",
+      "supplier": "Kandor Roadworks Ltd",
+      "title": "Upgrading of the 64 km Package 1 road"
+    }
+  ],
+  "currency": "USD"
+}

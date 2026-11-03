@@ -1,0 +1,23 @@
+{
+  "components": [
+    {
+      "cost": 10000000,
+      "disbursed": 8500000,
+      "id": "C1",
+      "name": "Road upgrading, Package 1"
+    },
+    {
+      "cost": 1500000,
+      "disbursed": 300000,
+      "id": "C2",
+      "name": "Road safety and maintenance"
+    },
+    {
+      "cost": 500000,
+      "disbursed": 350000,
+      "id": "C3",
+      "name": "Project management"
+    }
+  ],
+  "currency": "USD"
+}

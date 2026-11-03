@@ -1,0 +1,31 @@
+{
+  "indicators": [
+    {
+      "actualCurrent": 26000,
+      "actualPrevious": 18000,
+      "baseline": 0,
+      "endTarget": 60000,
+      "indicator": "Rural people with all-season road access",
+      "type": "PDO",
+      "unit": "people"
+    },
+    {
+      "actualCurrent": 32,
+      "actualPrevious": 20,
+      "baseline": 0,
+      "endTarget": 64,
+      "indicator": "Road upgraded",
+      "type": "Intermediate",
+      "unit": "km"
+    },
+    {
+      "actualCurrent": 0,
+      "actualPrevious": 0,
+      "baseline": 0,
+      "endTarget": 1,
+      "indicator": "Bridges completed",
+      "type": "Intermediate",
+      "unit": "bridges"
+    }
+  ]
+}

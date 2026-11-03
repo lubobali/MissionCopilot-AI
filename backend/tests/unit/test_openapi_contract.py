@@ -108,7 +108,13 @@ DEVICE_OPERATIONS = {
     "POST /v1/devices/{deviceId}/approve": "approveDevice",
     "POST /v1/devices/{deviceId}/revoke": "revokeDevice",
 }
-PHONE_OPERATIONS = {"getMissionPack", "uploadSyncBatch", "submitForReview"}
+PHONE_OPERATIONS = {
+    "getPackManifest",
+    "getPackSignature",
+    "getPackFile",
+    "uploadSyncBatch",
+    "submitForReview",
+}
 OPEN_OPERATIONS = {"getHealth", "enrollDevice"}  # enroll is authenticated by its one-time code
 
 

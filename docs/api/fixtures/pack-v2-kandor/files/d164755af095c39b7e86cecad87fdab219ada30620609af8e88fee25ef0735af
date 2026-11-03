@@ -1,0 +1,15 @@
+{
+  "approvalDate": "2024-09-12",
+  "budget": 12000000,
+  "closingDate": "2027-06-30",
+  "country": "Kandor",
+  "currency": "USD",
+  "developmentObjective": "Improve all-season road access for rural communities in Kandor's northern districts.",
+  "implementingAgency": "Kandor Ministry of Public Works",
+  "note": "Fictional: Kandor is not a real country; every name and amount is invented.",
+  "projectRef": "KRRP-P1",
+  "sector": "Transport: rural roads",
+  "site": "Kandor, Package 1, km 0 to 64",
+  "status": "implementation",
+  "title": "Kandor Rural Roads Project, Package 1"
+}

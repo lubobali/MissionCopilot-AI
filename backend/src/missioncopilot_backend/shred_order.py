@@ -1,6 +1,6 @@
 """Shred order on next contact (ADR 0012, threat model T18). A revoked phone that sends a genuinely
 signed request is told, in an order signed by the server, to destroy every mission it holds. The
-phone checks the signature against the server key pinned in the app (Phase 8) and that the order
+phone checks the signature against the server key pinned in the app (#90) and that the order
 names its own device id. The phone holds only its own user's missions, so the order covers all of
 them; per-mission orders can come with the mission store (Phase 5)."""
 
@@ -33,7 +33,7 @@ class ShredOrder(Exception):
 
 
 def _answer(request: Request, exc: Exception) -> JSONResponse:
-    key: ec.EllipticCurvePrivateKey = request.app.state.shred_key
+    key: ec.EllipticCurvePrivateKey = request.app.state.signing_key
     if not isinstance(exc, ShredOrder):
         return problem(500)
     signature = key.sign(shred_message(exc.device_id, exc.issued_at), ec.ECDSA(hashes.SHA256()))
@@ -48,5 +48,5 @@ def _answer(request: Request, exc: Exception) -> JSONResponse:
 
 
 def install_shred_orders(app: FastAPI, key: ec.EllipticCurvePrivateKey | None) -> None:
-    app.state.shred_key = key  # None: revoked phones keep getting 401 (fail closed)
+    app.state.signing_key = key  # None: revoked phones keep getting 401 (fail closed)
     app.add_exception_handler(ShredOrder, _answer)
