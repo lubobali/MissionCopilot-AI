@@ -5,6 +5,11 @@ import Foundation
 /// can know (the app is older than the pack needs).
 enum PackRefusal: Error, Equatable, Sendable {
     case unknownKey, badSignature, malformed, keyMismatch, expired, appTooOld, wrongSize, wrongHash
+    /// Not the mission and organization asked for; older than the last one accepted (a rollback); the
+    /// same version as the last one but other content.
+    case wrongMission, older, replaced
+    /// The store could not say what was accepted before (paused while locked): refuse, never assume.
+    case storeUnavailable
 }
 
 struct PackFileEntry: Equatable, Sendable {
