@@ -2,6 +2,7 @@
 these checks prove a signed item also follows the format, so a buggy or hostile phone cannot slip a
 bad field in. The phone's v1 chain from spike #17 keeps verifying."""
 
+import base64
 import json
 
 import pytest
@@ -114,3 +115,30 @@ def test_a_signed_item_that_is_not_a_json_object_is_refused_not_a_crash(payload)
     result = verify_chain([signed(KEY, payload)], public_der(KEY))
 
     assert (result.ok, result.index, result.problem) == (False, 0, "unreadable_payload")
+
+
+# The chain a real iPhone 13 Pro Max signed with its Secure Enclave key in the store proof (#74).
+PHONE = FIXTURE.with_name("evidence-chain-v2-iphone.json")
+
+
+def test_the_chain_signed_on_a_real_iphone_verifies():
+    export = load_export(json.loads(PHONE.read_text(encoding="utf-8")))
+
+    result = verify_with_head(export.records, export.head, export.public_key_der)
+
+    assert (result.ok, result.count) == (True, 3)
+    assert {json.loads(r.payload)["missionId"] for r in export.records} == {"kandor-roads"}
+
+
+@pytest.mark.parametrize("index", [0, 1, 2])
+def test_one_changed_byte_in_the_iphone_chain_breaks_it(index):
+    data = json.loads(PHONE.read_text(encoding="utf-8"))
+    record = data["records"][index]
+    payload = bytearray(base64.b64decode(record["payload"]))
+    payload[payload.index(b'"photo"') + 1] ^= 1
+    record["payload"] = base64.b64encode(bytes(payload)).decode()
+    export = load_export(data)
+
+    result = verify_with_head(export.records, export.head, export.public_key_der)
+
+    assert (result.ok, result.index, result.problem) == (False, index, "bad_signature")
