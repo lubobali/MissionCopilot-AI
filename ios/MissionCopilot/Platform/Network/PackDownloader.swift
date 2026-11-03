@@ -94,6 +94,7 @@ actor PackDownloader {
     private func fetch(_ file: PackFileEntry, base: String, done: inout Int, total: Int) async -> PackOutcome? {
         var wrong = 0, empty = 0  // a wrong file is fetched once more; two answers bringing nothing end it
         while true {
+            if Task.isCancelled { return .paused(.interrupted) }
             guard let have = try? staging.partialSize(of: file) else { return .failed(.storage) }
             if have >= file.size {
                 if (try? staging.finish(file)) != nil { return nil }
@@ -139,8 +140,10 @@ actor PackDownloader {
         }
     }
 
+    /// Why a request ended the run. After a cancel the request was cut short: it is a pause, not a failure.
     private func stopped(_ outcome: ServerClient.Outcome) -> PackOutcome {
-        switch outcome {
+        if Task.isCancelled { return .paused(.interrupted) }
+        return switch outcome {
         case .offline: .paused(.offline)
         case .slowDown(let seconds): .paused(.slowDown(seconds))
         case .refused: .failed(.notApproved)

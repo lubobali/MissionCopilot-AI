@@ -11,6 +11,12 @@
     <string>$(MC_SERVER_HOST)</string>
     <key>MCServerKeys</key>
     <string>$(MC_SERVER_KEYS)</string>
+    <!-- #91: a pack download may keep going outside the app (BGContinuedProcessingTask), each under
+         its own id below this one wildcard. Nothing else runs in the background. -->
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>$(PRODUCT_BUNDLE_IDENTIFIER).pack.*</string>
+    </array>
     <key>UILaunchScreen</key>
     <dict>
         <key>UIImageName</key>

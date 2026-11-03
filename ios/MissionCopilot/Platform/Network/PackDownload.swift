@@ -13,6 +13,7 @@ enum PackDownloadState: Equatable, Sendable {
 enum PackPause: Equatable, Sendable {
     case offline
     case slowDown(Int)  // seconds
+    case interrupted  // the system wanted the time back, or the user stopped it
 }
 
 /// Stopped, and why. A refused pack is never used; nothing was taken from it.

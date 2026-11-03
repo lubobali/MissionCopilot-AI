@@ -17,6 +17,8 @@ final class FakePackServer: Transport, @unchecked Sendable {
     var rangeOutsideAlways: Set<String> = []
     var publishInBetween = 0  // how many signature answers belong to another manifest
     var manifestStatus: (Int, Data)?
+    var onFileRequest: (@Sendable (Int) -> Void)?  // told the number of each file request
+    var cancelCutsOff = false  // like URLSession: a request whose task was cancelled throws
     private(set) var requests: [URLRequest] = []
     private(set) var fileRequests = 0
     private(set) var bytesSent = 0
@@ -70,6 +72,8 @@ final class FakePackServer: Transport, @unchecked Sendable {
 
     private func fileAnswer(_ sha: String, _ request: URLRequest) throws -> Answer {
         fileRequests += 1
+        onFileRequest?(fileRequests)
+        if cancelCutsOff, Task.isCancelled { throw URLError(.cancelled) }
         if dropOnce == fileRequests {
             dropOnce = nil
             throw URLError(.networkConnectionLost)

@@ -103,6 +103,21 @@ struct PackDownloaderTests {
 
     // A lost signal, and servers that answer differently
 
+    @Test(.needsRepoFiles, arguments: [true, false])  // cut off during a request, or between two
+    func aDownloadStoppedByTheSystemPausesAndTheNextRunGoesOn(duringARequest: Bool) async throws {
+        let rig = try Rig()
+        rig.server.cancelCutsOff = duringARequest
+        let holder = TaskHolder()
+        rig.server.onFileRequest = { number in if number == 9 { holder.cancel() } }
+        let first = Task { await rig.run() }
+        holder.set(first)
+
+        #expect(await first.value == .paused(.interrupted))
+        rig.server.onFileRequest = nil
+        #expect(isVerified(await rig.run()))
+        #expect(try rig.stagedAsServed())
+    }
+
     @Test(.needsRepoFiles) func aLostSignalPausesAndTheNextRunGoesOnWithoutFetchingAgain() async throws {
         let rig = try Rig()
         rig.server.dropOnce = 9
@@ -230,5 +245,26 @@ struct PackDownloaderTests {
         rig.server.manifestStatus = (410, order)
 
         #expect(await rig.run() == .shredOrder(order))
+    }
+}
+
+/// Lets a fake server stop the download it is serving, as the system does when it wants the time back.
+final class TaskHolder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var task: Task<PackOutcome, Never>?
+    private var cancelled = false
+
+    func set(_ task: Task<PackOutcome, Never>) {
+        lock.withLock {
+            self.task = task
+            if cancelled { task.cancel() }
+        }
+    }
+
+    func cancel() {
+        lock.withLock {
+            cancelled = true
+            task?.cancel()
+        }
     }
 }
