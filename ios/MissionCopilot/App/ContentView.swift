@@ -20,13 +20,15 @@ struct ContentView: View {
                         .padding(.top, 8)
                 }
                 NavigationLink("Licenses") { AcknowledgementsView() }
+                    .buttonStyle(.fieldSecondary)
                     .padding(.top, 24)
                 #if DEBUG
                 NavigationLink("Lab (debug only)") { LabView() }
-                    .padding(.top, 24)
+                    .buttonStyle(.fieldSecondary)
                 #endif
             }
-            .padding()
+            .padding(24)
+            .fieldScreen()
             .toolbar {
                 Button("Lock", systemImage: "lock", action: onLock)
             }

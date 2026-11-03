@@ -15,9 +15,11 @@ struct LockScreen: View {
                 .multilineTextAlignment(.center)
                 .foregroundStyle(Color(.secondaryText))
             Button("Unlock") { Task { await session.unlock() } }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.fieldPrimary)
+                .padding(.top, 8)
         }
-        .padding()
+        .padding(24)
+        .fieldScreen()
         .task {
             guard !askedOnce else { return }
             askedOnce = true
@@ -39,9 +41,7 @@ struct LockScreen: View {
 /// Covers everything whenever the app is not in front, so the app switcher never shows mission data.
 struct PrivacyCover: View {
     var body: some View {
-        ZStack {
-            Color(.background).ignoresSafeArea()
-            LogoMark(label: "Mission Copilot is hidden")
-        }
+        LogoMark(label: "Mission Copilot is hidden")
+            .fieldScreen()
     }
 }

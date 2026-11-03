@@ -27,7 +27,7 @@ struct ThemeControlsTests {
             .frame(width: 300)).cgImage)
 
         // Left edge, half way down: inside the rounded fill, away from the words.
-        #expect(Self.pixel(image, column: 8, row: image.height / 2) == Palette.rgb(.accent, .light))
+        #expect(Pixel.rgb(image, column: 8, row: image.height / 2) == Palette.rgb(.accent, .light))
     }
 
     @Test func theStatusLabelShowsWordsNotJustAnIcon() {
@@ -74,16 +74,6 @@ struct ThemeControlsTests {
         let renderer = ImageRenderer(content: view)
         renderer.scale = 1
         return renderer.uiImage?.size.width ?? 0
-    }
-
-    /// The color of one pixel, read by drawing the image into a known RGB buffer.
-    private static func pixel(_ image: CGImage, column: Int, row: Int) -> RGB? {
-        var bytes = [UInt8](repeating: 0, count: 4)
-        guard let context = CGContext(data: &bytes, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
-                                      space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
-                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
-        context.draw(image, in: CGRect(x: -column, y: row - image.height + 1, width: image.width, height: image.height))
-        return RGB(hex: UInt32(bytes[0]) << 16 | UInt32(bytes[1]) << 8 | UInt32(bytes[2]))
     }
 
     private static func height(of view: some View) -> CGFloat {

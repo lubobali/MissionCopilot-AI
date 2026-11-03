@@ -13,7 +13,8 @@ struct BrandTests {
     @Test func theLaunchScreenShowsTheLogoOnTheBackground() throws {
         let launch = try #require(Bundle.main.object(forInfoDictionaryKey: "UILaunchScreen") as? [String: Any])
 
-        #expect(launch["UIImageName"] as? String == LogoMark.imageName)
+        #expect(launch["UIImageName"] as? String == "LaunchLogo")
+        #expect(UIImage(named: "LaunchLogo") != nil)
         #expect(launch["UIColorName"] as? String == "LaunchBackground")
     }
 
@@ -34,6 +35,15 @@ struct BrandTests {
         let primary = icons?["CFBundlePrimaryIcon"] as? [String: Any]
 
         #expect(primary?["CFBundleIconName"] as? String == "AppIcon")
+    }
+
+    @MainActor
+    @Test(arguments: [ColorScheme.light, .dark])
+    func theLogoSitsOnAWhiteTileSoItReadsInDarkMode(scheme: ColorScheme) throws {
+        let image = try #require(ImageRenderer(content: LogoMark().environment(\.colorScheme, scheme)).cgImage)
+
+        // Left edge, half way down: inside the tile, outside the logo (like the app icon).
+        #expect(Pixel.rgb(image, column: 3, row: image.height / 2) == RGB(hex: 0xFFFFFF))
     }
 
     @MainActor

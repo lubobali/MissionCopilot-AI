@@ -102,7 +102,7 @@ def test_every_build_shows_the_same_logo_launch_screen():
     assert APP["settings"]["base"]["INFOPLIST_FILE"] == "Config/Info.plist"
     launch = _plist("Info.plist")["UILaunchScreen"]
 
-    assert launch == {"UIImageName": "Logo", "UIColorName": "LaunchBackground"}
+    assert launch == {"UIImageName": "LaunchLogo", "UIColorName": "LaunchBackground"}
     assert _plist("Info-Debug.plist")["UILaunchScreen"] == launch
 
 

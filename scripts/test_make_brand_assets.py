@@ -4,9 +4,11 @@ import pytest
 from make_brand_assets import (
     ICON_SIZE,
     LOGO_POINTS,
+    TILE_INSET,
     background_colors,
     make_icon,
     make_logo,
+    make_tile,
     write_assets,
     write_launch_color,
 )
@@ -102,3 +104,25 @@ def test_the_launch_color_set_has_light_and_dark(tmp_path):
     assert "appearances" not in light
     assert dark["appearances"] == [{"appearance": "luminosity", "value": "dark"}]
     assert dark["color"]["components"]["red"] == "0x0B"
+
+
+def test_the_launch_logo_sits_on_a_white_rounded_tile():
+    tile = make_tile(_logo(margin=0), scale=2)
+
+    inset = TILE_INSET * 2
+    assert tile.height == LOGO_POINTS * 2 + 2 * inset
+    assert tile.getpixel((0, 0))[3] == 0  # rounded corner: clear
+    assert tile.getpixel((inset // 2, tile.height // 2)) == (255, 255, 255, 255)
+    assert tile.getpixel((tile.width // 2, tile.height // 2)) == (0, 80, 200, 255)
+
+
+def test_the_catalog_has_the_launch_logo_too(tmp_path):
+    write_assets(_logo(), tmp_path)
+
+    names = [
+        i["filename"]
+        for i in json.loads((tmp_path / "LaunchLogo.imageset" / "Contents.json").read_text())[
+            "images"
+        ]
+    ]
+    assert names == ["LaunchLogo@2x.png", "LaunchLogo@3x.png"]

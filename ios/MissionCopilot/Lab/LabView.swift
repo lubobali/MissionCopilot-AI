@@ -41,6 +41,7 @@ struct LabView: View {
                 }
             }
         }
+        .fieldList()
         .navigationTitle("Lab")
         .onAppear(perform: refresh)
     }

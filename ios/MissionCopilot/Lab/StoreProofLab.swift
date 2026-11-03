@@ -110,6 +110,7 @@ struct StoreProofView: View {
             }
             if !lab.message.isEmpty { Text(lab.message).font(.footnote) }
         }
+        .fieldList()
         .navigationTitle("Store proof (#74)")
     }
 

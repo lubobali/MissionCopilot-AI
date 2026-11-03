@@ -10,11 +10,12 @@ import re
 import sys
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 ICON_SIZE = 1024
 ICON_FILL = 0.72  # the logo's longest side, as a share of the icon: room for the rounded corners
 LOGO_POINTS = 96  # logo height on the launch and lock screens
+TILE_INSET = 14  # white tile around the launch logo, in points (same as LogoMark in the app)
 APP = Path(__file__).resolve().parents[1] / "ios" / "MissionCopilot"
 CATALOG = APP / "Assets.xcassets"
 PALETTE = APP / "Platform" / "Theme" / "Palette.swift"
@@ -37,6 +38,20 @@ def make_logo(logo: Image.Image, scale: int) -> Image.Image:
     height = LOGO_POINTS * scale
     width = round(logo.width * height / logo.height)
     return logo.resize((width, height), Image.Resampling.LANCZOS)
+
+
+def make_tile(logo: Image.Image, scale: int) -> Image.Image:
+    """The logo on a white rounded tile with clear corners, for the launch screen: the dark blue and
+    black of the logo would vanish on the dark background."""
+    mark = make_logo(logo, scale)
+    inset = TILE_INSET * scale
+    tile = Image.new("RGBA", (mark.width + 2 * inset, mark.height + 2 * inset), (0, 0, 0, 0))
+    shape = (0, 0, tile.width - 1, tile.height - 1)
+    ImageDraw.Draw(tile).rounded_rectangle(
+        shape, radius=round(inset * 1.6), fill=(255, 255, 255, 255)
+    )
+    tile.alpha_composite(mark, (inset, inset))
+    return tile
 
 
 def background_colors(palette_swift: str) -> tuple[str, str]:
@@ -80,13 +95,14 @@ def write_assets(logo: Image.Image, catalog: Path = CATALOG) -> None:
     _save(make_icon(logo), icon_set / "AppIcon.png")
     icon = {"filename": "AppIcon.png", "idiom": "universal", "platform": "ios", "size": "1024x1024"}
     _contents(icon_set / "Contents.json", images=[icon])
-    logo_set = catalog / "Logo.imageset"
-    images = []
-    for scale in (2, 3):
-        name = f"Logo@{scale}x.png"
-        _save(make_logo(logo, scale), logo_set / name)
-        images.append({"filename": name, "idiom": "universal", "scale": f"{scale}x"})
-    _contents(logo_set / "Contents.json", images=images)
+    for set_name, make in (("Logo", make_logo), ("LaunchLogo", make_tile)):
+        folder = catalog / f"{set_name}.imageset"
+        images = []
+        for scale in (2, 3):
+            name = f"{set_name}@{scale}x.png"
+            _save(make(logo, scale), folder / name)
+            images.append({"filename": name, "idiom": "universal", "scale": f"{scale}x"})
+        _contents(folder / "Contents.json", images=images)
     _contents(catalog / "Contents.json")
 
 
