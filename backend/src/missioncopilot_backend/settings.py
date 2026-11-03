@@ -3,6 +3,7 @@ production, and an unknown value stops the start instead of guessing."""
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
 Environment = Literal["production", "development", "test"]
@@ -45,3 +46,15 @@ def _names(value: str | None, default: tuple[str, ...]) -> tuple[str, ...]:
     if value is None:
         return default
     return tuple(name.strip() for name in value.split(",") if name.strip())
+
+
+def read_env_file(path: Path) -> dict[str, str]:
+    """KEY=VALUE lines from a local env file, comments and blank lines skipped; no file gives {}."""
+    if not path.exists():
+        return {}
+    values = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip() and not line.lstrip().startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            values[key.strip()] = value.strip()
+    return values

@@ -43,6 +43,22 @@ jobs:
       - name: Install backend dependencies (exact versions from the lockfile)
         run: uv sync --locked --directory backend
 
+      - name: Start Postgres for the database tests (same pinned image as backend/compose.yaml)
+        # A fresh random password every run, masked in the log; reachable from this runner only.
+        run: |
+          set -euo pipefail
+          password="$(openssl rand -hex 24)"
+          echo "::add-mask::${password}"
+          docker run --detach --name postgres --publish 127.0.0.1:5432:5432 \
+            --env POSTGRES_USER=missioncopilot_admin --env POSTGRES_PASSWORD="${password}" \
+            postgres:18.6-trixie@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
+          for _ in $(seq 60); do
+            docker exec postgres pg_isready -U missioncopilot_admin -d postgres -q && break
+            sleep 1
+          done
+          docker exec postgres pg_isready -U missioncopilot_admin -d postgres
+          echo "MISSIONCOPILOT_TEST_ADMIN_URL=postgresql://missioncopilot_admin:${password}@127.0.0.1:5432/postgres" >> "${GITHUB_ENV}"
+
       - name: Install gitleaks (checksum verified) and prek
         run: |
           set -euo pipefail

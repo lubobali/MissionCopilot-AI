@@ -10,6 +10,15 @@ uv run --directory backend pytest            # tests
 uv run --directory backend missioncopilot-backend   # local server on 127.0.0.1:8110
 ```
 
+The database tests (`tests/db`) need a local Postgres 18. Once per machine, then whenever Docker
+restarts:
+```
+uv run --directory backend python ../scripts/make_dev_env.py   # random password into backend/.env
+docker compose --project-directory backend up -d --wait          # Postgres on 127.0.0.1:55432
+```
+`backend/.env` is gitignored and readable by its owner only. CI starts the same pinned image with a
+fresh random password on every run.
+
 ## Settings (environment variables)
 Nothing configured means **production**, the safe default. An unknown value stops the start.
 

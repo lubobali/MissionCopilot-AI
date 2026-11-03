@@ -1,0 +1,23 @@
+# Local Postgres for development and the database tests (#88). Never used in production.
+# Once: uv run --directory backend python ../scripts/make_dev_env.py  (writes the gitignored .env)
+# Then: docker compose --project-directory backend up -d --wait
+services:
+  postgres:
+    # Pinned by digest; CI runs the same one (tests/unit/test_dev_postgres_config.py).
+    # 18.6: fixes CVE-2026-14666 (row security caching), so it skips the 7-day cooldown.
+    image: postgres:18.6-trixie@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
+    environment:
+      POSTGRES_USER: missioncopilot_admin
+      POSTGRES_PASSWORD: ${MISSIONCOPILOT_PG_ADMIN_PASSWORD:?run scripts/make_dev_env.py first}
+    ports:
+      - "127.0.0.1:55432:5432"  # this machine only
+    volumes:
+      - pgdata:/var/lib/postgresql  # Postgres 18 images keep data under /var/lib/postgresql/18
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U missioncopilot_admin -d postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  pgdata:
