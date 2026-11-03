@@ -1,0 +1,9 @@
+{
+  "cancelled": 0,
+  "currency": "USD",
+  "disbursed": 9150000,
+  "loanId": "KRRP-L1",
+  "original": 12000000,
+  "revised": 12000000,
+  "undisbursed": 2850000
+}

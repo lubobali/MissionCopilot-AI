@@ -1,0 +1,27 @@
+{
+  "commitments": [
+    {
+      "action": "Post the grievance contact at every work site",
+      "deadline": "2026-03-31",
+      "status": "Completed"
+    },
+    {
+      "action": "Traffic management plan for the Section 3 bridge works",
+      "deadline": "2026-07-31",
+      "status": "Not started"
+    }
+  ],
+  "grievances": [
+    {
+      "category": "Dust and noise near Kando village",
+      "date": "2026-08-14",
+      "status": "Resolved"
+    },
+    {
+      "category": "Access to fields blocked at km 22",
+      "date": "2026-10-02",
+      "status": "Open"
+    }
+  ],
+  "riskRating": "Substantial"
+}

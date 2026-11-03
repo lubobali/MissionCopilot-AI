@@ -1,0 +1,78 @@
+{
+  "asOf": "2026-11-10",
+  "locations": [
+    {
+      "description": "Package 1 road, km 0 to 64 (fictional coordinates in open sea)",
+      "geometry": {
+        "coordinates": [
+          [
+            1.0,
+            1.0
+          ],
+          [
+            1.2,
+            1.15
+          ],
+          [
+            1.45,
+            1.3
+          ]
+        ],
+        "type": "LineString"
+      },
+      "id": "L1"
+    },
+    {
+      "description": "Sample point at km 18",
+      "geometry": {
+        "coordinates": [
+          1.06,
+          1.05
+        ],
+        "type": "Point"
+      },
+      "id": "L2"
+    },
+    {
+      "description": "Section 3 bridge site",
+      "geometry": {
+        "coordinates": [
+          1.33,
+          1.24
+        ],
+        "type": "Point"
+      },
+      "id": "L3"
+    }
+  ],
+  "milestones": [
+    {
+      "dateMet": "2025-02-20",
+      "dueDate": "2025-03-01",
+      "id": "M1",
+      "status": "met",
+      "title": "Mobilisation"
+    },
+    {
+      "dateMet": "2026-07-20",
+      "dueDate": "2026-06-30",
+      "id": "M2",
+      "status": "met",
+      "title": "Sections 1 and 2 paved"
+    },
+    {
+      "dateMet": null,
+      "dueDate": "2026-09-30",
+      "id": "M3",
+      "status": "notMet",
+      "title": "Section 3 bridge complete"
+    },
+    {
+      "dateMet": null,
+      "dueDate": "2026-12-15",
+      "id": "M4",
+      "status": "scheduled",
+      "title": "Practical completion"
+    }
+  ]
+}

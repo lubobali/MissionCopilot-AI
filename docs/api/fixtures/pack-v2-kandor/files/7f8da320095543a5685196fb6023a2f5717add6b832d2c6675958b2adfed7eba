@@ -1,0 +1,24 @@
+{
+  "actions": [
+    {
+      "action": "Start the Section 3 bridge works",
+      "deadline": "2026-07-31",
+      "responsible": "Contractor",
+      "status": "Not started"
+    },
+    {
+      "action": "Submit a revised work plan",
+      "deadline": "2026-07-15",
+      "responsible": "Contractor",
+      "status": "Ongoing"
+    },
+    {
+      "action": "Review payment certification before the next invoice",
+      "deadline": "2026-09-30",
+      "responsible": "Ministry",
+      "status": "Not started"
+    }
+  ],
+  "mission": "Supervision mission, May 2026",
+  "summary": "Previous mission (May 2026): the contractor committed to start the Section 3 bridge by July 2026 and to submit a revised work plan. The ministry agreed to review payment certification before the next invoice."
+}
