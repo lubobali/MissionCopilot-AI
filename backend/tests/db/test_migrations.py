@@ -6,7 +6,7 @@ import threading
 import psycopg
 import pytest
 
-from missioncopilot_backend.db.migrations import MigrationError, load, migrate
+from missioncopilot_backend.db.migrations import MigrationError, load, migrate, pending
 from tests.db.postgres import throwaway_database
 
 pytestmark = pytest.mark.db
@@ -155,3 +155,28 @@ def test_a_migration_and_its_record_commit_together(tmp_path):
 
         assert "half" not in _tables(url)
         assert _recorded(url) == []
+
+
+def test_pending_on_a_fresh_database_is_everything_and_changes_nothing(tmp_path):
+    migrations = _files(tmp_path, **{"0001_a.sql": "SELECT 1;", "0002_b.sql": "SELECT 2;"})
+    with throwaway_database() as url:
+        assert pending(url, migrations) == [1, 2]
+
+        assert "schema_migrations" not in _tables(url)  # only looked
+
+
+def test_pending_after_migrating_is_nothing_and_new_files_show_up(tmp_path):
+    first = _files(tmp_path, **{"0001_a.sql": "SELECT 1;"})
+    with throwaway_database() as url:
+        migrate(url, first)
+        assert pending(url, first) == []
+
+        assert pending(url, _files(tmp_path, **{"0002_b.sql": "SELECT 2;"})) == [2]
+
+
+def test_pending_refuses_an_edited_migration(tmp_path):
+    with throwaway_database() as url:
+        migrate(url, _files(tmp_path, **{"0001_a.sql": "SELECT 1;"}))
+
+        with pytest.raises(MigrationError, match="edited"):
+            pending(url, _files(tmp_path, **{"0001_a.sql": "SELECT 'changed';"}))

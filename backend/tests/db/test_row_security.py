@@ -142,13 +142,17 @@ def test_the_app_login_cannot_add_or_join_missions(org):
             conn.execute(insert)
 
 
-def test_the_app_login_cannot_touch_the_migration_records(org):
+def test_the_app_login_can_read_but_never_change_the_migration_records(org):
     org_db, _ = org
     with psycopg.connect(_url(org_db), autocommit=True) as conn:
-        with pytest.raises(psycopg.errors.InsufficientPrivilege):
-            conn.execute("DELETE FROM schema_migrations")
-        with pytest.raises(psycopg.errors.InsufficientPrivilege):
-            conn.execute("SELECT * FROM schema_migrations")
+        assert conn.execute("SELECT max(version) FROM schema_migrations").fetchone() == (1,)
+        for change in (
+            "DELETE FROM schema_migrations",
+            "UPDATE schema_migrations SET sha256 = 'x'",
+            "INSERT INTO schema_migrations VALUES (99, 'x', 'x')",
+        ):
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                conn.execute(change)
 
 
 def test_every_table_the_app_can_reach_has_forced_row_security(org):
@@ -158,7 +162,10 @@ def test_every_table_the_app_can_reach_has_forced_row_security(org):
             "SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity FROM pg_class c"
             " JOIN pg_namespace n ON n.oid = c.relnamespace"
             " WHERE n.nspname = 'public' AND c.relkind = 'r'"
-            " AND has_table_privilege(%s, c.oid, 'SELECT')",
+            " AND has_table_privilege(%s, c.oid, 'SELECT')"
+            # Version numbers and file hashes only, no organization data; the app may read them for
+            # the start check and never write them (the test above).
+            " AND c.relname <> 'schema_migrations'",
             [org_db.app_role],
         ).fetchall()
 

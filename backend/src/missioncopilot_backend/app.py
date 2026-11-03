@@ -1,4 +1,3 @@
-import os
 import time
 from collections.abc import Callable
 
@@ -6,6 +5,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.types import Lifespan
 
 from missioncopilot_backend.audit import AuditLog, AuditStore
 from missioncopilot_backend.auth import TokenVerifier
@@ -16,7 +16,7 @@ from missioncopilot_backend.headers import SecurityHeadersMiddleware
 from missioncopilot_backend.limits import LimitsMiddleware, RateLimiter
 from missioncopilot_backend.settings import Settings
 from missioncopilot_backend.shred_order import install_shred_orders
-from missioncopilot_backend.tenancy import OrgDatabases
+from missioncopilot_backend.tenancy import OrgStores
 
 v1 = APIRouter(prefix="/v1")
 
@@ -29,12 +29,13 @@ def health() -> dict[str, str]:
 def create_app(
     settings: Settings,
     verifier: TokenVerifier | None = None,
-    databases: OrgDatabases | None = None,
+    databases: OrgStores | None = None,
     clock: Callable[[], float] = time.monotonic,
     audit: AuditStore | None = None,
     enrollment_codes: CodeStore | None = None,
     devices: DeviceStore | None = None,
     shred_key: ec.EllipticCurvePrivateKey | None = None,
+    lifespan: Lifespan | None = None,
 ) -> FastAPI:
     """Build the app for one set of settings; tests build their own instead of patching globals."""
     docs = settings.docs_enabled
@@ -43,6 +44,7 @@ def create_app(
         docs_url="/docs" if docs else None,
         redoc_url="/redoc" if docs else None,
         openapi_url="/openapi.json" if docs else None,
+        lifespan=lifespan,
     )
     app.state.verifier = verifier  # None: every secured route refuses (fail closed)
     app.state.databases = databases  # None: every organization's data answers 404
@@ -76,7 +78,3 @@ def create_app(
     for router in device_routes():
         app.include_router(router)
     return app
-
-
-# What the server (uvicorn) and the startup check load.
-app = create_app(Settings.from_env(os.environ))

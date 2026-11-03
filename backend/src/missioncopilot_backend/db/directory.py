@@ -144,6 +144,8 @@ class PostgresDeviceRegistry:
 
 
 class Directory:
+    MIGRATIONS = MIGRATIONS
+
     def __init__(self, pool: ConnectionPool, clock: Callable[[], float]):
         self._pool = pool
         self.codes = PostgresEnrollmentCodes(pool, clock)
@@ -152,11 +154,20 @@ class Directory:
 
     @classmethod
     @contextmanager
-    def open(cls, url: str, clock: Callable[[], float] = time.time) -> Generator["Directory"]:
-        """Bring the directory's tables up to date, then hand out pooled connections."""
-        migrate(url, load(MIGRATIONS))
+    def open(
+        cls, url: str, clock: Callable[[], float] = time.time, migrations: bool = True
+    ) -> Generator["Directory"]:
+        """Pooled connections to the directory; first brings its tables up to date, unless told not
+        to (the server never migrates at start: it checks, and an operator migrates)."""
+        if migrations:
+            migrate(url, load(MIGRATIONS))
         with ConnectionPool(url, min_size=1, max_size=8, open=True) as pool:
             yield cls(pool, clock)
+
+    def organizations(self) -> dict[str, str]:
+        """Every organization and the name of its database."""
+        with self._pool.connection() as conn:
+            return dict(conn.execute("SELECT id, database FROM organizations").fetchall())
 
     def add_organization(self, org_id: str, database: str) -> None:
         with self._pool.connection() as conn:

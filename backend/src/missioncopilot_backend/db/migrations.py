@@ -66,6 +66,19 @@ def _check(done: dict[int, tuple[str, str]], migrations: list[Migration]) -> Non
             raise MigrationError(f"{name} was edited after it ran; add a new migration instead")
 
 
+def pending(url: str, migrations: list[Migration]) -> list[int]:
+    """The versions not yet applied, read without changing anything (the server's start check; the
+    app login may read the records but not write them). An edited or unknown migration raises."""
+    with psycopg.connect(url) as conn:
+        exists = conn.execute("SELECT to_regclass('schema_migrations') IS NOT NULL").fetchone()
+        if not exists or not exists[0]:
+            return [m.version for m in migrations]
+        rows = conn.execute("SELECT version, name, sha256 FROM schema_migrations").fetchall()
+    done = {version: (name, sha256) for version, name, sha256 in rows}
+    _check(done, migrations)
+    return [m.version for m in migrations if m.version not in done]
+
+
 def migrate(url: str, migrations: list[Migration], role: str | None = None) -> list[int]:
     """Run the pending migrations, as `role` if given (so the tables belong to it); returns the
     versions it applied (none: [])."""

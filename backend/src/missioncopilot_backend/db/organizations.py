@@ -91,10 +91,13 @@ def provision(admin_url: str, org_id: str, migrations: list[Migration]) -> OrgDa
                 )
         migrate(url, migrations, role=owner)
         with psycopg.connect(url, autocommit=True) as db:
-            # The default grants above reach the migration records too; the app must not touch them.
-            db.execute(
-                sql.SQL("REVOKE ALL ON TABLE schema_migrations FROM {}").format(sql.Identifier(app))
-            )
+            # The default grants above reach the migration records too: the app may read them (the
+            # server checks the version at start) but never write them.
+            for statement in (
+                "REVOKE ALL ON TABLE schema_migrations FROM {app}",
+                "GRANT SELECT ON TABLE schema_migrations TO {app}",
+            ):
+                db.execute(sql.SQL(statement).format(app=sql.Identifier(app)))
     except BaseException:
         drop_organization(admin_url, org_id)
         raise

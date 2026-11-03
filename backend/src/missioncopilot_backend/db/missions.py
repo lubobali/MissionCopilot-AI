@@ -23,6 +23,18 @@ def as_user(pool: ConnectionPool, user_id: str) -> Generator[psycopg.Connection]
         yield conn
 
 
+class PostgresOrgDatabases:
+    """One pool per organization, each logged in as that organization's own app login into its own
+    database. An organization with no pool gets nothing."""
+
+    def __init__(self, pools: dict[str, ConnectionPool]):
+        self.pools = pools
+
+    def for_org(self, org_id: str) -> "PostgresMissions | None":
+        pool = self.pools.get(org_id)
+        return PostgresMissions(pool, org_id) if pool else None
+
+
 class PostgresMissions:
     def __init__(self, pool: ConnectionPool, org_id: str):
         self._pool, self.org_id = pool, org_id
