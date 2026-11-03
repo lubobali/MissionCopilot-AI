@@ -155,4 +155,4 @@ def _resolve(node: dict) -> dict:
 def test_pack_answers_are_never_cached():
     for name in PACK_OPERATIONS:
         ok = dict(_operations())[name]["responses"]["200"]
-        assert _resolve(ok["headers"]["Cache-Control"])["schema"]["const"] == "private, no-store"
+        assert _resolve(ok["headers"]["Cache-Control"])["schema"]["const"] == "no-store"

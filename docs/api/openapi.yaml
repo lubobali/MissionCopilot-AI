@@ -545,10 +545,12 @@ components:
         type: string
         const: bytes
     NoStore:
-      description: Mission data is never kept by a cache on the way
+      description: >
+        Mission data is never kept by a cache on the way; the server sends this on every answer
+        (security headers)
       schema:
         type: string
-        const: private, no-store
+        const: no-store
   responses:
     BadRequest:
       description: Malformed request

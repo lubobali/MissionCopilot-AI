@@ -10,7 +10,7 @@ import psycopg
 from cryptography.hazmat.primitives.asymmetric import ec
 from psycopg_pool import ConnectionPool
 
-from missioncopilot_backend.db.missions import as_user
+from missioncopilot_backend.db.session import as_user
 from missioncopilot_backend.pack_format import build_manifest, key_id, sign_manifest
 
 

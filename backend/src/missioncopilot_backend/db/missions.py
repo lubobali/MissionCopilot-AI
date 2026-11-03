@@ -2,25 +2,15 @@
 decides what that user may see (sql/organization/0001_missions.sql); this code only says who is
 asking, for one transaction at a time, so a pooled connection never carries a user over."""
 
-from collections.abc import Generator
-from contextlib import contextmanager
 from pathlib import Path
 
-import psycopg
 from psycopg_pool import ConnectionPool
 
+from missioncopilot_backend.db.packs import PostgresPacks
+from missioncopilot_backend.db.session import as_user
 from missioncopilot_backend.tenancy import Mission
 
 ORG_MIGRATIONS = Path(__file__).parent / "sql" / "organization"
-
-
-@contextmanager
-def as_user(pool: ConnectionPool, user_id: str) -> Generator[psycopg.Connection]:
-    """A connection inside one transaction in which Postgres knows the caller. The setting is local
-    to the transaction: it ends with it, whatever happens."""
-    with pool.connection() as conn, conn.transaction():
-        conn.execute("SELECT set_config('app.user_id', %s, true)", [user_id])
-        yield conn
 
 
 class PostgresOrgDatabases:
@@ -33,6 +23,10 @@ class PostgresOrgDatabases:
     def for_org(self, org_id: str) -> "PostgresMissions | None":
         pool = self.pools.get(org_id)
         return PostgresMissions(pool, org_id) if pool else None
+
+    def packs_for(self, org_id: str) -> PostgresPacks | None:
+        pool = self.pools.get(org_id)
+        return PostgresPacks(pool) if pool else None
 
 
 class PostgresMissions:
