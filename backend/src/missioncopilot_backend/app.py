@@ -10,7 +10,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from missioncopilot_backend.audit import AuditLog
 from missioncopilot_backend.auth import TokenVerifier
 from missioncopilot_backend.device_routes import device_routes
-from missioncopilot_backend.devices import DeviceRegistry, EnrollmentCodes
+from missioncopilot_backend.devices import CodeStore, DeviceRegistry, DeviceStore, EnrollmentCodes
 from missioncopilot_backend.errors import install_error_handlers
 from missioncopilot_backend.headers import SecurityHeadersMiddleware
 from missioncopilot_backend.limits import LimitsMiddleware, RateLimiter
@@ -32,8 +32,8 @@ def create_app(
     databases: OrgDatabases | None = None,
     clock: Callable[[], float] = time.monotonic,
     audit: AuditLog | None = None,
-    enrollment_codes: EnrollmentCodes | None = None,
-    devices: DeviceRegistry | None = None,
+    enrollment_codes: CodeStore | None = None,
+    devices: DeviceStore | None = None,
     shred_key: ec.EllipticCurvePrivateKey | None = None,
 ) -> FastAPI:
     """Build the app for one set of settings; tests build their own instead of patching globals."""

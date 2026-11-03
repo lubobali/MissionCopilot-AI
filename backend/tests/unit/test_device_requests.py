@@ -65,6 +65,7 @@ class Phone:
             serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
         )
         device = devices.add(EnrollmentGrant(org, "officer-7", "phone", 0.0), der)
+        assert device is not None
         self.id = devices.update(device, status=status).id
         self.seq = 0
 

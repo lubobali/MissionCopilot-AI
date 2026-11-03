@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from starlette.datastructures import Headers
 
 from missioncopilot_backend.auth import audit
-from missioncopilot_backend.devices import DeviceRegistry
+from missioncopilot_backend.devices import DeviceStore
 from missioncopilot_backend.shred_order import ShredOrder
 from missioncopilot_backend.signatures import is_signed_by, load_p256_public_key
 
@@ -53,7 +53,7 @@ def _signed_fields(headers: Headers) -> tuple[int, int, bytes] | None:
 
 
 async def require_device(request: Request) -> DevicePrincipal:
-    devices: DeviceRegistry = request.app.state.devices
+    devices: DeviceStore = request.app.state.devices
     device = devices.find(request.headers.get("X-Device-Id", ""))
     fields = _signed_fields(request.headers)
     body = await request.body()  # cached: the route reads the same bytes
