@@ -15,7 +15,7 @@ struct LockScreen: View {
                 .font(.title.bold())
             Text(Self.message(for: session.lastError))
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color(.secondaryText))
             Button("Unlock") { Task { await session.unlock() } }
                 .buttonStyle(.borderedProminent)
         }
@@ -42,10 +42,10 @@ struct LockScreen: View {
 struct PrivacyCover: View {
     var body: some View {
         ZStack {
-            Color(.systemBackground).ignoresSafeArea()
+            Color(.background).ignoresSafeArea()
             Image(systemName: "lock.shield")
                 .font(.system(size: 64))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color(.secondaryText))
                 .accessibilityLabel("Mission Copilot is hidden")
         }
     }

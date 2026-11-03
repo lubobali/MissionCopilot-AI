@@ -14,7 +14,7 @@ struct ContentView: View {
                 Text("Mission Copilot")
                     .font(.title.bold())
                 Text("Offline AI for field missions")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(.secondaryText))
                 if let notice {
                     Text(notice)
                         .font(.footnote)
