@@ -8,9 +8,9 @@ Usage (uv run --directory backend missioncopilot-admin <command>):
 
 The Postgres admin address comes from MISSIONCOPILOT_ADMIN_URL (or _FILE); locally, backend/.env.
 The directory database is mc_directory unless MISSIONCOPILOT_DIRECTORY_DB names another.
-Addresses with passwords go into MISSIONCOPILOT_SECRETS_DIR (default backend/.secrets, gitignored):
-directory.url and orgs/<org id>.url, each readable by its owner only and never printed. Start the
-server with MISSIONCOPILOT_DIRECTORY_URL_FILE=<dir>/directory.url and
+Addresses with passwords go into MISSIONCOPILOT_ADDRESS_DIR (default backend/.db-addresses,
+gitignored): directory.url and orgs/<org id>.url, each readable by its owner only, never printed.
+Start the server with MISSIONCOPILOT_DIRECTORY_URL_FILE=<dir>/directory.url and
 MISSIONCOPILOT_ORG_URLS_DIR=<dir>/orgs.
 """
 
@@ -141,7 +141,7 @@ def _config(env: Mapping[str, str]) -> tuple[str, Path, str]:
         admin_url = read_setting(merged, "MISSIONCOPILOT_ADMIN_URL")
     except StartupError as error:
         raise AdminError(f"{error}; locally, run scripts/make_dev_env.py") from None
-    address_dir = Path(merged.get("MISSIONCOPILOT_SECRETS_DIR", BACKEND / ".secrets"))
+    address_dir = Path(merged.get("MISSIONCOPILOT_ADDRESS_DIR", BACKEND / ".db-addresses"))
     return admin_url, address_dir, merged.get("MISSIONCOPILOT_DIRECTORY_DB", DIRECTORY)
 
 

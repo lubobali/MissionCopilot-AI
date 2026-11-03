@@ -31,10 +31,10 @@ Set up locally and load the fictional Kandor demo, then start the server:
 uv run --directory backend missioncopilot-admin setup       # the directory and its own login
 uv run --directory backend missioncopilot-admin seed-demo   # org kandor-works, two missions, three people
 uv run --directory backend missioncopilot-admin migrate     # after pulling new migrations
-cd backend && MISSIONCOPILOT_DIRECTORY_URL_FILE=.secrets/directory.url \
-  MISSIONCOPILOT_ORG_URLS_DIR=.secrets/orgs uv run missioncopilot-backend
+cd backend && MISSIONCOPILOT_DIRECTORY_URL_FILE=.db-addresses/directory.url \
+  MISSIONCOPILOT_ORG_URLS_DIR=.db-addresses/orgs uv run missioncopilot-backend
 ```
-Addresses with passwords live in `backend/.secrets` (gitignored, owner-only files) and are never
+Addresses with passwords live in `backend/.db-addresses` (gitignored, owner-only files) and are never
 printed. The server never migrates by itself, and it refuses to start if a database is missing,
 behind the code, or named differently from the directory.
 

@@ -119,7 +119,7 @@ def test_the_demo_starts_a_real_server_where_each_officer_sees_their_own_mission
 def test_the_command_line_never_prints_a_password(ops, capsys):
     env = {
         "MISSIONCOPILOT_ADMIN_URL": admin_url(),
-        "MISSIONCOPILOT_SECRETS_DIR": str(ops.secrets),
+        "MISSIONCOPILOT_ADDRESS_DIR": str(ops.secrets),
         "MISSIONCOPILOT_DIRECTORY_DB": ops.directory,  # never the real one: cleanup drops it
     }
     org_id = ops.org()
@@ -139,7 +139,7 @@ def test_the_command_line_never_prints_a_password(ops, capsys):
 def test_a_failing_command_says_why_and_exits_non_zero(ops, capsys):
     env = {
         "MISSIONCOPILOT_ADMIN_URL": admin_url(),
-        "MISSIONCOPILOT_SECRETS_DIR": str(ops.secrets),
+        "MISSIONCOPILOT_ADDRESS_DIR": str(ops.secrets),
         "MISSIONCOPILOT_DIRECTORY_DB": ops.directory,  # never the real one: cleanup drops it
     }
 
