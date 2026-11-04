@@ -25,6 +25,7 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mc_backup  # noqa: E402 - next to this script
 import nginx_check  # noqa: E402 - next to this script
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -182,6 +183,27 @@ def check_client_address(c: Check) -> None:
     c.expect("from any other address, a forged X-Forwarded-For is ignored", seen != PHONE, seen)
 
 
+def check_backup(c: Check, args: argparse.Namespace, image: str, folder: Path) -> None:
+    """A real backup of this project into a throwaway local repository, then a restore of it
+    into a throwaway Postgres (scripts/mc_backup.py), as the server does every night."""
+    work = Path(tempfile.mkdtemp(prefix="mc-check-backup-"))
+    try:
+        lines = [f"{key}={value}" for key, value in values(args, image, folder).items()]
+        (work / "values.env").write_text("\n".join(lines) + "\n")
+        _write_owner_only(work / "restic-password", secrets.token_hex(24))
+        (work / "repo").mkdir()
+        where = ["--values", str(work / "values.env"), "--password-file",
+                 str(work / "restic-password"), "--local-repo", str(work / "repo")]  # fmt: skip
+        codes = [
+            mc_backup.main([command, *where]) for command in ("init", "backup", "restore-check")
+        ]
+        c.expect(
+            "a backup restores into a throwaway Postgres with every row", codes == [0, 0, 0], codes
+        )
+    finally:
+        _sh(*mc_backup.SUDO, "rm", "-rf", str(work), check=False)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--image")
@@ -208,6 +230,7 @@ def main(argv: list[str] | None = None) -> int:
         check_http(c)
         check_container(c)
         check_client_address(c)
+        check_backup(c, args, image, folder)
         nginx_check.start(Path(tempfile.mkdtemp(prefix="mc-check-nginx-")), HOSTNAME, args.port)
         nginx_check.wait(HOSTNAME)
         nginx_check.check(c, HOSTNAME, PHONE)  # last: it stops the API to see the 503
