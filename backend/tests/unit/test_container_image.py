@@ -60,8 +60,8 @@ def test_the_final_image_holds_only_the_installed_environment():
 
 
 def test_it_runs_as_a_fixed_non_root_user():
-    assert _instructions(FINAL, "USER") == ["10001:10001"]
-    assert "--uid 10001" in FINAL
+    assert _instructions(FINAL, "USER") == ["10120:10120"]
+    assert "--uid 10120" in FINAL
 
 
 def test_the_server_is_pid_1_in_exec_form():

@@ -33,7 +33,7 @@ ROOT = Path(__file__).resolve().parents[1]
 COMPOSE = ROOT / "deploy" / "compose.yaml"
 HOSTNAME = "mc-check.example.org"
 PHONE = "203.0.113.9"  # a documentation address (RFC 5737), sent as X-Forwarded-For
-POSTGRES_UID, SERVER_UID = 10002, 10001  # deploy/compose.yaml: our own uids, not the image's 999
+POSTGRES_UID, SERVER_UID = 10121, 10120  # deploy/compose.yaml: uids no other app uses
 
 
 def values(args: argparse.Namespace, image: str, folder: Path) -> dict[str, str]:
@@ -148,7 +148,7 @@ def check_container(c: Check) -> None:
     seen = json.loads(_sh("docker", "inspect", api))[0]
     host = seen["HostConfig"]
     c.expect("api is healthy", seen["State"]["Health"]["Status"] == "healthy", seen["State"])
-    c.expect("api runs as 10001", seen["Config"]["User"] == "10001:10001", seen["Config"]["User"])
+    c.expect("api runs as 10120", seen["Config"]["User"] == "10120:10120", seen["Config"]["User"])
     c.expect("api root filesystem is read-only", host["ReadonlyRootfs"] is True)
     c.expect("api has no capabilities", host["CapDrop"] == ["ALL"] and not host["CapAdd"])
     reader = "import missioncopilot_backend.checklist_xlsx, pyxform; print('loaded')"
@@ -160,7 +160,7 @@ def check_container(c: Check) -> None:
     pg = json.loads(_sh("docker", "inspect", c.run("ps", "-q", "postgres")))[0]
     c.expect("postgres publishes no port", not pg["HostConfig"]["PortBindings"], pg["HostConfig"])
     who = pg["Config"]["User"]
-    c.expect("postgres runs as its own uid 10002", who == f"{POSTGRES_UID}:{POSTGRES_UID}", who)
+    c.expect("postgres runs as its own uid 10121", who == f"{POSTGRES_UID}:{POSTGRES_UID}", who)
     caps = (pg["HostConfig"]["CapDrop"], pg["HostConfig"]["CapAdd"])
     c.expect("postgres has no capabilities", caps[0] == ["ALL"] and not caps[1], caps)
     zone = c.run(

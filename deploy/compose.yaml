@@ -19,7 +19,7 @@ x-boxed-in: &boxed-in
 x-backend: &backend
   <<: *boxed-in
   image: ${MC_IMAGE:?set MC_IMAGE to the image by digest}
-  user: "10001:10001"
+  user: "10120:10120"  # not 10001: another app's containers run as that on the server
   read_only: true
 
 services:
@@ -31,7 +31,7 @@ services:
     # Its own uid, not the image's 999: on a shared server 999 can be another service's account,
     # which could then read the password file. The image's data folder is open to any uid (1777),
     # so no root start and no capabilities are needed.
-    user: "10002:10002"
+    user: "10121:10121"
     read_only: true
     tmpfs: ["/var/run/postgresql:size=1m", "/tmp:size=16m"]
     environment:

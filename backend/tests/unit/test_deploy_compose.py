@@ -49,11 +49,11 @@ def test_only_the_api_publishes_a_port_and_only_on_loopback():
 
 
 @pytest.mark.parametrize("name", OURS)
-def test_our_containers_run_the_pinned_image_read_only_as_10001(name):
+def test_our_containers_run_the_pinned_image_read_only_as_10120(name):
     service = SERVICES[name]
 
     assert service["image"] == "${MC_IMAGE:?set MC_IMAGE to the image by digest}"
-    assert service["user"] == "10001:10001"
+    assert service["user"] == "10120:10120"
     assert service["read_only"] is True
     assert service["cap_drop"] == ["ALL"] and "cap_add" not in service
 
@@ -75,7 +75,7 @@ def test_postgres_runs_as_its_own_user_with_no_capabilities():
     # account, which could then read the password file. Its own uid, and no root start at all.
     postgres = SERVICES["postgres"]
 
-    assert postgres["user"] == "10002:10002"
+    assert postgres["user"] == "10121:10121"
     assert postgres["cap_drop"] == ["ALL"] and "cap_add" not in postgres
     assert postgres["read_only"] is True
 
@@ -152,3 +152,11 @@ def test_the_long_running_services_come_back_and_stop_gracefully():
 
 def test_admin_runs_only_on_purpose():
     assert SERVICES["admin"]["profiles"] == ["admin"]  # docker compose run --rm admin ...
+
+
+def test_our_uids_are_our_own():
+    # Host uids are shared by every container on the server: 999 (the Postgres image's) and
+    # 10001 (a common pick) were both in use by other apps there. Ours: 10120 and 10121.
+    uids = {SERVICES[name]["user"] for name in ("postgres", "api", "migrate", "admin")}
+
+    assert uids == {"10120:10120", "10121:10121"}
