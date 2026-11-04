@@ -3,9 +3,10 @@ with Retry-After; it tracks a capped number of clients, so many addresses cannot
 A body over the limit answers 413: refused before reading when Content-Length says so, and counted
 while it streams in, because a chunked body declares no length.
 
-The client address is the connection's own. X-Forwarded-For is not trusted here: anyone can send
-it. Behind a reverse proxy, run uvicorn with --proxy-headers and --forwarded-allow-ips set to that
-proxy only. One process keeps its own counts; a real deployment also limits at the proxy."""
+The client address is the connection's own. X-Forwarded-For is not read here: anyone can send it.
+Behind a reverse proxy, MISSIONCOPILOT_FORWARDED_ALLOW_IPS names that proxy, and uvicorn then puts
+the phone's address in its place before this runs (missioncopilot_backend.uvicorn_options). One
+process keeps its own counts; a real deployment also limits at the proxy."""
 
 import math
 import time
@@ -51,6 +52,35 @@ class RateLimiter:
         return len(self._buckets)
 
 
+class BlockedSpells:
+    """Who is being refused right now, so a refusal is recorded when a spell starts, not at every
+    429: a flood of refusals must not flood the audit log. Capped like the limiter."""
+
+    def __init__(self, max_keys: int = 10_000):
+        self._blocked: OrderedDict[str, None] = OrderedDict()
+        self._max_keys = max_keys
+
+    def starts(self, key: str) -> bool:
+        if key in self._blocked:
+            return False
+        self._blocked[key] = None
+        while len(self._blocked) > self._max_keys:
+            self._blocked.popitem(last=False)
+        return True
+
+    def ends(self, key: str) -> None:
+        self._blocked.pop(key, None)
+
+
+class DeviceLimits:
+    """The strict limit, one bucket per phone. Used only after the phone's signature checked out
+    (device_auth), so nobody else can spend a phone's allowance."""
+
+    def __init__(self, limiter: RateLimiter):
+        self.limiter = limiter
+        self.spells = BlockedSpells()
+
+
 class LimitsMiddleware:
     def __init__(
         self,
@@ -63,7 +93,7 @@ class LimitsMiddleware:
         self.limiter = limiter
         self.max_body_bytes = max_body_bytes
         self.audit = audit
-        self._blocked: OrderedDict[str, None] = OrderedDict()  # recorded once per blocking spell
+        self._spells = BlockedSpells()
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -73,28 +103,19 @@ class LimitsMiddleware:
         address = client[0] if client else "unknown"
         wait = self.limiter.check(address)
         if wait:
-            self._note_blocked(address)
+            if self._spells.starts(address):
+                self._record("rate_limited", address)
             response = problem(429)
             response.headers["Retry-After"] = str(wait)
             await response(scope, receive, send)
             return
-        self._blocked.pop(address, None)
+        self._spells.ends(address)
         declared = dict(scope["headers"]).get(b"content-length")
         if declared is not None and (not declared.isdigit() or int(declared) > self.max_body_bytes):
             self._record("body_too_large", address)
             await problem(413 if declared.isdigit() else 400)(scope, receive, send)
             return
         await self.app(scope, self._counting(receive, address), send)
-
-    def _note_blocked(self, address: str) -> None:
-        """Record when a client starts being refused, not every refusal: a flood of 429s must not
-        flood the audit log."""
-        if address in self._blocked:
-            return
-        self._blocked[address] = None
-        while len(self._blocked) > 10_000:
-            self._blocked.popitem(last=False)
-        self._record("rate_limited", address)
 
     def _record(self, kind: Kind, address: str) -> None:
         if self.audit is not None:

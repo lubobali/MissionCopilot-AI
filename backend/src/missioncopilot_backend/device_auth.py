@@ -16,6 +16,7 @@ from starlette.datastructures import Headers
 
 from missioncopilot_backend.auth import audit
 from missioncopilot_backend.devices import DeviceStore
+from missioncopilot_backend.limits import DeviceLimits
 from missioncopilot_backend.shred_order import ShredOrder
 from missioncopilot_backend.signatures import is_signed_by, load_p256_public_key
 
@@ -70,9 +71,22 @@ async def require_device(request: Request) -> DevicePrincipal:
         return _refuse(request, device.id)
     if device.status == "revoked":  # only the genuine phone learns it was revoked (ADR 0012)
         return _shred(request, device.id, int(devices.now()))
+    _limit(request, device.id)  # after the signature, before the sequence: a 429 uses up nothing
     if not devices.accept_seq(device.id, seq):  # only after the signature: forgeries move nothing
         return _refuse(request, device.id)
     return DevicePrincipal(device_id=device.id, org_id=device.org_id, user_id=device.user_id)
+
+
+def _limit(request: Request, device_id: str) -> None:
+    """The strict per-phone limit (S3); recorded once per spell, like the per-address one."""
+    limits: DeviceLimits = request.app.state.device_limits
+    wait = limits.limiter.check(device_id)
+    if not wait:
+        limits.spells.ends(device_id)
+        return
+    if limits.spells.starts(device_id):
+        audit(request, "rate_limited", subject=device_id)
+    raise HTTPException(429, headers={"Retry-After": str(wait)})
 
 
 def _refuse(request: Request, device_id: str | None) -> DevicePrincipal:

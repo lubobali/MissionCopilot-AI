@@ -11,6 +11,7 @@ And, as a file only (a private key never travels in an environment variable):
   MISSIONCOPILOT_SIGNING_KEY_FILE  the P-256 key that signs mission packs and shred orders
 """
 
+import logging
 import os
 from collections.abc import AsyncGenerator, Mapping
 from contextlib import ExitStack, asynccontextmanager
@@ -26,6 +27,7 @@ from missioncopilot_backend.app import create_app
 from missioncopilot_backend.db.directory import Directory
 from missioncopilot_backend.db.migrations import MigrationError, load, pending
 from missioncopilot_backend.db.missions import ORG_MIGRATIONS, PostgresOrgDatabases
+from missioncopilot_backend.pack_format import key_id
 from missioncopilot_backend.settings import Settings
 from missioncopilot_backend.signing_key import SigningKeyError, load_signing_key
 
@@ -39,9 +41,15 @@ class StartupError(Exception):
 
 
 def _private_text(path: Path) -> str:
-    if path.stat().st_mode & 0o077:
-        raise StartupError(f"{path} is readable by others; chmod 600 it")
-    return path.read_text(encoding="utf-8").strip()
+    try:
+        if path.stat().st_mode & 0o077:
+            raise StartupError(f"{path} is readable by others; chmod 600 it")
+        return path.read_text(encoding="utf-8").strip()
+    except OSError as error:  # missing, a folder, or owned by someone else (a container's root)
+        raise StartupError(
+            f"{path} cannot be read ({error.strerror or error.__class__.__name__}); it must be a "
+            f"file owned by the server's user (uid {os.getuid()}), chmod 600"
+        ) from None
 
 
 def read_setting(env: Mapping[str, str], name: str) -> str:
@@ -105,6 +113,8 @@ def _signing_key(env: Mapping[str, str]) -> ec.EllipticCurvePrivateKey:
 def build(env: Mapping[str, str] = os.environ) -> FastAPI:
     """The server for this environment; raises StartupError instead of starting half-ready."""
     settings = Settings.from_env(env)
+    if problems := settings.unsafe():
+        raise StartupError("; ".join(problems))
     signing_key = _signing_key(env)
     directory_url = read_setting(env, DIRECTORY)
     urls = _org_urls(env)
@@ -116,6 +126,8 @@ def build(env: Mapping[str, str] = os.environ) -> FastAPI:
     except BaseException:
         stack.close()
         raise
+    # uvicorn's own logger: it is configured before the factory runs, so the line is never lost.
+    logging.getLogger("uvicorn.error").info(settings.summary(key_id(signing_key.public_key())))
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:

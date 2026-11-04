@@ -1,0 +1,498 @@
+{
+  "fictional": true,
+  "disclaimer": "Entirely fictional demo data. Kandor is not a real country; all names, amounts and documents are invented.",
+  "mission": {
+    "id": "6f1d2c3a-0000-4000-8000-000000000001",
+    "projectRef": "KRRP-P1",
+    "project": "Kandor Rural Roads Project, Package 1",
+    "site": "Kandor, Package 1, km 0 to 64",
+    "startDate": "2026-11-10",
+    "endDate": "2026-11-14",
+    "team": [
+      "field-officer-01",
+      "program-manager-01"
+    ]
+  },
+  "pack": {
+    "budget": 12000000,
+    "contractValue": 10000000,
+    "currency": "USD",
+    "contractor": "Kandor Roadworks Ltd",
+    "contractPeriod": {
+      "start": "2025-01-15",
+      "end": "2026-12-31"
+    },
+    "paymentApprover": "program-manager-01",
+    "payments": [
+      {
+        "date": "2025-02-15",
+        "reference": "Advance payment",
+        "amount": 1000000
+      },
+      {
+        "date": "2025-09-30",
+        "reference": "Invoice 6",
+        "amount": 1500000
+      },
+      {
+        "date": "2026-01-31",
+        "reference": "Invoice 9",
+        "amount": 1800000
+      },
+      {
+        "date": "2026-05-31",
+        "reference": "Invoice 11",
+        "amount": 2000000
+      },
+      {
+        "date": "2026-08-31",
+        "reference": "Invoice 13",
+        "amount": 1720000
+      },
+      {
+        "date": "2026-10-12",
+        "reference": "Invoice 14",
+        "amount": 480000
+      }
+    ],
+    "physicalProgress": {
+      "asOf": "2026-09-30",
+      "kmBuilt": 32,
+      "kmTotal": 64,
+      "unit": "km of asphalt"
+    },
+    "milestones": [
+      {
+        "title": "Mobilisation",
+        "dueDate": "2025-03-01",
+        "dateMet": "2025-02-20"
+      },
+      {
+        "title": "Sections 1 and 2 paved",
+        "dueDate": "2026-06-30",
+        "dateMet": "2026-07-20"
+      },
+      {
+        "title": "Section 3 bridge complete",
+        "dueDate": "2026-09-30",
+        "dateMet": null
+      },
+      {
+        "title": "Practical completion",
+        "dueDate": "2026-12-15",
+        "dateMet": null
+      }
+    ],
+    "lastReportSummary": "Previous mission (May 2026): the contractor committed to start the Section 3 bridge by July 2026 and to submit a revised work plan. The ministry agreed to review payment certification before the next invoice.",
+    "checklist": {
+      "format": "XLSForm-style, from docs/demo/forms/road-checklist.xlsx",
+      "survey": [
+        {
+          "type": "select_one yes_no",
+          "name": "bridge_started",
+          "label": "Has work on the Section 3 bridge started?",
+          "label::French (fr)": "Les travaux du pont de la section 3 ont-ils commencé ?",
+          "required": "yes"
+        },
+        {
+          "type": "decimal",
+          "name": "road_width_m",
+          "label": "Measured carriageway width at the sample point (m)",
+          "label::French (fr)": "Largeur de chaussée mesurée au point d'échantillonnage (m)",
+          "hint": "Tape across the paved surface, edge to edge",
+          "hint::French (fr)": "Mesurer la surface revêtue d'un bord à l'autre",
+          "required": "yes",
+          "constraint": ". > 0 and . < 20",
+          "constraint_message": "A road width is between 0 and 20 metres",
+          "constraint_message::French (fr)": "Une largeur de route est comprise entre 0 et 20 mètres"
+        },
+        {
+          "type": "select_one yes_no",
+          "name": "drainage_present",
+          "label": "Are side drains built at the sample point?",
+          "label::French (fr)": "Les fossés latéraux sont-ils construits au point d'échantillonnage ?",
+          "required": "yes"
+        },
+        {
+          "type": "select_multiple defects",
+          "name": "defects",
+          "label": "Which defects do you see on this stretch?",
+          "label::French (fr)": "Quels défauts voyez-vous sur ce tronçon ?",
+          "hint": "Choose all that apply",
+          "hint::French (fr)": "Choisir tout ce qui s'applique",
+          "required": "yes",
+          "constraint": "not(selected(., 'none') and count-selected(.) > 1)",
+          "constraint_message": "\"None\" cannot be chosen with a defect",
+          "constraint_message::French (fr)": "« Aucun » ne peut pas être choisi avec un défaut"
+        },
+        {
+          "type": "text",
+          "name": "board_ref",
+          "label": "Number on the contractor's site board",
+          "label::French (fr)": "Numéro sur le panneau de chantier de l'entreprise",
+          "hint": "Like KN-0042",
+          "hint::French (fr)": "Par exemple KN-0042",
+          "required": "no",
+          "constraint": "regex(., '^KN-[0-9]{4}$')",
+          "constraint_message": "Write it as KN and four digits, like KN-0042",
+          "constraint_message::French (fr)": "Écrire KN et quatre chiffres, par exemple KN-0042"
+        },
+        {
+          "type": "begin_group",
+          "name": "bridge",
+          "label": "Section 3 bridge",
+          "label::French (fr)": "Pont de la section 3",
+          "relevant": "${bridge_started} = 'yes'"
+        },
+        {
+          "type": "integer",
+          "name": "piers_built",
+          "label": "How many of the 4 piers are built?",
+          "label::French (fr)": "Combien des 4 piles sont construites ?",
+          "required": "yes",
+          "constraint": ". >= 0 and . <= 4",
+          "constraint_message": "The bridge has 4 piers",
+          "constraint_message::French (fr)": "Le pont a 4 piles"
+        },
+        {
+          "type": "date",
+          "name": "bridge_work_started",
+          "label": "When did work on the bridge start?",
+          "label::French (fr)": "Quand les travaux du pont ont-ils commencé ?",
+          "required": "no",
+          "constraint": ". <= today()",
+          "constraint_message": "The date cannot be in the future",
+          "constraint_message::French (fr)": "La date ne peut pas être dans le futur"
+        },
+        {
+          "type": "end_group"
+        },
+        {
+          "type": "note",
+          "name": "stand_note",
+          "label": "Stand at the sample point for the last two questions.",
+          "label::French (fr)": "Restez au point d'échantillonnage pour les deux dernières questions."
+        },
+        {
+          "type": "geopoint",
+          "name": "sample_point",
+          "label": "Location of the sample point",
+          "label::French (fr)": "Emplacement du point d'échantillonnage",
+          "required": "yes"
+        },
+        {
+          "type": "image",
+          "name": "sample_photo",
+          "label": "Photo of the road at the sample point",
+          "label::French (fr)": "Photo de la route au point d'échantillonnage",
+          "required": "no"
+        }
+      ],
+      "settings": {
+        "form_id": "kandor_road_check",
+        "form_title": "Site supervision checklist, Package 1 road",
+        "version": "2026110401",
+        "default_language": "English (en)"
+      },
+      "choices": [
+        {
+          "list_name": "yes_no",
+          "name": "yes",
+          "label": "Yes",
+          "label::French (fr)": "Oui"
+        },
+        {
+          "list_name": "yes_no",
+          "name": "no",
+          "label": "No",
+          "label::French (fr)": "Non"
+        },
+        {
+          "list_name": "defects",
+          "name": "potholes",
+          "label": "Potholes",
+          "label::French (fr)": "Nids-de-poule"
+        },
+        {
+          "list_name": "defects",
+          "name": "edge_breaks",
+          "label": "Broken road edges",
+          "label::French (fr)": "Bords de chaussée cassés"
+        },
+        {
+          "list_name": "defects",
+          "name": "standing_water",
+          "label": "Standing water",
+          "label::French (fr)": "Eau stagnante"
+        },
+        {
+          "list_name": "defects",
+          "name": "none",
+          "label": "None",
+          "label::French (fr)": "Aucun"
+        }
+      ]
+    },
+    "supervision": {
+      "project": {
+        "projectRef": "KRRP-P1",
+        "country": "Kandor",
+        "sector": "Transport: rural roads",
+        "status": "implementation",
+        "developmentObjective": "Improve all-season road access for rural communities in Kandor's northern districts.",
+        "implementingAgency": "Kandor Ministry of Public Works",
+        "approvalDate": "2024-09-12",
+        "closingDate": "2027-06-30"
+      },
+      "components": [
+        {
+          "id": "C1",
+          "name": "Road upgrading, Package 1",
+          "cost": 10000000,
+          "disbursed": 8500000
+        },
+        {
+          "id": "C2",
+          "name": "Road safety and maintenance",
+          "cost": 1500000,
+          "disbursed": 300000
+        },
+        {
+          "id": "C3",
+          "name": "Project management",
+          "cost": 500000,
+          "disbursed": 350000
+        }
+      ],
+      "ratings": {
+        "asOf": "2026-05-29",
+        "pdoProgress": {
+          "previous": "Moderately Satisfactory",
+          "current": "Moderately Unsatisfactory"
+        },
+        "implementationProgress": {
+          "previous": "Moderately Satisfactory",
+          "current": "Moderately Unsatisfactory"
+        },
+        "procurement": {
+          "previous": "Satisfactory",
+          "current": "Satisfactory"
+        },
+        "financialManagement": {
+          "previous": "Moderately Satisfactory",
+          "current": "Moderately Unsatisfactory"
+        },
+        "environmentalSocial": {
+          "previous": "Satisfactory",
+          "current": "Moderately Satisfactory"
+        },
+        "overallRisk": {
+          "previous": "Substantial",
+          "current": "High"
+        }
+      },
+      "results": [
+        {
+          "type": "PDO",
+          "indicator": "Rural people with all-season road access",
+          "unit": "people",
+          "baseline": 0,
+          "actualPrevious": 18000,
+          "actualCurrent": 26000,
+          "endTarget": 60000
+        },
+        {
+          "type": "Intermediate",
+          "indicator": "Road upgraded",
+          "unit": "km",
+          "baseline": 0,
+          "actualPrevious": 20,
+          "actualCurrent": 32,
+          "endTarget": 64
+        },
+        {
+          "type": "Intermediate",
+          "indicator": "Bridges completed",
+          "unit": "bridges",
+          "baseline": 0,
+          "actualPrevious": 0,
+          "actualCurrent": 0,
+          "endTarget": 1
+        }
+      ],
+      "financing": {
+        "loanId": "KRRP-L1",
+        "original": 12000000,
+        "revised": 12000000,
+        "cancelled": 0
+      },
+      "contract": {
+        "ocid": "ocds-kandor-krrp-p1-w01",
+        "title": "Upgrading of the 64 km Package 1 road",
+        "method": "Request for Bids",
+        "status": "active"
+      },
+      "locations": [
+        {
+          "id": "L1",
+          "description": "Package 1 road, km 0 to 64 (fictional coordinates in open sea)",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                1.0,
+                1.0
+              ],
+              [
+                1.2,
+                1.15
+              ],
+              [
+                1.45,
+                1.3
+              ]
+            ]
+          }
+        },
+        {
+          "id": "L2",
+          "description": "Sample point at km 18",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              1.06,
+              1.05
+            ]
+          }
+        },
+        {
+          "id": "L3",
+          "description": "Section 3 bridge site",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              1.33,
+              1.24
+            ]
+          }
+        }
+      ],
+      "safeguards": {
+        "riskRating": "Substantial",
+        "commitments": [
+          {
+            "action": "Post the grievance contact at every work site",
+            "deadline": "2026-03-31",
+            "status": "Completed"
+          },
+          {
+            "action": "Traffic management plan for the Section 3 bridge works",
+            "deadline": "2026-07-31",
+            "status": "Not started"
+          }
+        ],
+        "grievances": [
+          {
+            "date": "2026-08-14",
+            "category": "Dust and noise near Kando village",
+            "status": "Resolved"
+          },
+          {
+            "date": "2026-10-02",
+            "category": "Access to fields blocked at km 22",
+            "status": "Open"
+          }
+        ]
+      },
+      "agreedActions": {
+        "mission": "Supervision mission, May 2026",
+        "actions": [
+          {
+            "action": "Start the Section 3 bridge works",
+            "responsible": "Contractor",
+            "deadline": "2026-07-31",
+            "status": "Not started"
+          },
+          {
+            "action": "Submit a revised work plan",
+            "responsible": "Contractor",
+            "deadline": "2026-07-15",
+            "status": "Ongoing"
+          },
+          {
+            "action": "Review payment certification before the next invoice",
+            "responsible": "Ministry",
+            "deadline": "2026-09-30",
+            "status": "Not started"
+          }
+        ]
+      }
+    }
+  },
+  "documents": [
+    {
+      "kind": "invoice",
+      "language": "en",
+      "title": "Invoice No. 14, Package 1",
+      "fields": {
+        "invoiceNumber": "14",
+        "date": "2026-10-12",
+        "amount": 480000,
+        "contractor": "Kandor Roadworks Ltd",
+        "cumulativePaid": 8500000,
+        "contractValue": 10000000
+      }
+    },
+    {
+      "kind": "progress_report",
+      "language": "en",
+      "title": "Contractor progress report, September 2026",
+      "fields": {
+        "kmCompleted": 32,
+        "kmTotal": 64,
+        "bridgeSection3": "not started",
+        "plannedCompletion": "2026-12-15",
+        "reasonGiven": "rains and fuel shortages"
+      }
+    },
+    {
+      "kind": "letter",
+      "language": "fr",
+      "title": "Lettre du Ministère des Travaux publics de Kandor",
+      "fields": {
+        "date": "2026-10-20",
+        "summary": "Le ministère accepte de prolonger le délai jusqu'au 15 mars 2027, à condition qu'un nouveau plan de travail soit présenté sous deux semaines."
+      }
+    }
+  ],
+  "fieldFindings": {
+    "roadWidth": {
+      "specM": 7.0,
+      "measuredM": 4.9,
+      "where": "km 18, sample point",
+      "evidence": "photo and tape measurement"
+    }
+  },
+  "plannedRisks": [
+    {
+      "rule": "MC-01",
+      "expected": "raised",
+      "why": "85% paid vs 50% built: 35 points above physical progress"
+    },
+    {
+      "rule": "R067",
+      "expected": "raised",
+      "why": "Section 3 bridge milestone past due and not met"
+    },
+    {
+      "rule": "R068",
+      "expected": "clear",
+      "why": "payments (8.5M) do not exceed the contract value (10M)"
+    },
+    {
+      "rule": "field",
+      "expected": "finding",
+      "why": "road about 30% narrower than specified at km 18"
+    }
+  ]
+}

@@ -26,6 +26,11 @@ missioncopilot-admin = "missioncopilot_backend.admin:main"
 requires = ["uv_build>=0.13.6,<0.14.0"]
 build-backend = "uv_build"
 
+[tool.uv]
+# One uv everywhere: the Mac, CI (setup-uv reads this file), the image and the server.
+# scripts/check_uv_pin.py keeps them equal.
+required-version = "==0.13.6"
+
 [dependency-groups]
 dev = [
     "httpx2>=2.16.0",

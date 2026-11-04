@@ -2,7 +2,9 @@
 the server refuses to start unless every database is reachable, fully migrated and named the way the
 directory says (fail closed). Each organization gets its own connection pool."""
 
+import logging
 import os
+import time
 import uuid
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -17,6 +19,7 @@ from missioncopilot_backend.db.directory import Directory
 from missioncopilot_backend.db.migrations import load, migrate
 from missioncopilot_backend.db.missions import ORG_MIGRATIONS
 from missioncopilot_backend.db.organizations import OrgDatabase, drop_organization, provision
+from missioncopilot_backend.pack_format import key_id
 from missioncopilot_backend.server import StartupError, build
 from missioncopilot_backend.signing_key import load_signing_key, new_signing_key
 from tests.db.postgres import admin_url, throwaway_database
@@ -83,7 +86,22 @@ def _refused(env: dict[str, str], match: str) -> None:
 
 def test_the_server_starts_with_every_database_in_place(world):
     with local_client(build(world.env())) as client:
-        assert client.get("/v1/health").json() == {"status": "ok"}
+        answer = client.get("/v1/health").json()
+        assert answer["status"] == "ok"
+        assert abs(answer["time"] - time.time()) < 5  # the real server's clock, in Unix seconds
+
+
+def test_the_start_is_logged_once_with_the_key_id_and_no_secret(world, caplog):
+    caplog.set_level(logging.INFO, logger="uvicorn.error")
+
+    build(world.env())
+
+    lines = [r.getMessage() for r in caplog.records if r.name == "uvicorn.error"]
+    assert len(lines) == 1
+    public = load_signing_key(world.signing_key).public_key()
+    assert f"signing_key={key_id(public)}" in lines[0]
+    assert world.org.app_password not in lines[0]
+    assert "password" not in lines[0]
 
 
 def test_each_organization_gets_its_own_pool_into_its_own_database(world):

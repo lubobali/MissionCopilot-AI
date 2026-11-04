@@ -1,0 +1,8 @@
+# Deny everything, then allow by name: secrets (.env, .db-addresses, .keys), the venv, tests and
+# caches can never reach the image, even ones added later.
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!src/
+**/__pycache__
