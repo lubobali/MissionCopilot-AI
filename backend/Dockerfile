@@ -30,13 +30,14 @@ FROM python:3.12.16-slim-trixie@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2
 LABEL org.opencontainers.image.source="https://github.com/lubobali/MissionCopilot-AI" \
       org.opencontainers.image.description="MissionCopilot backend server" \
       org.opencontainers.image.licenses="MIT"
-RUN groupadd --system --gid 10001 missioncopilot \
-    && useradd --system --uid 10001 --gid 10001 --no-create-home --home-dir /nonexistent \
+# 10120: a uid no other app on the server uses (host uids are shared by every container).
+RUN groupadd --system --gid 10120 missioncopilot \
+    && useradd --system --uid 10120 --gid 10120 --no-create-home --home-dir /nonexistent \
        --shell /usr/sbin/nologin missioncopilot
 # Owned by root: the server's user can run the code but never change it.
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
-USER 10001:10001
+USER 10120:10120
 EXPOSE 8110
 # No curl in the image: Python asks the server itself; 127.0.0.1 stays in the allowed hosts for it.
 HEALTHCHECK --interval=15s --timeout=3s --start-period=20s --retries=3 CMD ["python", "-c", "import sys, urllib.request; sys.exit(urllib.request.urlopen('http://127.0.0.1:8110/v1/health', timeout=2).status != 200)"]

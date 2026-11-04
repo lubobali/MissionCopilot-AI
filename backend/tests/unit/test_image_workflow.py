@@ -26,7 +26,16 @@ def _uses(job: dict) -> list[str]:
 
 
 def test_it_runs_for_the_backend_on_prs_and_main():
-    paths = ["backend/**", "deploy/**", "scripts/container_check.py", ".github/workflows/image.yml"]
+    paths = [
+        "backend/**",
+        "deploy/**",
+        "scripts/container_check.py",
+        "scripts/mc_backup.py",
+        "scripts/mc_deploy.py",
+        "scripts/nginx_check.py",
+        "scripts/render_nginx_site.py",
+        ".github/workflows/image.yml",
+    ]
 
     assert ON["push"] == {"branches": ["main"], "paths": paths}
     assert ON["pull_request"] == {"paths": paths}
