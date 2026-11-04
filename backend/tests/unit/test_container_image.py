@@ -32,7 +32,7 @@ def test_every_image_is_pinned_by_digest():
 def test_both_stages_use_the_same_python():
     assert len(FROMS) == 2
     assert FROMS[0][0] == FROMS[1][0]
-    assert FROMS[0][0].startswith("python:3.12.")
+    assert FROMS[0][0].startswith("python:3.12.16-")  # fixes critical CVE-2026-115557
     assert FROMS[0][0].split("@")[0].endswith("-slim-trixie")
 
 
@@ -105,3 +105,17 @@ def test_the_lock_must_have_wheels_for_the_server_and_a_macs_docker():
         "sys_platform == 'linux' and platform_machine == 'x86_64'",  # the server, CI's runner
         "sys_platform == 'linux' and platform_machine == 'aarch64'",  # Docker on an Apple Mac
     ]
+
+
+def test_the_unused_odk_validator_jar_is_removed():
+    # pyxform bundles ODK_Validate.jar (old Jackson and commons-io, high CVEs). The backend only
+    # reads workbooks (xlsx_to_dict) and the image has no Java, so it can never run: removed.
+    # Only the jar: pyxform imports the odk_validate module at load time (container_check
+    # proves pyxform still loads in the real image).
+    builder = DOCKERFILE[: DOCKERFILE.rindex("\nFROM ")]
+    site = "/app/.venv/lib/python3.12/site-packages"
+    jar = f"{site}/pyxform/validators/odk_validate/bin/ODK_Validate.jar"
+
+    assert f"\nRUN rm {jar}\n" in builder
+    source = (BACKEND / "src" / "missioncopilot_backend").rglob("*.py")
+    assert not [p for p in source if "odk_validate" in p.read_text(encoding="utf-8")]
