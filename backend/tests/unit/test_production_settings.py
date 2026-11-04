@@ -78,7 +78,10 @@ def test_a_browser_origin_without_https_is_refused_in_production():
         MISSIONCOPILOT_ALLOWED_ORIGINS="https://dash.example.org,http://dash.example.org"
     )
 
-    assert [p for p in settings.unsafe() if "http://dash.example.org" in p] != []
+    # Exactly one problem, naming exactly the http origin; the https one passes.
+    assert settings.unsafe() == [
+        "MISSIONCOPILOT_ALLOWED_ORIGINS: http://dash.example.org is not https"
+    ]
     assert _production(MISSIONCOPILOT_ALLOWED_ORIGINS="https://dash.example.org").unsafe() == []
 
 
