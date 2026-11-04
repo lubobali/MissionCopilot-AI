@@ -9,7 +9,7 @@ enum StatusKind: CaseIterable, Sendable {
         switch self {
         case .ready: "Ready for offline"
         case .downloading: "Downloading"
-        case .paused: "Paused, waiting for connection"
+        case .paused: "Paused"  // the line under it says why: no signal, a lock, a busy server
         case .expiring: "Expires soon"
         case .expired: "Expired"
         case .notDownloaded: "Not downloaded"

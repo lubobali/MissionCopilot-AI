@@ -77,6 +77,8 @@ final class MissionListModelTests {
         #expect(seen.contains { $0.first?.status == .downloading(done: PackDownloaderTests.packBytes,
                                                                  total: PackDownloaderTests.packBytes) })
         #expect(try store.storedPack(for: Self.roads)?.files.count == 12)
+        #expect(row(list, Self.roads)?.pack?.files == 12)
+        #expect(row(list, Self.roads)?.pack?.bytes == PackDownloaderTests.packBytes)
         #expect(!FileManager.default.fileExists(atPath: base.appendingPathComponent(Self.roads).path()))
         #expect(row(list, Self.bridges)?.status == .notDownloaded(available: false))
     }

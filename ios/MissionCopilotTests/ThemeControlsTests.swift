@@ -64,7 +64,7 @@ struct ThemeControlsTests {
 
     @Test func statusesSayWhatTheOfficerNeedsToKnow() {
         #expect(StatusKind.ready.words == "Ready for offline")
-        #expect(StatusKind.paused.words == "Paused, waiting for connection")
+        #expect(StatusKind.paused.words == "Paused")
         #expect(StatusKind.notDownloaded.words == "Not downloaded")
         #expect(StatusKind.ready.color == .success)
         #expect(StatusKind.expired.color == .danger)

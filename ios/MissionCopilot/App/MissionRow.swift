@@ -6,7 +6,7 @@ struct MissionRow: Equatable, Identifiable, Sendable {
     let id: String
     let title: String
     let status: MissionStatus
-    let version: Int?  // the pack on the phone
+    let pack: PackFacts?  // the pack on the phone
     let updateAvailable: Bool
     let canDownload: Bool
     let note: String?
@@ -14,11 +14,24 @@ struct MissionRow: Equatable, Identifiable, Sendable {
     static let offline = "No connection. Showing the missions from the last time this iPhone was online."
     static let notApproved = "This iPhone is not approved yet. Ask your manager, then try again."
 
+    var version: Int? { pack?.version }
+
+    init(id: String, title: String, status: MissionStatus, pack: PackFacts?, updateAvailable: Bool,
+         canDownload: Bool, note: String?) {
+        self.id = id
+        self.title = title
+        self.status = status
+        self.pack = pack
+        self.updateAvailable = updateAvailable
+        self.canDownload = canDownload
+        self.note = note
+    }
+
     init(mission: ListedMission, stored: StoredPack?, activity: MissionActivity?, running: Bool, now: Date) {
         id = mission.id
         title = mission.title
         status = MissionStatus.of(stored: stored, activity: activity, listed: mission.pack != nil, now: now)
-        version = stored?.version
+        pack = stored.map(PackFacts.init)
         updateAvailable = (mission.pack?.version ?? 0) > (stored?.version ?? Int.max)
         let usable = stored.map { $0.expiresAt > now } ?? false
         canDownload = !running && mission.pack != nil && (!usable || updateAvailable)
@@ -50,5 +63,24 @@ struct MissionRow: Equatable, Identifiable, Sendable {
         case .server: "the server could not answer."
         case .storage: "this iPhone could not save the download."
         }
+    }
+}
+
+/// What the pack summary shows about the pack on the phone.
+struct PackFacts: Equatable, Sendable {
+    let version: Int
+    let files: Int
+    let bytes: Int
+    let projectRef: String
+    let published: Date
+    let downloaded: Date
+    let expires: Date
+}
+
+extension PackFacts {
+    init(_ stored: StoredPack) {
+        self.init(version: stored.version, files: stored.files.count, bytes: stored.files.reduce(0) { $0 + $1.size },
+                  projectRef: stored.project.projectRef, published: stored.createdAt,
+                  downloaded: stored.importedAt, expires: stored.expiresAt)
     }
 }
