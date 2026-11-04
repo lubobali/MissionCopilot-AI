@@ -15,7 +15,10 @@ LOCAL_NAMES = frozenset({"localhost", "127.0.0.1", "::1"})
 @dataclass(frozen=True)
 class Settings:
     environment: Environment = "production"
-    rate_limit_per_minute: int = 120  # per client address
+    # Loose per address: officers share one (a hotel's Wi-Fi, a carrier's NAT); it stops floods.
+    rate_limit_per_minute: int = 600
+    # Strict per phone, after its signature checked out (device_auth); a 50 MB pack is ~55 requests.
+    device_rate_limit_per_minute: int = 120
     max_body_bytes: int = 1_048_576  # 1 MiB; evidence files travel by their own upload later
     allowed_hosts: tuple[str, ...] = ("localhost", "127.0.0.1")  # host names this server answers to
     allowed_origins: tuple[str, ...] = ()  # browser origins (the dashboard); none by default
@@ -29,6 +32,9 @@ class Settings:
         if "*" in self.allowed_origins or "*" in self.allowed_hosts:
             raise ValueError("a wildcard origin or host defeats the allow-list; name each one")
         _check_process(self.host, self.port, self.forwarded_allow_ips)
+        for field, (name, _, _) in LIMITS.items():
+            if getattr(self, field) < 1:
+                raise ValueError(f"{name} must be at least 1, got {getattr(self, field)}")
 
     def unsafe(self) -> list[str]:
         """Why production must not start with these settings (empty: fine). Development and tests
@@ -41,6 +47,9 @@ class Settings:
                 "MISSIONCOPILOT_ALLOWED_HOSTS names only this machine; add the server's DNS name "
                 "(127.0.0.1 may stay, for the container healthcheck)"
             )
+        for field, (name, low, high) in LIMITS.items():
+            if not low <= getattr(self, field) <= high:
+                problems.append(f"{name} is {getattr(self, field)}; production allows {low}-{high}")
         return problems
 
     @property
@@ -62,10 +71,25 @@ class Settings:
             host=env.get("MISSIONCOPILOT_HOST", cls.host),
             port=_whole_number(env, "MISSIONCOPILOT_PORT", cls.port),
             forwarded_allow_ips=_names(env.get(FORWARDED), cls.forwarded_allow_ips),
+            rate_limit_per_minute=_limit(env, "rate_limit_per_minute", cls.rate_limit_per_minute),
+            device_rate_limit_per_minute=_limit(
+                env, "device_rate_limit_per_minute", cls.device_rate_limit_per_minute
+            ),
+            max_body_bytes=_limit(env, "max_body_bytes", cls.max_body_bytes),
         )
 
 
 FORWARDED = "MISSIONCOPILOT_FORWARDED_ALLOW_IPS"
+# Each limit: its variable, and the range production accepts (a typo of 10x either way stops it).
+LIMITS = {
+    "rate_limit_per_minute": ("MISSIONCOPILOT_RATE_LIMIT_PER_MINUTE", 60, 6000),
+    "device_rate_limit_per_minute": ("MISSIONCOPILOT_DEVICE_RATE_LIMIT_PER_MINUTE", 30, 1200),
+    "max_body_bytes": ("MISSIONCOPILOT_MAX_BODY_BYTES", 65_536, 10 * 1_048_576),
+}
+
+
+def _limit(env: Mapping[str, str], field: str, default: int) -> int:
+    return _whole_number(env, LIMITS[field][0], default)
 
 
 def _whole_number(env: Mapping[str, str], name: str, default: int) -> int:

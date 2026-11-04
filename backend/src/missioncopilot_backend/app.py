@@ -13,7 +13,7 @@ from missioncopilot_backend.device_routes import device_routes
 from missioncopilot_backend.devices import CodeStore, DeviceRegistry, DeviceStore, EnrollmentCodes
 from missioncopilot_backend.errors import install_error_handlers
 from missioncopilot_backend.headers import SecurityHeadersMiddleware
-from missioncopilot_backend.limits import LimitsMiddleware, RateLimiter
+from missioncopilot_backend.limits import DeviceLimits, LimitsMiddleware, RateLimiter
 from missioncopilot_backend.mission_routes import mission_routes
 from missioncopilot_backend.pack_routes import pack_routes
 from missioncopilot_backend.settings import Settings
@@ -53,6 +53,9 @@ def create_app(
     app.state.audit = audit = audit or AuditLog()
     app.state.enrollment_codes = enrollment_codes or EnrollmentCodes()
     app.state.devices = devices or DeviceRegistry()
+    app.state.device_limits = DeviceLimits(
+        RateLimiter(settings.device_rate_limit_per_minute, clock=clock)
+    )
     install_error_handlers(app)
     install_shred_orders(app, signing_key)
     # Middleware runs outermost last-added: headers on every answer, then the host check, the
