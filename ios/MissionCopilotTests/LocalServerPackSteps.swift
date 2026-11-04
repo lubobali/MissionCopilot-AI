@@ -12,11 +12,13 @@ final class RecordingTransport: Transport, @unchecked Sendable {
     private var cutAfter: Int?
     private var replayed: [String: Data] = [:]  // "manifest" / "signature" -> body
     private(set) var ranges: [String] = []
+    private(set) var fetched: [String] = []  // the SHA-256 each file request asked for, in order
     private(set) var answered: [String: Data] = [:]
 
     func cut(after files: Int?) { lock.withLock { cutAfter = files.map { ranges.count + $0 } } }
     func replay(_ bodies: [String: Data]) { lock.withLock { replayed = bodies } }
     var fileRequests: Int { lock.withLock { ranges.count } }
+    var fetchedFiles: [String] { lock.withLock { fetched } }
     var lastAnswered: [String: Data] { lock.withLock { answered } }
 
     func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
@@ -27,6 +29,7 @@ final class RecordingTransport: Transport, @unchecked Sendable {
             guard path.contains("/pack/files/") else { return nil }
             if let cutAfter, ranges.count >= cutAfter { throw URLError(.networkConnectionLost) }
             ranges.append(request.value(forHTTPHeaderField: "Range") ?? "")
+            fetched.append(String(path.split(separator: "/").last ?? ""))
             return nil
         }
         if let replay, let url = request.url,
@@ -102,7 +105,12 @@ struct LocalServerPackSteps {
             }
         }
         #expect(newer?.manifest.version == first.manifest.version + 1)
-        #expect(transport.fileRequests == fetched, "the same files, already on the phone and checked")
+        // Only files the first pack did not have are fetched: none is fetched twice (a newer pack may
+        // change some files, as one that changes its checklist does).
+        let again = Set(transport.fetchedFiles.dropFirst(fetched)).intersection(first.manifest.files.map(\.sha256))
+        #expect(again.isEmpty, "fetched again: \(again)")
+        let changed = Set(newer?.manifest.files.map(\.sha256) ?? []).subtracting(first.manifest.files.map(\.sha256))
+        #expect(Set(transport.fetchedFiles.dropFirst(fetched)) == changed, "only the changed files")
 
         // 3. The older pack, genuine and signed, played back in the middle: refused before any file.
         let files = transport.fileRequests
