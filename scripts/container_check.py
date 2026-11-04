@@ -26,6 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mc_backup  # noqa: E402 - next to this script
+import mc_deploy  # noqa: E402 - next to this script
 import nginx_check  # noqa: E402 - next to this script
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -60,8 +61,15 @@ def secrets_layout() -> dict[str, tuple[int, int]]:
     }
 
 
-def _sh(*command: str, env: dict[str, str] | None = None, check: bool = True) -> str:
-    done = subprocess.run(command, env=env, capture_output=True, text=True, check=False)  # noqa: S603
+def _sh(
+    *command: str,
+    env: dict[str, str] | None = None,
+    check: bool = True,
+    input_text: str | None = None,
+) -> str:
+    done = subprocess.run(  # noqa: S603
+        command, env=env, input=input_text, capture_output=True, text=True, check=False
+    )
     if check and done.returncode != 0:
         raise RuntimeError(f"{' '.join(command[:4])}...: {done.stderr.strip()[-400:]}")
     return done.stdout.strip()
@@ -204,6 +212,27 @@ def check_backup(c: Check, args: argparse.Namespace, image: str, folder: Path) -
         _sh(*mc_backup.SUDO, "rm", "-rf", str(work), check=False)
 
 
+def check_deploy(c: Check, args: argparse.Namespace, image: str, folder: Path) -> None:
+    """scripts/mc_deploy.py with an image that cannot start: it must go back by itself."""
+    work = Path(tempfile.mkdtemp(prefix="mc-check-deploy-"))
+    broken = "missioncopilot-backend:check-broken"
+    try:
+        lines = [f"{key}={value}" for key, value in values(args, image, folder).items()]
+        (work / "values.env").write_text("\n".join(lines) + "\n")
+        recipe = f'FROM {image}\nCMD ["python", "-c", "raise SystemExit(3)"]\n'
+        _sh("docker", "build", "-q", "-t", broken, "-", input_text=recipe)
+        os.environ["MC_DEPLOY_WAIT"] = "40"
+        deploy = ["deploy", "--values", str(work / "values.env"), "--allow-local", "--image"]
+        went_back = mc_deploy.main([*deploy, broken])
+        after = mc_deploy._values(work / "values.env")["MC_IMAGE"]  # noqa: SLF001
+        c.expect("a deploy that cannot start goes back by itself", (went_back, after) == (1, image),
+                 (went_back, after))  # fmt: skip
+        c.expect("and a good one deploys", mc_deploy.main([*deploy, image]) == 0)
+    finally:
+        _sh("docker", "rmi", "-f", broken, check=False)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--image")
@@ -231,6 +260,7 @@ def main(argv: list[str] | None = None) -> int:
         check_container(c)
         check_client_address(c)
         check_backup(c, args, image, folder)
+        check_deploy(c, args, image, folder)
         nginx_check.start(Path(tempfile.mkdtemp(prefix="mc-check-nginx-")), HOSTNAME, args.port)
         nginx_check.wait(HOSTNAME)
         nginx_check.check(c, HOSTNAME, PHONE)  # last: it stops the API to see the 503
