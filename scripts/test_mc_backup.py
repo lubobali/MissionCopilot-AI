@@ -100,3 +100,67 @@ def test_verify_reads_back_a_tenth_of_the_stored_data():
     from mc_backup import VERIFY
 
     assert VERIFY == ["check", "--read-data-subset", "10%"]  # `check` alone reads no pack data
+
+
+def test_a_live_restore_needs_the_explicit_flag(capsys):
+    from mc_restore import main
+
+    code = main(["--values", "/srv/x/values.env", "--password-file", "/srv/x/pw",
+                 "--local-repo", "/srv/x/repo"])  # fmt: skip
+
+    assert code == 1
+    assert "--yes-replace-live-data" in capsys.readouterr().err
+
+
+def test_a_database_comes_back_with_its_own_settings():
+    from mc_restore import restore_commands
+
+    drop, load = restore_commands("mc_org_kandor_works")
+
+    assert drop == [
+        "dropdb",
+        "--force",
+        "--if-exists",
+        "-U",
+        "missioncopilot_admin",
+        "mc_org_kandor_works",
+    ]
+    # --create: the database itself as dumped (owner, and who may connect), not a default one.
+    assert load == [
+        "pg_restore",
+        "--create",
+        "--exit-on-error",
+        "-U",
+        "missioncopilot_admin",
+        "-d",
+        "postgres",
+    ]
+
+
+def test_restore_refuses_a_strange_database_name():
+    from mc_restore import restore_commands
+
+    with pytest.raises(ValueError, match="database name"):
+        restore_commands("mc_x; DROP DATABASE mc_directory")
+
+
+def test_the_live_restore_loads_the_roles_before_any_database(monkeypatch, tmp_path):
+    # In the same cluster the roles still exist, so only this order test catches a missing step;
+    # after a lost cluster the databases cannot load without their roles.
+    import mc_restore
+
+    steps = []
+    monkeypatch.setattr(
+        mc_restore, "_pipe_in", lambda stack, source, command: steps.append(source.name)
+    )
+    counts = '{"mc_directory": {}, "mc_org_a": {}}'
+    monkeypatch.setattr(
+        mc_restore, "_run", lambda command, **kw: counts if "counts.json" in command[-1] else ""
+    )
+    monkeypatch.setattr(mc_restore, "_counts", lambda psql, database: {})
+    (tmp_path / "values.env").write_text("MC_ENV=check\nMC_SECRETS=/srv/x\n")
+
+    restic = {"env_file": None, "password_file": "/srv/x/pw", "local_repo": "/srv/x/repo"}
+    mc_restore.restore(tmp_path / "values.env", restic, "latest")
+
+    assert steps == ["roles.sql", "mc_directory.dump", "mc_org_a.dump"]
