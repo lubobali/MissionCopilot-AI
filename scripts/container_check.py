@@ -24,11 +24,16 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mc_backup  # noqa: E402 - next to this script
+import mc_deploy  # noqa: E402 - next to this script
+import nginx_check  # noqa: E402 - next to this script
+
 ROOT = Path(__file__).resolve().parents[1]
 COMPOSE = ROOT / "deploy" / "compose.yaml"
 HOSTNAME = "mc-check.example.org"
 PHONE = "203.0.113.9"  # a documentation address (RFC 5737), sent as X-Forwarded-For
-POSTGRES_UID, SERVER_UID = 999, 10001  # the postgres image's user; ours (backend/Dockerfile)
+POSTGRES_UID, SERVER_UID = 10121, 10120  # deploy/compose.yaml: uids no other app uses
 
 
 def values(args: argparse.Namespace, image: str, folder: Path) -> dict[str, str]:
@@ -56,8 +61,15 @@ def secrets_layout() -> dict[str, tuple[int, int]]:
     }
 
 
-def _sh(*command: str, env: dict[str, str] | None = None, check: bool = True) -> str:
-    done = subprocess.run(command, env=env, capture_output=True, text=True, check=False)  # noqa: S603
+def _sh(
+    *command: str,
+    env: dict[str, str] | None = None,
+    check: bool = True,
+    input_text: str | None = None,
+) -> str:
+    done = subprocess.run(  # noqa: S603
+        command, env=env, input=input_text, capture_output=True, text=True, check=False
+    )
     if check and done.returncode != 0:
         raise RuntimeError(f"{' '.join(command[:4])}...: {done.stderr.strip()[-400:]}")
     return done.stdout.strip()
@@ -136,7 +148,7 @@ def check_container(c: Check) -> None:
     seen = json.loads(_sh("docker", "inspect", api))[0]
     host = seen["HostConfig"]
     c.expect("api is healthy", seen["State"]["Health"]["Status"] == "healthy", seen["State"])
-    c.expect("api runs as 10001", seen["Config"]["User"] == "10001:10001", seen["Config"]["User"])
+    c.expect("api runs as 10120", seen["Config"]["User"] == "10120:10120", seen["Config"]["User"])
     c.expect("api root filesystem is read-only", host["ReadonlyRootfs"] is True)
     c.expect("api has no capabilities", host["CapDrop"] == ["ALL"] and not host["CapAdd"])
     reader = "import missioncopilot_backend.checklist_xlsx, pyxform; print('loaded')"
@@ -147,6 +159,10 @@ def check_container(c: Check) -> None:
     c.expect("api is published on loopback only", ports == f"127.0.0.1:{c.port}", ports)
     pg = json.loads(_sh("docker", "inspect", c.run("ps", "-q", "postgres")))[0]
     c.expect("postgres publishes no port", not pg["HostConfig"]["PortBindings"], pg["HostConfig"])
+    who = pg["Config"]["User"]
+    c.expect("postgres runs as its own uid 10121", who == f"{POSTGRES_UID}:{POSTGRES_UID}", who)
+    caps = (pg["HostConfig"]["CapDrop"], pg["HostConfig"]["CapAdd"])
+    c.expect("postgres has no capabilities", caps[0] == ["ALL"] and not caps[1], caps)
     zone = c.run(
         "exec", "-T", "postgres", "psql", "-U", "missioncopilot_admin", "-tAc", "SHOW timezone"
     )
@@ -175,6 +191,48 @@ def check_client_address(c: Check) -> None:
     c.expect("from any other address, a forged X-Forwarded-For is ignored", seen != PHONE, seen)
 
 
+def check_backup(c: Check, args: argparse.Namespace, image: str, folder: Path) -> None:
+    """A real backup of this project into a throwaway local repository, then a restore of it
+    into a throwaway Postgres (scripts/mc_backup.py), as the server does every night."""
+    work = Path(tempfile.mkdtemp(prefix="mc-check-backup-"))
+    try:
+        lines = [f"{key}={value}" for key, value in values(args, image, folder).items()]
+        (work / "values.env").write_text("\n".join(lines) + "\n")
+        _write_owner_only(work / "restic-password", secrets.token_hex(24))
+        (work / "repo").mkdir()
+        where = ["--values", str(work / "values.env"), "--password-file",
+                 str(work / "restic-password"), "--local-repo", str(work / "repo")]  # fmt: skip
+        codes = [
+            mc_backup.main([command, *where]) for command in ("init", "backup", "restore-check")
+        ]
+        c.expect(
+            "a backup restores into a throwaway Postgres with every row", codes == [0, 0, 0], codes
+        )
+    finally:
+        _sh(*mc_backup.SUDO, "rm", "-rf", str(work), check=False)
+
+
+def check_deploy(c: Check, args: argparse.Namespace, image: str, folder: Path) -> None:
+    """scripts/mc_deploy.py with an image that cannot start: it must go back by itself."""
+    work = Path(tempfile.mkdtemp(prefix="mc-check-deploy-"))
+    broken = "missioncopilot-backend:check-broken"
+    try:
+        lines = [f"{key}={value}" for key, value in values(args, image, folder).items()]
+        (work / "values.env").write_text("\n".join(lines) + "\n")
+        recipe = f'FROM {image}\nCMD ["python", "-c", "raise SystemExit(3)"]\n'
+        _sh("docker", "build", "-q", "-t", broken, "-", input_text=recipe)
+        os.environ["MC_DEPLOY_WAIT"] = "40"
+        deploy = ["deploy", "--values", str(work / "values.env"), "--allow-local", "--image"]
+        went_back = mc_deploy.main([*deploy, broken])
+        after = mc_deploy._values(work / "values.env")["MC_IMAGE"]  # noqa: SLF001
+        c.expect("a deploy that cannot start goes back by itself", (went_back, after) == (1, image),
+                 (went_back, after))  # fmt: skip
+        c.expect("and a good one deploys", mc_deploy.main([*deploy, image]) == 0)
+    finally:
+        _sh("docker", "rmi", "-f", broken, check=False)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--image")
@@ -201,9 +259,15 @@ def main(argv: list[str] | None = None) -> int:
         check_http(c)
         check_container(c)
         check_client_address(c)
+        check_backup(c, args, image, folder)
+        check_deploy(c, args, image, folder)
+        nginx_check.start(Path(tempfile.mkdtemp(prefix="mc-check-nginx-")), HOSTNAME, args.port)
+        nginx_check.wait(HOSTNAME)
+        nginx_check.check(c, HOSTNAME, PHONE)  # last: it stops the API to see the 503
     except RuntimeError as error:
         c.expect("the deploy steps run", False, str(error))
     finally:
+        nginx_check.stop()
         _sh(*compose, "--profile", "admin", "down", "-v", "--remove-orphans", env=env, check=False)
         sudo = [] if os.geteuid() == 0 else ["sudo", "-n"]
         _sh(*sudo, "rm", "-rf", str(folder), check=False)

@@ -46,16 +46,21 @@ server uses, and different ones for each environment.
 
 ## The secrets folder
 
+The uids are chosen for a shared server: host uids are shared by every container, and the
+usual picks (the Postgres image's 999, a common 10001) can belong to another app there. 10120
+(the server image) and 10121 (Postgres) get system accounts of their own on the host (no login),
+so no one else can take them.
+
 Every file is readable by **one** user only: the user its container runs as. The code refuses a
 file anyone else can read, and says so when it cannot read one.
 
 | Path in `MC_SECRETS` | Owner (uid) | Mode | What |
 |---|---|---|---|
 | `.` | root | `0711` | The folder itself: containers may pass through, nobody may list it |
-| `pg_admin_password` | `999` (the Postgres image's user) | `0600` | The Postgres superuser's password, used once by the image to create the cluster |
-| `admin_url` | `10001` (the server image's user) | `0600` | `postgresql://missioncopilot_admin:<password>@postgres:5432/postgres`, for `migrate` and `admin` only; the API never gets it |
-| `addresses/` | `10001` | `0700` | Written by `admin setup` and `admin add-org`: `directory.url` and `orgs/<org>.url`, the app logins' addresses (each `0600`) |
-| `keys/` | `10001` | `0700` | Written by `admin make-signing-key`: `signing-key.pem`, the key that signs packs and shred orders (`0600`) |
+| `pg_admin_password` | `10121` (the Postgres container's own user, not the image's 999) | `0600` | The Postgres superuser's password, used once by the image to create the cluster |
+| `admin_url` | `10120` (the server image's user) | `0600` | `postgresql://missioncopilot_admin:<password>@postgres:5432/postgres`, for `migrate` and `admin` only; the API never gets it |
+| `addresses/` | `10120` | `0700` | Written by `admin setup` and `admin add-org`: `directory.url` and `orgs/<org>.url`, the app logins' addresses (each `0600`) |
+| `keys/` | `10120` | `0700` | Written by `admin make-signing-key`: `signing-key.pem`, the key that signs packs and shred orders (`0600`) |
 
 The admin writes into `addresses/` and `keys/` from inside the compose network, so every address
 says `host=postgres`, and every file it writes already has the right owner and mode.

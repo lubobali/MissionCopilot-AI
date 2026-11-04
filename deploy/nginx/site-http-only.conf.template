@@ -1,0 +1,19 @@
+# MissionCopilot {{ENV}}: {{HOSTNAME}}, first deploy only (#103 step 6). Before the certificate
+# exists the site can only answer the Let's Encrypt challenge and redirect; once certbot has the
+# certificate, site.conf.template replaces this file. Rendered by scripts/render_nginx_site.py.
+
+server {
+{{LISTEN_HTTP}}
+    server_name {{HOSTNAME}};
+    server_tokens off;
+    access_log /var/log/nginx/missioncopilot-{{ENV}}.access.log;
+    error_log /var/log/nginx/missioncopilot-{{ENV}}.error.log;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
