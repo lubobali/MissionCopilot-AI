@@ -88,3 +88,15 @@ def test_no_cache_and_no_untrusted_text_in_scripts():
     assert "${{" not in _runs(BUILD) + _runs(PUBLISH)  # values reach scripts through env only
     checkouts = [s for s in BUILD["steps"] if s.get("uses", "").startswith("actions/checkout@")]
     assert [s["with"]["persist-credentials"] for s in checkouts] == [False]
+
+
+def test_the_registry_login_lasts_until_the_attestation_is_pushed_then_always_ends():
+    # The first main run failed here: the push step logged out, then the attestation (which is
+    # pushed to the registry too) found no credentials. Log out only at the very end, always.
+    names = [step.get("name", step.get("uses", "")) for step in PUBLISH["steps"]]
+    logout = PUBLISH["steps"][-1]
+
+    assert "docker logout" not in _runs({"steps": PUBLISH["steps"][:-1]})
+    assert logout["run"].strip() == "docker logout ghcr.io"
+    assert logout["if"] == "always()"
+    assert names.index("Attest where and how it was built") < len(names) - 1

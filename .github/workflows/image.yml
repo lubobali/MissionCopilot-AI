@@ -107,7 +107,6 @@ jobs:
           printf '%s' "${GITHUB_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
           docker tag missioncopilot-backend:ci "${REGISTRY_IMAGE}:sha-${COMMIT}"
           docker push --quiet "${REGISTRY_IMAGE}:sha-${COMMIT}"
-          docker logout ghcr.io
           digest="$(docker inspect --format '{{index .RepoDigests 0}}' "${REGISTRY_IMAGE}:sha-${COMMIT}")"
           digest="${digest#*@}"
           [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
@@ -126,3 +125,9 @@ jobs:
           subject-name: ${{ env.REGISTRY_IMAGE }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+      # Last, and always: the attestation above is pushed to the registry too, so the login lasts
+      # until here (the first main run logged out too early and the attestation failed).
+      - name: Log out of the registry
+        if: always()
+        run: docker logout ghcr.io
