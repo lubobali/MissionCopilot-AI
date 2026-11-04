@@ -2,7 +2,7 @@ import time
 from collections.abc import Callable
 
 from cryptography.hazmat.primitives.asymmetric import ec
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import Lifespan
@@ -32,6 +32,15 @@ def health(request: Request) -> dict[str, str | int]:
     return {"status": "ok", "time": int(devices.now())}
 
 
+@v1.get("/ready")
+def ready(request: Request) -> dict[str, str]:
+    """Can serve: the directory database answers (health only says the process is alive). 503
+    with Retry-After when it does not, so a deploy or a monitor waits (#103 step 4.5)."""
+    if not request.app.state.ready():
+        raise HTTPException(503, headers={"Retry-After": "5"})
+    return {"status": "ready"}
+
+
 def create_app(
     settings: Settings,
     verifier: TokenVerifier | None = None,
@@ -42,6 +51,7 @@ def create_app(
     devices: DeviceStore | None = None,
     signing_key: ec.EllipticCurvePrivateKey | None = None,
     lifespan: Lifespan | None = None,
+    ready: Callable[[], bool] | None = None,
 ) -> FastAPI:
     """Build the app for one set of settings; tests build their own instead of patching globals."""
     docs = settings.docs_enabled
@@ -52,6 +62,7 @@ def create_app(
         openapi_url="/openapi.json" if docs else None,
         lifespan=lifespan,
     )
+    app.state.ready = ready or (lambda: True)  # in memory: nothing outside to wait for
     app.state.verifier = verifier  # None: every secured route refuses (fail closed)
     app.state.databases = databases  # None: every organization's data answers 404
     app.state.audit = audit = audit or AuditLog()

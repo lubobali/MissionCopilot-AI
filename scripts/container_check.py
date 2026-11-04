@@ -127,6 +127,8 @@ def check_http(c: Check) -> None:
     c.expect("HSTS in production", "strict-transport-security" in lower)
     status, _, _ = get(c.port, "/v1/health", {"Host": "evil.example"})
     c.expect("an unknown host name gets 400", status == 400, status)
+    status, _, body = get(c.port, "/v1/ready", {"Host": HOSTNAME})
+    c.expect("ready: the directory database answers", status == 200, (status, body[:80]))
 
 
 def check_container(c: Check) -> None:
@@ -137,6 +139,9 @@ def check_container(c: Check) -> None:
     c.expect("api runs as 10001", seen["Config"]["User"] == "10001:10001", seen["Config"]["User"])
     c.expect("api root filesystem is read-only", host["ReadonlyRootfs"] is True)
     c.expect("api has no capabilities", host["CapDrop"] == ["ALL"] and not host["CapAdd"])
+    reader = "import missioncopilot_backend.checklist_xlsx, pyxform; print('loaded')"
+    loaded = c.run("exec", "-T", "api", "python", "-c", reader)  # pyxform, without its jar
+    c.expect("the checklist reader (pyxform) loads in the image", loaded == "loaded", loaded)
     c.expect("api memory is capped", host["Memory"] == 512 * 1024 * 1024, host["Memory"])
     ports = c.run("port", "api", "8110")
     c.expect("api is published on loopback only", ports == f"127.0.0.1:{c.port}", ports)

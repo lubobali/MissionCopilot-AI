@@ -30,6 +30,12 @@ build-backend = "uv_build"
 # One uv everywhere: the Mac, CI (setup-uv reads this file), the image and the server.
 # scripts/check_uv_pin.py keeps them equal.
 required-version = "==0.13.6"
+# The image is Linux: `uv lock` fails if a package has no wheel for the server (x86_64) or for
+# Docker on an Apple Mac (aarch64), instead of the image build failing later.
+required-environments = [
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "sys_platform == 'linux' and platform_machine == 'aarch64'",
+]
 
 [dependency-groups]
 dev = [

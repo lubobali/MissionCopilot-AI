@@ -5,15 +5,15 @@ counts as too old: builds from before this check do not send it.
 
 Answered before the signature check, so a refusal never uses up a sequence number, and it never
 deletes anything on the phone (only a valid signed shred order does). The header is not signed:
-faking it only gets a phone refused. Health is never refused, so even an old app can read the
-server's time; a person's request (the dashboard, no X-Device-Id) is not a phone's."""
+faking it only gets a phone refused. Health and readiness are never refused, so even an old app
+can read the server's time; a person's request (the dashboard, no X-Device-Id) is not a phone's."""
 
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from missioncopilot_backend.errors import problem
 
 ENROLL = "/v1/devices/enroll"
-HEALTH = "/v1/health"
+NEVER_REFUSED = frozenset({"/v1/health", "/v1/ready"})  # any app may ask these
 
 
 class AppVersionMiddleware:
@@ -36,7 +36,7 @@ class AppVersionMiddleware:
     def _too_old(self, scope: Scope) -> bool:
         headers = dict(scope["headers"])
         from_phone = b"x-device-id" in headers or scope["path"] == ENROLL
-        if not from_phone or scope["path"] == HEALTH:
+        if not from_phone or scope["path"] in NEVER_REFUSED:
             return False
         build = headers.get(b"x-app-build", b"")
         return not build.isdigit() or int(build) < self.min_build

@@ -5,6 +5,7 @@ by team, append-only, versions up by one, each file checked against its SHA-256.
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import LiteralString
 
 import psycopg
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -116,10 +117,38 @@ class PostgresPacks:
     def file(self, user_id: str, mission_id: str, sha256: str) -> bytes | None:
         """A file of any of this mission's packs the user may read, so a download started on an
         older version can still finish."""
-        with as_user(self._pool, user_id) as conn:
-            row = conn.execute(
-                "SELECT f.data FROM pack_files f WHERE f.sha256 = %s AND EXISTS ("
-                " SELECT 1 FROM pack_contents c WHERE c.sha256 = f.sha256 AND c.mission_id = %s)",
-                [sha256, mission_id],
-            ).fetchone()
+        row = self._file_query(user_id, FILE_WHOLE, [sha256, mission_id])
         return bytes(row[0]) if row else None
+
+    def file_size(self, user_id: str, mission_id: str, sha256: str) -> int | None:
+        """The file's length in bytes, without reading the file (#103 step 4.2)."""
+        row = self._file_query(user_id, FILE_SIZE, [sha256, mission_id])
+        return int(row[0]) if row else None
+
+    def file_piece(
+        self, user_id: str, mission_id: str, sha256: str, first: int, length: int
+    ) -> bytes | None:
+        """Only these bytes (first counts from 0): a 1 MiB piece never loads the whole file."""
+        row = self._file_query(user_id, FILE_PIECE, [first + 1, length, sha256, mission_id])
+        return bytes(row[0]) if row else None
+
+    def _file_query(self, user_id: str, query: LiteralString, params: list[object]) -> tuple | None:
+        with as_user(self._pool, user_id) as conn:
+            return conn.execute(query, params).fetchone()
+
+
+# The whole file, its size and a piece follow one rule: row-level security as this user, and only
+# under a mission whose pack holds the file. tests/db/test_pack_pieces.py checks all three carry
+# the very same rule (each is one literal: no query is ever built from strings).
+FILE_WHOLE = (
+    "SELECT f.data FROM pack_files f WHERE f.sha256 = %s AND EXISTS ("
+    " SELECT 1 FROM pack_contents c WHERE c.sha256 = f.sha256 AND c.mission_id = %s)"
+)
+FILE_SIZE = (
+    "SELECT octet_length(f.data) FROM pack_files f WHERE f.sha256 = %s AND EXISTS ("
+    " SELECT 1 FROM pack_contents c WHERE c.sha256 = f.sha256 AND c.mission_id = %s)"
+)
+FILE_PIECE = (
+    "SELECT substring(f.data FROM %s FOR %s) FROM pack_files f WHERE f.sha256 = %s AND EXISTS ("
+    " SELECT 1 FROM pack_contents c WHERE c.sha256 = f.sha256 AND c.mission_id = %s)"
+)

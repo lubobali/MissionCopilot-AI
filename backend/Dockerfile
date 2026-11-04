@@ -4,8 +4,11 @@
 # Two stages on the same pinned Python: the venv points at that Python, so the final stage must
 # have the very same one. Only the locked runtime packages are installed, the package itself not
 # editable, so the final image holds the venv and nothing else: no source tree, no uv, no tests.
+#
+# Python 3.12.16 fixes critical CVE-2026-115557 and the image's Debian OpenSSL fixes, so this base
+# skips the 7-day cooldown (security fixes are not delayed: .github/dependabot.yml).
 
-FROM python:3.12.14-slim-trixie@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f AS builder
+FROM python:3.12.16-slim-trixie@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30 AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 /uv /bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0 UV_NO_DEV=1
 WORKDIR /app
@@ -18,8 +21,12 @@ COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable
+# pyxform bundles ODK_Validate.jar (old Jackson and commons-io, high CVEs). The backend only reads
+# workbooks (xlsx_to_dict) and the image has no Java, so it can never run: the jar does not ship
+# (only the jar: pyxform imports the odk_validate module itself; container_check loads pyxform).
+RUN rm /app/.venv/lib/python3.12/site-packages/pyxform/validators/odk_validate/bin/ODK_Validate.jar
 
-FROM python:3.12.14-slim-trixie@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
+FROM python:3.12.16-slim-trixie@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
 LABEL org.opencontainers.image.source="https://github.com/lubobali/MissionCopilot-AI" \
       org.opencontainers.image.description="MissionCopilot backend server" \
       org.opencontainers.image.licenses="MIT"

@@ -6,6 +6,21 @@ is its own compose project (`missioncopilot-staging`, `missioncopilot-prod`) wit
 Postgres, networks, volume, port and secrets: nothing is shared between them or with other apps.
 The step-by-step runbook (first deploy, update, roll back, restore) comes with #103 step 6.
 
+## Where the image comes from
+
+[.github/workflows/image.yml](../.github/workflows/image.yml) builds `backend/` for `linux/amd64`
+on GitHub's x86_64 runner (natively, like the server), runs it with this compose file
+([scripts/container_check.py](../scripts/container_check.py)), and scans it with Grype: a high or
+critical finding that has a fix fails the run. On every pull request that touches the backend
+this is a check; on `main` the very image that passed is then pushed to the private registry
+`ghcr.io/lubobali/missioncopilot-backend`, with a build provenance attestation.
+
+The run's summary shows the image by digest, the only form a deploy uses:
+`ghcr.io/lubobali/missioncopilot-backend@sha256:<digest>` goes into `MC_IMAGE`. Tags
+(`sha-<commit>`) are for people to find an image, never for a deploy. To check where an image
+came from: `gh attestation verify oci://<image by digest> --repo lubobali/MissionCopilot-AI`.
+The server pulls with a read-only token (`read:packages`); the package stays private.
+
 ## The values file
 
 Each environment has one values file on the server (never in git), passed with `--env-file`:
@@ -44,6 +59,13 @@ file anyone else can read, and says so when it cannot read one.
 
 The admin writes into `addresses/` and `keys/` from inside the compose network, so every address
 says `host=postgres`, and every file it writes already has the right owner and mode.
+
+## Database connections
+
+The API keeps one pool per database, up to 8 connections each (`db/pools.py`): the directory plus
+one per organization, so `8 x (1 + organizations)`, plus a few for `migrate` and `admin` runs.
+Postgres allows 100 by default: plenty for the demo (one organization: 16). Each pool checks a
+connection before handing it out, so after a Postgres restart the first request still works.
 
 ## Operator commands
 

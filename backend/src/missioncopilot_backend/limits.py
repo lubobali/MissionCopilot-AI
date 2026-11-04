@@ -13,6 +13,7 @@ import time
 from collections import OrderedDict
 from collections.abc import Callable
 
+from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -104,7 +105,7 @@ class LimitsMiddleware:
         wait = self.limiter.check(address)
         if wait:
             if self._spells.starts(address):
-                self._record("rate_limited", address)
+                await self._record("rate_limited", address)
             response = problem(429)
             response.headers["Retry-After"] = str(wait)
             await response(scope, receive, send)
@@ -112,14 +113,15 @@ class LimitsMiddleware:
         self._spells.ends(address)
         declared = dict(scope["headers"]).get(b"content-length")
         if declared is not None and (not declared.isdigit() or int(declared) > self.max_body_bytes):
-            self._record("body_too_large", address)
+            await self._record("body_too_large", address)
             await problem(413 if declared.isdigit() else 400)(scope, receive, send)
             return
         await self.app(scope, self._counting(receive, address), send)
 
-    def _record(self, kind: Kind, address: str) -> None:
+    async def _record(self, kind: Kind, address: str) -> None:
+        """The audit write is a database call: in the thread pool, never on the event loop (S1)."""
         if self.audit is not None:
-            self.audit.record(kind, client=address)
+            await run_in_threadpool(self.audit.record, kind, client=address)
 
     def _counting(self, receive: Receive, address: str) -> Receive:
         received = 0
@@ -130,7 +132,7 @@ class LimitsMiddleware:
             if message["type"] == "http.request":
                 received += len(message.get("body", b""))
                 if received > self.max_body_bytes:
-                    self._record("body_too_large", address)
+                    await self._record("body_too_large", address)
                     raise HTTPException(413)  # becomes a Problem through the error handlers
             return message
 
