@@ -9,6 +9,7 @@ from typing import Literal
 
 Environment = Literal["production", "development", "test"]
 ENVIRONMENTS: tuple[Environment, ...] = ("production", "development", "test")
+LOCAL_NAMES = frozenset({"localhost", "127.0.0.1", "::1"})
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,19 @@ class Settings:
         if "*" in self.allowed_origins or "*" in self.allowed_hosts:
             raise ValueError("a wildcard origin or host defeats the allow-list; name each one")
         _check_process(self.host, self.port, self.forwarded_allow_ips)
+
+    def unsafe(self) -> list[str]:
+        """Why production must not start with these settings (empty: fine). Development and tests
+        keep their local defaults."""
+        if self.environment != "production":
+            return []
+        problems = []
+        if set(self.allowed_hosts) <= LOCAL_NAMES:
+            problems.append(
+                "MISSIONCOPILOT_ALLOWED_HOSTS names only this machine; add the server's DNS name "
+                "(127.0.0.1 may stay, for the container healthcheck)"
+            )
+        return problems
 
     @property
     def docs_enabled(self) -> bool:

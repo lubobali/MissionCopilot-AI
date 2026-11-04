@@ -105,6 +105,8 @@ def _signing_key(env: Mapping[str, str]) -> ec.EllipticCurvePrivateKey:
 def build(env: Mapping[str, str] = os.environ) -> FastAPI:
     """The server for this environment; raises StartupError instead of starting half-ready."""
     settings = Settings.from_env(env)
+    if problems := settings.unsafe():
+        raise StartupError("; ".join(problems))
     signing_key = _signing_key(env)
     directory_url = read_setting(env, DIRECTORY)
     urls = _org_urls(env)
