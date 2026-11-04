@@ -1,0 +1,13 @@
+# MissionCopilot: the nightly encrypted backup of one environment (%i: staging or prod) to its own
+# restic repository on B2 (scripts/mc_backup.py, deploy/RUNBOOK.md). Installed in /etc/systemd/system.
+[Unit]
+Description=MissionCopilot %i: encrypted backup to B2
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /srv/missioncopilot-dev/scripts/mc_backup.py backup --values /srv/missioncopilot/%i/values.env --restic-env /srv/missioncopilot/%i/backup.env --password-file /srv/missioncopilot/backup/restic-password
+# Gentle with the other apps on the server.
+Nice=10
+IOSchedulingClass=idle

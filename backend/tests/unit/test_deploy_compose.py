@@ -160,3 +160,19 @@ def test_our_uids_are_our_own():
     uids = {SERVICES[name]["user"] for name in ("postgres", "api", "migrate", "admin")}
 
     assert uids == {"10120:10120", "10121:10121"}
+
+
+def test_postgres_counts_as_ready_only_over_tcp():
+    # The image runs a temporary server for its first-time setup, on the Unix socket only, then
+    # restarts. Asked over the socket, readiness can hit that temporary one and say "ready" too
+    # early (seen in CI on #109); over TCP only the real server answers.
+    check = SERVICES["postgres"]["healthcheck"]["test"]
+
+    assert check == ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U missioncopilot_admin -d postgres"]
+
+
+def test_ci_waits_for_postgres_over_tcp_too():
+    readiness = [line for line in CI.splitlines() if "pg_isready" in line]
+
+    assert len(readiness) == 2
+    assert all("-h 127.0.0.1" in line for line in readiness)

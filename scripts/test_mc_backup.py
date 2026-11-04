@@ -94,3 +94,9 @@ def test_an_empty_backup_is_a_failure():
     assert shortfalls({"mc_directory": {"devices": 0}}, {"mc_directory": {"devices": 0}}) == [
         "the backup holds no rows at all"
     ]
+
+
+def test_verify_reads_back_a_tenth_of_the_stored_data():
+    from mc_backup import VERIFY
+
+    assert VERIFY == ["check", "--read-data-subset", "10%"]  # `check` alone reads no pack data
