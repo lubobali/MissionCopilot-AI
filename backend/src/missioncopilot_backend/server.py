@@ -39,9 +39,15 @@ class StartupError(Exception):
 
 
 def _private_text(path: Path) -> str:
-    if path.stat().st_mode & 0o077:
-        raise StartupError(f"{path} is readable by others; chmod 600 it")
-    return path.read_text(encoding="utf-8").strip()
+    try:
+        if path.stat().st_mode & 0o077:
+            raise StartupError(f"{path} is readable by others; chmod 600 it")
+        return path.read_text(encoding="utf-8").strip()
+    except OSError as error:  # missing, a folder, or owned by someone else (a container's root)
+        raise StartupError(
+            f"{path} cannot be read ({error.strerror or error.__class__.__name__}); it must be a "
+            f"file owned by the server's user (uid {os.getuid()}), chmod 600"
+        ) from None
 
 
 def read_setting(env: Mapping[str, str], name: str) -> str:
