@@ -5,12 +5,15 @@ the last assignment wins, so a laptop's Local.xcconfig can never point Staging o
 laptop. Staging is its own app on the phone (own bundle id, so its own keychain and chip keys,
 never production's)."""
 
+import hashlib
 import re
 from pathlib import Path
 
 import pytest
 import yaml
 from check_ios_build_settings import EXPECTED
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 
 pytestmark = pytest.mark.unit
 
@@ -168,3 +171,25 @@ def test_the_build_number_is_a_whole_number_the_server_can_compare():
     build = PROJECT["settings"]["base"]["CURRENT_PROJECT_VERSION"]
 
     assert isinstance(build, str) and build.isdigit() and int(build) >= 2
+
+
+# The keys each build pins, by key id (the first 16 hex digits of the SHA-256 of the DER key, as the
+# server's pack_format.key_id and the phone's ServerConfig.keyId name them).
+PINNED = {"Staging": {"4bf338c69bae5bfa"}, "Release": set()}  # Release: after #103 step 6.5
+
+
+@pytest.mark.parametrize("name", ["Staging", "Release"])
+def test_each_build_pins_exactly_its_servers_public_keys(name):
+    keys = resolve(f"{name}.xcconfig", LAPTOP)["MC_SERVER_KEYS"].split()
+
+    assert {hashlib.sha256(bytes.fromhex(key)).hexdigest()[:16] for key in keys} == PINNED[name]
+    for key in keys:
+        public = serialization.load_der_public_key(bytes.fromhex(key))
+        assert isinstance(public, ec.EllipticCurvePublicKey) and public.curve.name == "secp256r1"
+
+
+def test_staging_and_release_never_pin_the_same_key():
+    staging = set(resolve("Staging.xcconfig", None)["MC_SERVER_KEYS"].split())
+    release = set(resolve("Release.xcconfig", None)["MC_SERVER_KEYS"].split())
+
+    assert not staging & release

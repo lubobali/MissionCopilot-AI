@@ -1,8 +1,11 @@
 // The Staging build (#104): its own app on the phone ("MC Staging", see project.yml), talking only to the
 // staging server. Set after Base, so the last assignment wins over anything Local.xcconfig says.
-// MC_SERVER_KEYS: the staging server's public signing key(s), DER in hex, added when the server makes them.
+// MC_SERVER_KEYS: the staging server's public signing key, DER in hex (key id 4bf338c69bae5bfa, made on
+// the server, #103 step 6.2). Public, like every pinned key: it lets the phone check, never sign. The
+// secret scan reads a long hex value after "KEYS" as a possible secret, so this one line is marked as a
+// checked false alarm (gitleaks:allow); scripts/test_ios_builds.py proves it is a P-256 public key.
 #include "Base.xcconfig"
 
 MC_SERVER_SCHEME = https
 MC_SERVER_HOST = mc-staging.lubot.ai
-MC_SERVER_KEYS =
+MC_SERVER_KEYS = 3059301306072a8648ce3d020106082a8648ce3d030107034200041c6f8edb401ff9e59f17505cd263912864eb695a9cfac7fdf74ed5fd589ac78c675b76d5717373a3c1f91f7ff8de2a0e1e44fe702132d3a3acaae86f71e998f6  // gitleaks:allow
