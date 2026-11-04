@@ -70,6 +70,16 @@ def test_postgres_is_cis_image_with_its_data_at_the_v18_path():
     assert "timezone=UTC" in postgres["command"]
 
 
+def test_postgres_runs_as_its_own_user_with_no_capabilities():
+    # The image's own user is uid 999; on a shared server that number can be another service's
+    # account, which could then read the password file. Its own uid, and no root start at all.
+    postgres = SERVICES["postgres"]
+
+    assert postgres["user"] == "10002:10002"
+    assert postgres["cap_drop"] == ["ALL"] and "cap_add" not in postgres
+    assert postgres["read_only"] is True
+
+
 def test_networks_have_explicit_subnets_and_the_database_has_no_internet():
     networks = COMPOSE["networks"]
 

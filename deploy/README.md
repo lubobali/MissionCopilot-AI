@@ -52,7 +52,7 @@ file anyone else can read, and says so when it cannot read one.
 | Path in `MC_SECRETS` | Owner (uid) | Mode | What |
 |---|---|---|---|
 | `.` | root | `0711` | The folder itself: containers may pass through, nobody may list it |
-| `pg_admin_password` | `999` (the Postgres image's user) | `0600` | The Postgres superuser's password, used once by the image to create the cluster |
+| `pg_admin_password` | `10002` (the Postgres container's own user, not the image's 999) | `0600` | The Postgres superuser's password, used once by the image to create the cluster |
 | `admin_url` | `10001` (the server image's user) | `0600` | `postgresql://missioncopilot_admin:<password>@postgres:5432/postgres`, for `migrate` and `admin` only; the API never gets it |
 | `addresses/` | `10001` | `0700` | Written by `admin setup` and `admin add-org`: `directory.url` and `orgs/<org>.url`, the app logins' addresses (each `0600`) |
 | `keys/` | `10001` | `0700` | Written by `admin make-signing-key`: `signing-key.pem`, the key that signs packs and shred orders (`0600`) |

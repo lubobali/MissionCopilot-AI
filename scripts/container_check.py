@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 COMPOSE = ROOT / "deploy" / "compose.yaml"
 HOSTNAME = "mc-check.example.org"
 PHONE = "203.0.113.9"  # a documentation address (RFC 5737), sent as X-Forwarded-For
-POSTGRES_UID, SERVER_UID = 999, 10001  # the postgres image's user; ours (backend/Dockerfile)
+POSTGRES_UID, SERVER_UID = 10002, 10001  # deploy/compose.yaml: our own uids, not the image's 999
 
 
 def values(args: argparse.Namespace, image: str, folder: Path) -> dict[str, str]:
@@ -147,6 +147,10 @@ def check_container(c: Check) -> None:
     c.expect("api is published on loopback only", ports == f"127.0.0.1:{c.port}", ports)
     pg = json.loads(_sh("docker", "inspect", c.run("ps", "-q", "postgres")))[0]
     c.expect("postgres publishes no port", not pg["HostConfig"]["PortBindings"], pg["HostConfig"])
+    who = pg["Config"]["User"]
+    c.expect("postgres runs as its own uid 10002", who == f"{POSTGRES_UID}:{POSTGRES_UID}", who)
+    caps = (pg["HostConfig"]["CapDrop"], pg["HostConfig"]["CapAdd"])
+    c.expect("postgres has no capabilities", caps[0] == ["ALL"] and not caps[1], caps)
     zone = c.run(
         "exec", "-T", "postgres", "psql", "-U", "missioncopilot_admin", "-tAc", "SHOW timezone"
     )

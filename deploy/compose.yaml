@@ -28,8 +28,10 @@ services:
     # The same pinned image CI tests against (.github/workflows/ci.yml, backend/compose.yaml).
     image: postgres:18.6-trixie@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
     command: ["postgres", "-c", "timezone=UTC"]
-    # The entrypoint starts as root to set up its folders, then becomes the postgres user.
-    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    # Its own uid, not the image's 999: on a shared server 999 can be another service's account,
+    # which could then read the password file. The image's data folder is open to any uid (1777),
+    # so no root start and no capabilities are needed.
+    user: "10002:10002"
     read_only: true
     tmpfs: ["/var/run/postgresql:size=1m", "/tmp:size=16m"]
     environment:
