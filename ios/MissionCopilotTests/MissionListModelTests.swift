@@ -176,6 +176,33 @@ final class MissionListModelTests {
         #expect(row(list, Self.roads)?.note == "Update paused, waiting for connection.")
     }
 
+    /// #104: a server that refuses this app as too old changes nothing on the phone.
+    @Test(.needsRepoFiles) func anAppTooOldKeepsItsReadyPackAndSaysUpdateTheApp() async throws {
+        let list = try await downloaded()
+        server.missionList = (200, FakePackServer.missions(version: 2))
+        await list.refresh()
+        server.manifestStatus = (403, AppTooOldTests.tooOld)
+
+        list.download(Self.roads)
+        await list.downloadsEnded()
+
+        #expect(row(list, Self.roads)?.status == .ready(updated: Self.now))
+        #expect(row(list, Self.roads)?.note == "Update failed: this app is too old for the server. Update the app.")
+        #expect(try store.storedPack(for: Self.roads)?.version == 1)
+        let requests = server.requests.count
+        await list.downloadsEnded()
+        #expect(server.requests.count == requests)  // never tried again by itself
+    }
+
+    @Test(.needsRepoFiles) func theListSaysUpdateTheAppWhenTheServerRefusesThisBuild() async throws {
+        let list = try model()
+        server.missionList = (403, AppTooOldTests.tooOld)
+
+        await list.refresh()
+
+        #expect(list.message == MissionRow.appTooOld)
+    }
+
     @Test(.needsRepoFiles) func anOldDownloadFolderIsRemovedOnceItsPackIsInTheStore() async throws {
         let list = try await downloaded()
         let leftover = base.appendingPathComponent(Self.roads, isDirectory: true)

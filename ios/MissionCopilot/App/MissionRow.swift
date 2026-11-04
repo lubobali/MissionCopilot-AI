@@ -16,6 +16,8 @@ struct MissionRow: Equatable, Identifiable, Sendable {
     // The server answered, but not with the list (#104): the phone is not offline, so it does not say so.
     static let serverBusy = "The server is busy or restarting. Showing the missions from the last time it "
         + "answered. Pull down to try again."
+    static let appTooOld = "This app is too old for the server. Update the app; the missions on this iPhone "
+        + "stay as they are."
     static let serverFailed = "The server could not answer. Showing the missions from the last time it "
         + "answered. Pull down to try again."
 
@@ -69,6 +71,7 @@ struct MissionRow: Equatable, Identifiable, Sendable {
         case .notEnoughSpace: "not enough free space on this iPhone."
         case .badFile: "a file arrived damaged twice."
         case .server: "the server could not answer."
+        case .appTooOld: "this app is too old for the server. Update the app."
         case .serverBusy: "the server stayed busy after \(Backoff.maxTries) tries. Try again later."
         case .storage: "this iPhone could not save the download."
         }

@@ -32,7 +32,7 @@ struct URLSessionTransport: Transport {
 /// Debug build allows it (the local server); only paths under /v1/.
 struct ServerClient: Sendable {
     enum Kind: Equatable, Sendable {
-        case success, refused, notFound, shredOrder, rangeOutside, slowDown, busy, offline, failed, notSent
+        case success, refused, notFound, shredOrder, rangeOutside, slowDown, busy, appTooOld, offline, failed, notSent
     }
 
     enum Outcome: Equatable, Sendable {
@@ -43,6 +43,7 @@ struct ServerClient: Sendable {
         case rangeOutside  // 416
         case slowDown(Int)  // 429: seconds to wait
         case busy(Int?)  // 502, 503, 504: restarting or overloaded; seconds to wait, if the server said (#104)
+        case appTooOld(Int?)  // 403 app_too_old: update the app; the server's minimum build, if it said (#104)
         case offline  // no signal or the server cannot be reached
         case failed(Int)  // any other answer, or a broken one (0)
         case notSent  // refused before sending: an address or path the phone never uses
@@ -56,6 +57,7 @@ struct ServerClient: Sendable {
             case .rangeOutside: .rangeOutside
             case .slowDown: .slowDown
             case .busy: .busy
+            case .appTooOld: .appTooOld
             case .offline: .offline
             case .failed: .failed
             case .notSent: .notSent
@@ -73,6 +75,11 @@ struct ServerClient: Sendable {
     /// The server's clock (#104): when set, requests are signed with the server's time, measured once from
     /// /v1/health and again after a refused GET.
     var clock: ServerClock?
+    /// This app's build number, sent on every request (X-App-Build) so the server can say it is too old.
+    var appBuild = ServerClient.thisBuild
+
+    /// CFBundleVersion (CURRENT_PROJECT_VERSION): a whole number that rises with every build handed out.
+    static let thisBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
 
     func get(_ path: String, headers: [String: String] = [:]) async -> Outcome {
         await send("GET", path, body: Data(), headers: headers)
@@ -101,6 +108,7 @@ struct ServerClient: Sendable {
         request.httpMethod = method
         request.httpBody = body.isEmpty ? nil : body
         for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
+        request.setValue(appBuild, forHTTPHeaderField: "X-App-Build")
         do {
             for (name, value) in try await signedHeaders(method, path, body) {
                 request.setValue(value, forHTTPHeaderField: name)  // after the extras: these always win
@@ -131,6 +139,9 @@ struct ServerClient: Sendable {
     }
 
     private struct Health: Decodable { let time: Int }
+
+    /// The part of a 403 problem the phone acts on (#103 step 1.10).
+    private struct Refusal: Decodable { let code: String?, minAppBuild: Int? }
 
     /// https anywhere; plain http only to this machine or a .local name, and only when allowed.
     static func allowed(_ base: URL, local: Bool) -> Bool {
@@ -170,6 +181,9 @@ struct ServerClient: Sendable {
             }
             return .success(data, status: status, headers: headers)
         case 401: return .refused
+        case 403:
+            let refusal = try? JSONDecoder().decode(Refusal.self, from: data)
+            return refusal?.code == "app_too_old" ? .appTooOld(refusal?.minAppBuild) : .failed(403)
         case 404: return .notFound
         case 410: return .shredOrder(data)
         case 416: return .rangeOutside

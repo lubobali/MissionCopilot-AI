@@ -147,12 +147,19 @@ actor PackDownloader {
         case .offline: .paused(.offline)
         case .slowDown(let seconds): .paused(.slowDown(seconds))
         case .busy(let seconds): .paused(.busy(seconds))
-        case .refused: .failed(.notApproved)
-        case .notFound: .failed(.notFound)
         case .shredOrder(let body): .shredOrder(body)
-        case .failed(let status): .failed(.server(status))
-        case .notSent, .rangeOutside: .failed(.server(0))
-        case .success: .failed(.server(0))
+        default: .failed(Self.failure(outcome))
+        }
+    }
+
+    /// The answers that end a run for good: the person decides what next.
+    private static func failure(_ outcome: ServerClient.Outcome) -> PackFailure {
+        switch outcome {
+        case .appTooOld: .appTooOld
+        case .refused: .notApproved
+        case .notFound: .notFound
+        case .failed(let status): .server(status)
+        default: .server(0)  // not sent, a range outside the file, or a success that was not a piece
         }
     }
 

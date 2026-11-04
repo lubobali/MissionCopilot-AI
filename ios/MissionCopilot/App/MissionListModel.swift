@@ -65,6 +65,8 @@ struct MissionListWorld: Sendable {
             message = MissionRow.offline
         case .busy, .slowDown:
             message = MissionRow.serverBusy
+        case .appTooOld:
+            message = MissionRow.appTooOld
         default:
             message = MissionRow.serverFailed
         }

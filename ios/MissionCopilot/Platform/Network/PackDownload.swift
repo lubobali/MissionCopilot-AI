@@ -26,6 +26,7 @@ enum PackFailure: Equatable, Sendable {
     case badFile(String)  // a file stayed wrong after one more try
     case server(Int)
     case serverBusy  // still busy after Backoff.maxTries tries in a row: the person decides (#104)
+    case appTooOld  // the server needs a newer build of the app; nothing on the phone changes (#104)
     case storage  // the staging folder could not be written
 }
 

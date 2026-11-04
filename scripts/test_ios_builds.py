@@ -161,3 +161,10 @@ def test_each_build_compiles_in_its_own_server_rule():
         ("elseif DEBUG", "staging: false, debug: true"),
         ("else", "staging: false, debug: false"),
     ]
+
+
+def test_the_build_number_is_a_whole_number_the_server_can_compare():
+    # The server reads X-App-Build as digits only; "1.0" or "2b" would count as too old (#104).
+    build = PROJECT["settings"]["base"]["CURRENT_PROJECT_VERSION"]
+
+    assert isinstance(build, str) and build.isdigit() and int(build) >= 2

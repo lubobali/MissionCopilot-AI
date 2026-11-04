@@ -59,6 +59,7 @@ import Observation
         case .offline: message = Self.text(.offline)
         case .slowDown(let seconds): message = Self.text(.slowDown(seconds))
         case .busy: message = Self.text(.busy)
+        case .appTooOld: message = Self.text(.appTooOld)
         case .shredOrder(let body):
             if case .destroyed = onShredOrder(body) {
                 state = .notEnrolled
@@ -82,6 +83,7 @@ import Observation
         case .badCode: "That code did not work. Ask your admin for a new one; a code works once, for 15 minutes."
         case .slowDown(let seconds): "Too many tries. Wait \(seconds) seconds, then try again."
         case .busy: "The server is restarting. Try again in a moment."
+        case .appTooOld: "This app is too old for the server. Update the app, then connect."
         case .offline: "No connection. Connect to Wi-Fi or mobile data, then try again."
         case .failed: "Something went wrong on the way. Try again in a moment."
         }
