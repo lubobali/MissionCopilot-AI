@@ -12,7 +12,8 @@ enum PackDownloadState: Equatable, Sendable {
 /// Stopped for now, with everything so far kept: the next run goes on from there.
 enum PackPause: Equatable, Sendable {
     case offline
-    case slowDown(Int)  // seconds
+    case slowDown(Int)  // 429: seconds
+    case busy(Int?)  // the server is restarting or overloaded; seconds, if it said (#104)
     case interrupted  // the system wanted the time back, or the user stopped it
 }
 
@@ -24,6 +25,8 @@ enum PackFailure: Equatable, Sendable {
     case notEnoughSpace(needed: Int64, available: Int64)
     case badFile(String)  // a file stayed wrong after one more try
     case server(Int)
+    case serverBusy  // still busy after Backoff.maxTries tries in a row: the person decides (#104)
+    case appTooOld  // the server needs a newer build of the app; nothing on the phone changes (#104)
     case storage  // the staging folder could not be written
 }
 

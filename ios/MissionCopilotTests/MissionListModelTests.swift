@@ -26,7 +26,8 @@ final class MissionListModelTests {
                                                             key: DataKey.random()), vault: SoftwareKeyVault())
     }
 
-    func model(now: Date = now) throws -> MissionListModel {
+    func model(now: Date = now, wait: @escaping @Sendable (Int) async -> Void = { _ in },
+               jitter: @escaping @Sendable (Int) -> Int = { $0 }) throws -> MissionListModel {
         let client = ServerClient(base: URL(string: "https://kandor-works.example.org")!,
                                   deviceId: "6f1d2c3a-1111-4000-8000-000000000007", signer: SoftwareEvidenceSigner(),
                                   counter: RequestCounter(items: KeychainItems(service: service), account: "phone"),
@@ -37,14 +38,14 @@ final class MissionListModelTests {
         }
         let world = MissionListWorld(client: client, keys: pinned,
                                      stagingBase: base, schema: try PackSectionsTests.schema(), runways: [],
-                                     freeSpace: { 1 << 30 }, now: { now }, chunk: 256)
+                                     freeSpace: { 1 << 30 }, now: { now }, chunk: 256, wait: wait, jitter: jitter)
         let made = MissionListModel(world: world, missions: { [unowned self] in gate.isOpen ? store : nil },
                                     onShredOrder: { [unowned self] in shredOrders.append($0) })
         made.onChange = { [unowned self] in seen.append($0) }
         return made
     }
 
-    private func row(_ model: MissionListModel, _ id: String) -> MissionRow? { model.rows.first { $0.id == id } }
+    func row(_ model: MissionListModel, _ id: String) -> MissionRow? { model.rows.first { $0.id == id } }
 
     private func downloaded() async throws -> MissionListModel {
         let list = try model()
@@ -173,6 +174,33 @@ final class MissionListModelTests {
 
         #expect(row(list, Self.roads)?.status == .ready(updated: Self.now))
         #expect(row(list, Self.roads)?.note == "Update paused, waiting for connection.")
+    }
+
+    /// #104: a server that refuses this app as too old changes nothing on the phone.
+    @Test(.needsRepoFiles) func anAppTooOldKeepsItsReadyPackAndSaysUpdateTheApp() async throws {
+        let list = try await downloaded()
+        server.missionList = (200, FakePackServer.missions(version: 2))
+        await list.refresh()
+        server.manifestStatus = (403, AppTooOldTests.tooOld)
+
+        list.download(Self.roads)
+        await list.downloadsEnded()
+
+        #expect(row(list, Self.roads)?.status == .ready(updated: Self.now))
+        #expect(row(list, Self.roads)?.note == "Update failed: this app is too old for the server. Update the app.")
+        #expect(try store.storedPack(for: Self.roads)?.version == 1)
+        let requests = server.requests.count
+        await list.downloadsEnded()
+        #expect(server.requests.count == requests)  // never tried again by itself
+    }
+
+    @Test(.needsRepoFiles) func theListSaysUpdateTheAppWhenTheServerRefusesThisBuild() async throws {
+        let list = try model()
+        server.missionList = (403, AppTooOldTests.tooOld)
+
+        await list.refresh()
+
+        #expect(list.message == MissionRow.appTooOld)
     }
 
     @Test(.needsRepoFiles) func anOldDownloadFolderIsRemovedOnceItsPackIsInTheStore() async throws {

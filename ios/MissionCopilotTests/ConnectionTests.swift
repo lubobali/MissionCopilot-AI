@@ -13,13 +13,24 @@ import Testing
         #expect(Connection.counter(for: "device-2") !== first)
     }
 
-    @Test(arguments: [ServerConfig.Problem.noAddress, .badAddress, .noKeys, .badKey])
+    /// #104: every client the app makes signs with the one measured server clock.
+    @Test func everyClientSharesTheOneServerClock() throws {
+        let config = try ServerConfig.from(["MCServerScheme": "https", "MCServerHost": "kandor-works.example.org",
+                                            "MCServerKeys": ServerConfigBuildTests.key], allowLocalHTTP: false)
+        let first = Connection.client(config, deviceId: "device-1", signer: SoftwareEvidenceSigner())
+        let second = Connection.client(config, deviceId: "device-2", signer: SoftwareEvidenceSigner())
+
+        #expect(first.clock === Connection.clock && second.clock === Connection.clock)
+        #expect(first.counter === Connection.counter(for: "device-1"))
+    }
+
+    @Test(arguments: [ServerConfig.Problem.noAddress, .badAddress, .wrongServer, .noKeys, .badKey])
     func aBuildWithoutAUsableServerSaysWhatIsMissing(problem: ServerConfig.Problem) {
         #expect(!Connection.text(problem).isEmpty)
     }
 
     @Test func eachProblemSaysSomethingDifferent() {
-        let problems: [ServerConfig.Problem] = [.noAddress, .badAddress, .noKeys, .badKey]
+        let problems: [ServerConfig.Problem] = [.noAddress, .badAddress, .wrongServer, .noKeys, .badKey]
 
         #expect(Set(problems.map(Connection.text)).count == problems.count)
     }

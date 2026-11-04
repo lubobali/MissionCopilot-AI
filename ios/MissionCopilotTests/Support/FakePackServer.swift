@@ -4,7 +4,7 @@ import Foundation
 /// A stand-in for the server's pack routes (#91), serving the real signed Kandor fixture
 /// (docs/api/fixtures/pack-v2-kandor) with byte ranges like pack_routes, and switches for every trouble
 /// a phone meets: a lost signal, a changed file, a server that ignores Range or answers 416, a new pack
-/// published between the manifest and its signature, and a forced status for the manifest.
+/// published between the manifest and its signature, a forced status for the manifest, and a busy server.
 final class FakePackServer: Transport, @unchecked Sendable {
     static let folder = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
         .deletingLastPathComponent().deletingLastPathComponent()
@@ -20,6 +20,9 @@ final class FakePackServer: Transport, @unchecked Sendable {
     var onFileRequest: (@Sendable (Int) -> Void)?  // told the number of each file request
     var cancelCutsOff = false  // like URLSession: a request whose task was cancelled throws
     var offline = false  // every request: no signal
+    var busyAt: Set<Int> = []  // these file requests (1-based) answer 503, once each (#104)
+    var busyFrom: Int?  // every file request from this one on answers 503
+    var busyRetryAfter: String?  // the Retry-After header on those 503 answers
     var missionList: (status: Int, body: Data)?  // GET /v1/missions; nil: roads with the fixture's pack, bridges none
     private(set) var requests: [URLRequest] = []
     private(set) var fileRequests = 0
@@ -97,6 +100,9 @@ final class FakePackServer: Transport, @unchecked Sendable {
         fileRequests += 1
         onFileRequest?(fileRequests)
         if cancelCutsOff, Task.isCancelled { throw URLError(.cancelled) }
+        if busyAt.remove(fileRequests) != nil || busyFrom.map({ fileRequests >= $0 }) == true {
+            return Answer(503, busyRetryAfter.map { ["Retry-After": $0] } ?? [:])
+        }
         if dropOnce == fileRequests {
             dropOnce = nil
             throw URLError(.networkConnectionLost)

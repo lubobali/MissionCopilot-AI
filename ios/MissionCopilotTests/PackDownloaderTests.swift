@@ -230,7 +230,8 @@ struct PackDownloaderTests {
     // What the server says about this phone
 
     @Test(.needsRepoFiles, arguments: [(401, PackOutcome.failed(.notApproved)), (404, .failed(.notFound)),
-                                       (429, .paused(.slowDown(60))), (500, .failed(.server(500)))])
+                                       (429, .paused(.slowDown(60))), (503, .paused(.busy(nil))),
+                                       (500, .failed(.server(500)))])
     func theServersAnswerAboutThisPhoneEndsTheRun(status: Int, expected: PackOutcome) async throws {
         let rig = try Rig()
         rig.server.manifestStatus = (status, Data())

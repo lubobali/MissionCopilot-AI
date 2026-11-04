@@ -32,7 +32,7 @@ struct URLSessionTransport: Transport {
 /// Debug build allows it (the local server); only paths under /v1/.
 struct ServerClient: Sendable {
     enum Kind: Equatable, Sendable {
-        case success, refused, notFound, shredOrder, rangeOutside, slowDown, offline, failed, notSent
+        case success, refused, notFound, shredOrder, rangeOutside, slowDown, busy, appTooOld, offline, failed, notSent
     }
 
     enum Outcome: Equatable, Sendable {
@@ -42,6 +42,8 @@ struct ServerClient: Sendable {
         case shredOrder(Data)  // 410: a signed order to destroy every mission, to be checked first
         case rangeOutside  // 416
         case slowDown(Int)  // 429: seconds to wait
+        case busy(Int?)  // 502, 503, 504: restarting or overloaded; seconds to wait, if the server said (#104)
+        case appTooOld(Int?)  // 403 app_too_old: update the app; the server's minimum build, if it said (#104)
         case offline  // no signal or the server cannot be reached
         case failed(Int)  // any other answer, or a broken one (0)
         case notSent  // refused before sending: an address or path the phone never uses
@@ -54,6 +56,8 @@ struct ServerClient: Sendable {
             case .shredOrder: .shredOrder
             case .rangeOutside: .rangeOutside
             case .slowDown: .slowDown
+            case .busy: .busy
+            case .appTooOld: .appTooOld
             case .offline: .offline
             case .failed: .failed
             case .notSent: .notSent
@@ -68,6 +72,14 @@ struct ServerClient: Sendable {
     var transport: Transport = URLSessionTransport()
     var now: @Sendable () -> Date = { Date() }
     var allowLocalHTTP = false
+    /// The server's clock (#104): when set, requests are signed with the server's time, measured once from
+    /// /v1/health and again after a refused GET.
+    var clock: ServerClock?
+    /// This app's build number, sent on every request (X-App-Build) so the server can say it is too old.
+    var appBuild = ServerClient.thisBuild
+
+    /// CFBundleVersion (CURRENT_PROJECT_VERSION): a whole number that rises with every build handed out.
+    static let thisBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
 
     func get(_ path: String, headers: [String: String] = [:]) async -> Outcome {
         await send("GET", path, body: Data(), headers: headers)
@@ -80,10 +92,23 @@ struct ServerClient: Sendable {
     private func send(_ method: String, _ path: String, body: Data, headers: [String: String]) async -> Outcome {
         guard path.hasPrefix("/v1/"), Self.allowed(base, local: allowLocalHTTP),
               let url = URL(string: base.absoluteString + path) else { return .notSent }
+        if let clock, !clock.isMeasured { _ = await measureClock(clock) }
+        let first = await attempt(method, path, url: url, body: body, headers: headers)
+        // A refused GET may be a clock that changed since it was measured: measure again, and if the
+        // difference really moved, send it once more, signed afresh. A POST is never sent twice.
+        guard first == .refused, method == "GET", let clock else { return first }
+        let before = clock.offset
+        guard await measureClock(clock), abs(clock.offset - before) >= ServerClock.meaningful else { return first }
+        return await attempt(method, path, url: url, body: body, headers: headers)
+    }
+
+    private func attempt(_ method: String, _ path: String, url: URL, body: Data,
+                         headers: [String: String]) async -> Outcome {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.httpBody = body.isEmpty ? nil : body
         for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
+        request.setValue(appBuild, forHTTPHeaderField: "X-App-Build")
         do {
             for (name, value) in try await signedHeaders(method, path, body) {
                 request.setValue(value, forHTTPHeaderField: name)  // after the extras: these always win
@@ -91,17 +116,32 @@ struct ServerClient: Sendable {
         } catch {
             return .notSent
         }
-        return await Self.outcome { try await transport.send(request) }
+        return await Self.outcome(now: now()) { try await transport.send(request) }
     }
 
     private func signedHeaders(_ method: String, _ path: String, _ body: Data) async throws -> [String: String] {
         let seq = try await counter.next()
-        let time = Int(now().timeIntervalSince1970)
+        let time = clock?.time(now()) ?? Int(now().timeIntervalSince1970)
         let request = SignedRequest(method: method, path: path, deviceId: deviceId, seq: seq, time: time, body: body)
         let signature = try signer.sign(try DeviceSigning.requestMessage(request))
         return ["X-Device-Id": deviceId, "X-Device-Seq": String(seq), "X-Device-Time": String(time),
                 "X-Device-Signature": signature.base64EncodedString()]
     }
+
+    /// GET /v1/health, plain: not signed, so no request number is used. True when the server's time came.
+    private func measureClock(_ clock: ServerClock) async -> Bool {
+        guard let url = URL(string: base.absoluteString + "/v1/health") else { return false }
+        let sent = now()
+        guard case .success(let data, 200, _) = await Self.outcome({ try await transport.send(URLRequest(url: url)) }),
+              let answer = try? JSONDecoder().decode(Health.self, from: data) else { return false }
+        clock.measure(sent: sent, received: now(), server: answer.time)
+        return true
+    }
+
+    private struct Health: Decodable { let time: Int }
+
+    /// The part of a 403 problem the phone acts on (#103 step 1.10).
+    private struct Refusal: Decodable { let code: String?, minAppBuild: Int? }
 
     /// https anywhere; plain http only to this machine or a .local name, and only when allowed.
     static func allowed(_ base: URL, local: Bool) -> Bool {
@@ -114,10 +154,10 @@ struct ServerClient: Sendable {
         }
     }
 
-    static func outcome(_ call: () async throws -> (Data, HTTPURLResponse)) async -> Outcome {
+    static func outcome(now: Date = Date(), _ call: () async throws -> (Data, HTTPURLResponse)) async -> Outcome {
         do {
             let (data, response) = try await call()
-            return outcome(status: response.statusCode, data: data, response: response)
+            return outcome(status: response.statusCode, data: data, response: response, now: now)
         } catch let error as URLError where offlineCodes.contains(error.code) {
             return .offline
         } catch {
@@ -130,7 +170,8 @@ struct ServerClient: Sendable {
         .dataNotAllowed, .internationalRoamingOff
     ]
 
-    private static func outcome(status: Int, data: Data, response: HTTPURLResponse) -> Outcome {
+    private static func outcome(status: Int, data: Data, response: HTTPURLResponse, now: Date) -> Outcome {
+        let retryAfter = Backoff.retryAfter(response.value(forHTTPHeaderField: "Retry-After"), now: now)
         switch status {
         case 200, 201, 206:
             let headers = response.allHeaderFields.reduce(into: [String: String]()) { all, field in
@@ -140,10 +181,14 @@ struct ServerClient: Sendable {
             }
             return .success(data, status: status, headers: headers)
         case 401: return .refused
+        case 403:
+            let refusal = try? JSONDecoder().decode(Refusal.self, from: data)
+            return refusal?.code == "app_too_old" ? .appTooOld(refusal?.minAppBuild) : .failed(403)
         case 404: return .notFound
         case 410: return .shredOrder(data)
         case 416: return .rangeOutside
-        case 429: return .slowDown(Int(response.value(forHTTPHeaderField: "Retry-After") ?? "") ?? 60)
+        case 429: return .slowDown(retryAfter ?? 60)
+        case 502, 503, 504: return .busy(retryAfter)
         default: return .failed(status)
         }
     }

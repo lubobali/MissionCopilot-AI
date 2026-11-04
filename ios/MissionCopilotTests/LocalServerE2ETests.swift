@@ -47,12 +47,17 @@ struct LocalServerE2ETests {
         let enrolled = await enroller.enroll(code: e2e.code)
         guard case .enrolled(let deviceId) = enrolled else { Issue.record("enroll: \(enrolled)"); return }
         let transport = RecordingTransport()
-        let client = ServerClient(base: config.base, deviceId: deviceId, signer: signer,
+        var client = ServerClient(base: config.base, deviceId: deviceId, signer: signer,
                                   counter: RequestCounter(items: KeychainItems(service: service), account: deviceId),
                                   transport: transport, allowLocalHTTP: true)
+        // The real /v1/health (#104): the phone's clock is measured once, every request signed with the
+        // server's time, as the app does.
+        let clock = ServerClock()
+        client.clock = clock
 
         // 2. Refused until the operator approves this phone.
         _ = try await waitFor(client, "/v1/devices/me") { $0.kind == .success }
+        #expect(clock.isMeasured && abs(clock.offset) < 5)  // same machine: the same clock, give or take
 
         // 3. The pack: the whole of it, cut off and resumed, a newer one taken, the older played back refused.
         let steps = try LocalServerPackSteps(client: client, transport: transport, config: config,

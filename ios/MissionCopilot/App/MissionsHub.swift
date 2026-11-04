@@ -69,8 +69,7 @@ extension Connection {
             guard let record = records.load(), record.approved else { return .failure(.notConnected) }
             guard let schema = try? PackSchema.bundled() else { return .failure(.noSchema) }
             let signer = SecureEnclaveEvidenceSigner(user: user)
-            let client = ServerClient(base: config.base, deviceId: record.deviceId, signer: signer,
-                                      counter: counter(for: record.deviceId), allowLocalHTTP: config.allowLocalHTTP)
+            let client = Connection.client(config, deviceId: record.deviceId, signer: signer)
             let base = URL.applicationSupportDirectory.appending(path: "PackDownloads/\(user)",
                                                                  directoryHint: .isDirectory)
             // Measured on the app's home folder: it always exists and sits on the same volume.

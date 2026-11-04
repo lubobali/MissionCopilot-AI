@@ -2,10 +2,20 @@ import SwiftUI
 
 /// Puts the connection to the organization's server together for the app (#90): the chip key that
 /// signs, the Keychain record of this phone's enrollment, and one request counter per phone identity,
-/// shared by every client, so two requests can never be given the same number.
+/// shared by every client, so two requests can never be given the same number. One server clock too
+/// (#104), so the phone's clock is measured once and every request is signed with the server's time.
 @MainActor enum Connection {
     static let counterService = "com.lubobali.missioncopilot.requests"
+    static let clock = ServerClock()
     private static var counters: [String: RequestCounter] = [:]
+
+    /// Every client of the organization's server: its counter and the shared clock always attached.
+    static func client(_ config: ServerConfig, deviceId: String, signer: EvidenceSigner) -> ServerClient {
+        var made = ServerClient(base: config.base, deviceId: deviceId, signer: signer,
+                                counter: counter(for: deviceId), allowLocalHTTP: config.allowLocalHTTP)
+        made.clock = clock
+        return made
+    }
 
     static func counter(for deviceId: String) -> RequestCounter {
         if let found = counters[deviceId] { return found }
@@ -21,10 +31,7 @@ import SwiftUI
         let records = DeviceRecordStore(user: user)
         return EnrollmentModel(
             enroller: enroller, records: records,
-            client: { deviceId in
-                ServerClient(base: config.base, deviceId: deviceId, signer: signer, counter: counter(for: deviceId),
-                             allowLocalHTTP: config.allowLocalHTTP)
-            },
+            client: { deviceId in client(config, deviceId: deviceId, signer: signer) },
             onShredOrder: { body in
                 ShredOrderAction.handle(body, records: records, missions: missions(), keys: config.pinnedKeys,
                                         now: Date())
@@ -36,6 +43,7 @@ import SwiftUI
         switch problem {
         case .noAddress: "This build has no server address. Ask your organization for its build of the app."
         case .badAddress: "This build's server address is not allowed: it must use https."
+        case .wrongServer: "This build names a server it may not use. Ask your organization for its build of the app."
         case .noKeys: "This build has no server key, so it could not trust any mission pack."
         case .badKey: "This build's server key is not a valid P-256 key."
         }

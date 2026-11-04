@@ -98,7 +98,22 @@ struct KeepGoingTests {
         let prefix = try #require(permitted.first?.dropLast().description)  // "...pack." without the "*"
         let first = ContinuedProcessingRunway.newIdentifier(), second = ContinuedProcessingRunway.newIdentifier()
 
-        #expect(permitted == ["com.lubobali.missioncopilot.pack.*"])
-        #expect(first.hasPrefix(prefix) && second.hasPrefix(prefix) && first != second)
+        let bundle = try #require(Bundle.main.bundleIdentifier)
+        #expect(permitted == ["\(bundle).pack.*"])
+        #expect(first?.hasPrefix(prefix) == true && second?.hasPrefix(prefix) == true && first != second)
+    }
+
+    /// #104: the Staging build has its own bundle id, and Info.plist permits "<bundle id>.pack.*". An id
+    /// written into the code would be refused there, and no download would keep going outside the app.
+    @Test(arguments: ["com.lubobali.missioncopilot", "com.lubobali.missioncopilot.staging"])
+    func theContinuedTaskIdComesFromTheBuildsOwnBundleId(bundle: String) throws {
+        let identifier = try #require(ContinuedProcessingRunway.newIdentifier(bundle: bundle))
+
+        #expect(identifier.hasPrefix("\(bundle).pack."))
+        #expect(UUID(uuidString: String(identifier.dropFirst("\(bundle).pack.".count))) != nil)
+    }
+
+    @Test func withNoBundleIdThereIsNoContinuedTaskAndTheShortTimeIsNext() {
+        #expect(ContinuedProcessingRunway.newIdentifier(bundle: nil) == nil)
     }
 }
