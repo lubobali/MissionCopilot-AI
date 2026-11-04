@@ -3,6 +3,7 @@ the server refuses to start unless every database is reachable, fully migrated a
 directory says (fail closed). Each organization gets its own connection pool."""
 
 import os
+import time
 import uuid
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -83,7 +84,9 @@ def _refused(env: dict[str, str], match: str) -> None:
 
 def test_the_server_starts_with_every_database_in_place(world):
     with local_client(build(world.env())) as client:
-        assert client.get("/v1/health").json() == {"status": "ok"}
+        answer = client.get("/v1/health").json()
+        assert answer["status"] == "ok"
+        assert abs(answer["time"] - time.time()) < 5  # the real server's clock, in Unix seconds
 
 
 def test_each_organization_gets_its_own_pool_into_its_own_database(world):

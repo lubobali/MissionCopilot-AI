@@ -2,7 +2,7 @@ import time
 from collections.abc import Callable
 
 from cryptography.hazmat.primitives.asymmetric import ec
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import Lifespan
@@ -24,8 +24,11 @@ v1 = APIRouter(prefix="/v1")
 
 
 @v1.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+def health(request: Request) -> dict[str, str | int]:
+    """Alive, and the server's time in Unix seconds: the clock the signed-request window uses, so a
+    phone measures its own clock's offset here (no database is touched)."""
+    devices: DeviceStore = request.app.state.devices
+    return {"status": "ok", "time": int(devices.now())}
 
 
 def create_app(

@@ -27,7 +27,11 @@ paths:
     get:
       tags: [health]
       operationId: getHealth
-      summary: Liveness check
+      summary: Liveness check and the server's time
+      description: >-
+        Never touches the database. `time` is the clock the signed-request window uses (a request
+        must be within 300 s of it): a phone measures its own clock's offset here and corrects for
+        it before signing.
       security: []
       responses:
         "200":
@@ -36,11 +40,14 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [status]
+                required: [status, time]
                 properties:
                   status:
                     type: string
                     const: ok
+                  time:
+                    type: integer
+                    description: Server time, whole Unix seconds (UTC)
         "429":
           $ref: "#/components/responses/TooManyRequests"
   /v1/missions:
