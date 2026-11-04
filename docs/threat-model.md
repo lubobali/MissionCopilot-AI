@@ -115,6 +115,10 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | T27 | T | An old signed batch is replayed | Strictly increasing signed sequence number and a 5-minute time window per request; the batch idempotency key arrives with sync in Phase 8 | built | `backend/tests/unit/test_device_requests.py` |
 | T28 | I | Unapproved data leaves the phone | The outbox holds approved, signed items only (ADR 0006) | planned | Phase 7, Phase 8 |
 | T29 | I | Key material crosses the network | The API contract never contains key references | built | `backend/tests/unit/test_openapi_contract.py` |
+| T57 | T | A build reaches the wrong server: a Release pointed at staging or at a laptop, or the staging app holding production's keys or data | Three builds (#104), each its own settings file set after Base, so a laptop's Local.xcconfig can never win; Staging is its own app (own bundle id, so its own keychain, chip keys and pinned key); Release talks only to https://mc.lubot.ai. Checked three ways: the settings files, Xcode's own resolved settings for Staging and Release, and the app itself, which refuses any other host with a clear screen (no crash). Staging and Release never pin the same key | built | `scripts/test_ios_builds.py`, `scripts/test_check_ios_build_settings.py`, `ios/MissionCopilotTests/ServerConfigBuildTests.swift`, `ios/MissionCopilotTests/KeepGoingTests.swift` |
+| T58 | D | Phones come back all at once after a restart and keep the server down (a retry storm), or a phone gives up for good | 429 and 502/503/504 pause a download, never fail it; Retry-After is honoured (seconds or an HTTP date) and kept between 5 seconds and 5 minutes, else a random wait under a doubling cap (full jitter); at most 5 tries in a row, then the person decides; only downloads (GET) repeat by themselves, each newly signed; the row shows the real wait | built | `ios/MissionCopilotTests/BackoffTests.swift`, `ios/MissionCopilotTests/MissionListRetryTests.swift`, `ios/MissionCopilotTests/ServerClientTests.swift` |
+| T59 | D | A phone with a wrong clock is locked out: the server refuses a time outside 5 minutes like a bad signature, so the phone looks "not approved" | The phone measures the server's clock from GET /v1/health (not signed, no request number used, middle of the round trip) and signs with the server's time; after a refused GET it measures again and sends once more only if the clock really moved; a POST is never sent twice. The 5-minute window itself stays (T27) | built | `ios/MissionCopilotTests/ServerClockTests.swift`, `ios/MissionCopilotTests/LocalServerE2ETests.swift`, `backend/tests/unit/test_health_time.py` |
+| T60 | T | An old app keeps talking to a server whose contract moved on | Every request carries the app's build (X-App-Build, a whole number that rises with every build handed out); below the server's minimum the answer is 403 app_too_old and the phone says "update the app"; nothing on the phone is deleted (only a valid signed shred order does that) and nothing is tried again by itself | built | `ios/MissionCopilotTests/AppTooOldTests.swift`, `ios/MissionCopilotTests/MissionListModelTests.swift`, `backend/tests/unit/test_app_too_old.py` |
 
 ### B6 Backend ↔ organization databases, and the API in front of them
 | ID | STRIDE | Threat | Control | Status | Test or phase |
@@ -205,12 +209,12 @@ against the current release before quoting.
 | M1 Credential usage | T11, T49 | API1 Object-level authorization | T31 |
 | M2 Supply chain | T46-T52 | API2 Authentication | T30, T26 |
 | M3 Authentication / authorization | T17, T26 | API3 Object property authorization | T36 |
-| M4 Input / output validation | T01-T07, T51, T54, T56 | API4 Resource consumption | T34 |
-| M5 Communication | T24, T25 | API5 Function-level authorization | T31, T33 |
+| M4 Input / output validation | T01-T07, T51, T54, T56 | API4 Resource consumption | T34, T58 |
+| M5 Communication | T24, T25, T57, T59 | API5 Function-level authorization | T31, T33 |
 | M6 Privacy controls | P01-P07 | API6 Sensitive business flows | T42, T43 (approval) |
 | M7 Binary protections | T21 (accepted) | API7 Server-side request forgery | Not applicable: no URL fetching |
-| M8 Misconfiguration | T23, T35 | API8 Misconfiguration | T35, T41, T53 |
-| M9 Data storage | T14-T16, T19, T55 | API9 Inventory management | T37 |
+| M8 Misconfiguration | T23, T35, T57 | API8 Misconfiguration | T35, T41, T53 |
+| M9 Data storage | T14-T16, T19, T55 | API9 Inventory management | T37, T60 |
 | M10 Cryptography | T14, T19, T25 | API10 Unsafe consumption of APIs | T45 |
 
 ## 6. Limits we accept (and the production upgrade)
