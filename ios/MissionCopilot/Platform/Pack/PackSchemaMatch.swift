@@ -1,7 +1,8 @@
 import Foundation
 
 /// How PackSchema applies each keyword, as JSON Schema 2020-12 does: a keyword about strings says nothing
-/// about a number, "integer" is a number with no fraction, and a pattern is searched for, not matched whole.
+/// about a number, "integer" is a number with no fraction, a pattern is searched for, not matched whole, and
+/// a length is counted in Unicode code points (as the reference does), not in letters as Swift counts them.
 extension PackSchema {
     static func matches(_ value: JSONValue, _ schema: JSONValue) -> Bool {
         switch schema {
@@ -31,7 +32,9 @@ extension PackSchema {
 
     private static func stringMatches(_ value: JSONValue, _ keywords: [String: JSONValue]) -> Bool {
         guard case .string(let text) = value else { return true }
-        if case .number(let least)? = keywords["minLength"], Double(text.unicodeScalars.count) < least { return false }
+        let length = Double(text.unicodeScalars.count)
+        if case .number(let least)? = keywords["minLength"], length < least { return false }
+        if case .number(let most)? = keywords["maxLength"], length > most { return false }
         if case .string(let pattern)? = keywords["pattern"] {
             guard let regex = try? NSRegularExpression(pattern: pattern) else { return false }
             let range = NSRange(text.startIndex..., in: text)
@@ -50,6 +53,7 @@ extension PackSchema {
     private static func arrayMatches(_ value: JSONValue, _ keywords: [String: JSONValue]) -> Bool {
         guard case .array(let items) = value else { return true }
         if case .number(let least)? = keywords["minItems"], Double(items.count) < least { return false }
+        if case .number(let most)? = keywords["maxItems"], Double(items.count) > most { return false }
         var first = 0
         if case .array(let prefix)? = keywords["prefixItems"] {
             for (item, schema) in zip(items, prefix) where !matches(item, schema) { return false }

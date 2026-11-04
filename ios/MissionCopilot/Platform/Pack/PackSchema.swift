@@ -10,7 +10,7 @@ struct PackSchema: Sendable {
 
     static let checks: Set<String> = [
         "type", "required", "properties", "additionalProperties", "enum", "const", "pattern", "minLength",
-        "minimum", "exclusiveMinimum", "items", "prefixItems", "minItems", "oneOf"
+        "maxLength", "minimum", "exclusiveMinimum", "items", "prefixItems", "minItems", "maxItems", "oneOf"
     ]
     static let notes: Set<String> = ["$schema", "$id", "$defs", "$comment", "title", "description"]
 
