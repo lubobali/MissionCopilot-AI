@@ -69,6 +69,14 @@ and every request it sends is signed with that key.
    talks https only (plain http to the local server in Debug builds). Until the dashboard exists, an
    operator issues codes and approves phones with `missioncopilot-admin`. An end-to-end test runs the
    whole path against the real server (`scripts/e2e_phone_local.py`).
+7. **The app on a real server (#104):** three builds. Debug talks to the laptop's server for the
+   Simulator; Staging is its own app ("MC Staging", its own keychain, chip keys and pinned key) for
+   `https://mc-staging.lubot.ai`; Release talks only to `https://mc.lubot.ai`. Checked three ways: the
+   settings files, Xcode's own resolved settings, and the app, which refuses any other host (T57). A
+   wrong phone clock no longer locks a phone out: it measures the server's time from `/v1/health` and
+   signs with it (T59). A busy or restarting server pauses a download, which goes on by itself after
+   the wait it shows, at most 5 tries in a row (T58). Every request says the app's build, so the server
+   can answer "update the app" without anything on the phone being deleted (T60).
 
 **Limits (honest):**
 - **Trust on first use.** Without Apple's App Attest the server cannot prove that the key really lives in
@@ -76,6 +84,8 @@ and every request it sends is signed with that key.
   short-lived code for one named person, and a manager who approves each phone.
 - **A stolen code** lets a thief enroll their own key, but only as a pending phone that a manager must
   approve. A code is shown once and expires in 15 minutes.
+- **No production key in the Release build yet.** It is added when the server makes it, with an offline
+  spare (#103); until then a Release build says it has no server key and trusts no pack.
 - **Production upgrade:** a paid Apple developer team, App Attest at enrollment, and device management
   (MDM). Free signing, used for this prototype, also expires every 7 days, which a field deployment
   cannot accept.

@@ -74,6 +74,14 @@ import UIKit
         #expect(await enroller(FakeTransport(status: status)).enroll(code: Self.code) == expected)
     }
 
+    /// #104: only the downloads try a busy server again by themselves; the person taps Connect again.
+    @Test func aRestartingServerIsAskedOnceAndThePersonTriesAgain() async {
+        let transport = FakeTransport(status: 503, headers: ["Retry-After": "5"])
+
+        #expect(await enroller(transport).enroll(code: Self.code) == .busy)
+        #expect(transport.sent.count == 1)
+    }
+
     @Test func aBrokenAnswerIsAFailureNotAnEnrollment() async {
         let transport = FakeTransport(status: 201, body: Data("not json".utf8))
 

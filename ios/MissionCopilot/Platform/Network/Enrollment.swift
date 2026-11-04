@@ -5,6 +5,8 @@ enum EnrollmentResult: Equatable, Sendable {
     case enrolled(deviceId: String)
     case badCode  // unknown, used, expired or mistyped: ask the admin for a new one
     case slowDown(Int)
+    case busy  // restarting or overloaded: the person taps again, never repeated by itself (#104)
+    case appTooOld  // the server needs a newer build of the app (#104)
     case offline
     case failed
 }
@@ -18,6 +20,7 @@ struct Enroller: Sendable {
     let signer: EvidenceSigner
     var transport: Transport = URLSessionTransport()
     var allowLocalHTTP = false
+    var appBuild = ServerClient.thisBuild
 
     private struct Body: Encodable { let code: String, publicKeyDER: String, proof: String }
     private struct Answer: Decodable { let id: String }
@@ -35,6 +38,7 @@ struct Enroller: Sendable {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(appBuild, forHTTPHeaderField: "X-App-Build")
         do {
             let key = try signer.publicKeyDER()
             let proof = try signer.sign(DeviceSigning.enrollmentMessage(code: code, publicKeyDER: key))
@@ -49,6 +53,8 @@ struct Enroller: Sendable {
             return .enrolled(deviceId: answer.id)
         case .refused: return .badCode
         case .slowDown(let seconds): return .slowDown(seconds)
+        case .busy: return .busy
+        case .appTooOld: return .appTooOld
         case .offline: return .offline
         default: return .failed
         }

@@ -4,7 +4,8 @@ import Foundation
 enum MissionPause: Equatable, Sendable {
     case offline  // no signal: goes on when the connection returns
     case interrupted  // the system took the time back: goes on at the next open
-    case slowDown(Int)  // the server asked to wait (seconds)
+    case slowDown(Int)  // the server asked to wait: goes on by itself after these seconds (#104)
+    case busy(Int)  // the server is restarting or overloaded: goes on by itself after these seconds (#104)
     case locked  // downloaded and checked, waiting for the store: goes on after unlock
 }
 

@@ -4,14 +4,23 @@ options:
   deploymentTarget:
     iOS: "26.0"
   createIntermediateGroups: true
+# Three builds (#104): Debug (the laptop's server), Staging (its own app, the staging server), Release
+# (production only). Each settings file starts from Base and then sets its server.
+configs:
+  Debug: debug
+  Staging: release
+  Release: release
 configFiles:
-  Debug: Config/Base.xcconfig
-  Release: Config/Base.xcconfig
+  Debug: Config/Debug.xcconfig
+  Staging: Config/Staging.xcconfig
+  Release: Config/Release.xcconfig
 settings:
   base:
     SWIFT_VERSION: "6.0"
     MARKETING_VERSION: "0.5.0"  # the phase; packs name the oldest app version that may read them
-    CURRENT_PROJECT_VERSION: "1"
+    # The build number (CFBundleVersion), sent as X-App-Build (#104): a whole number, raised by one for every
+    # build handed out, so the server can refuse a build that is too old. 2: the first that sends it.
+    CURRENT_PROJECT_VERSION: "2"
 packages:
   # GRDB 7.12.0 linked to SQLCipher 4.20.0 (exact): our fork changes only Package.swift, as GRDB's
   # README says to for SQLCipher with SPM. Pinned by commit; recorded in docs/sbom/app.cdx.json.
@@ -55,6 +64,11 @@ targets:
           # Debug only: lets Finder copy large model files into the app (spikes).
           INFOPLIST_FILE: Config/Info-Debug.plist
           INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: YES
+        Staging:
+          # Its own app: its own keychain and chip keys, never production's (#104).
+          PRODUCT_BUNDLE_IDENTIFIER: com.lubobali.missioncopilot.staging
+          INFOPLIST_KEY_CFBundleDisplayName: MC Staging
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) STAGING
   MissionCopilotTests:
     type: bundle.unit-test
     platform: iOS
@@ -75,5 +89,27 @@ schemes:
     build:
       targets:
         MissionCopilot: all
+    run:
+      config: Debug
     test:
+      config: Debug
       targets: [MissionCopilotTests]
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+  # No test action: the tests need a debug build (testability). They run on Debug.
+  MissionCopilot Staging:
+    build:
+      targets:
+        MissionCopilot: all
+    run:
+      config: Staging
+    profile:
+      config: Staging
+    analyze:
+      config: Staging
+    archive:
+      config: Staging

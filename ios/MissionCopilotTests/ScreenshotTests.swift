@@ -44,6 +44,21 @@ struct ScreenshotTests {
         #expect(Pixel.rgb(image, column: 72, row: 44) == Palette.rgb(.surface, look.mode))
     }
 
+    /// #104: a busy server, on the list and on a mission whose download waits for it.
+    @Test(arguments: Look.allCases)
+    func aBusyServerIsShownOnTheThemeBackground(look: Look) throws {
+        let rows = [
+            MissionRow(id: "b", title: "Kandor Bridges", status: .paused(.busy(120)), pack: nil,
+                       updateAvailable: false, canDownload: false, note: nil),
+            MissionRow(id: "a", title: "Kandor Rural Roads Project, Package 1",
+                       status: .ready(updated: MissionWordsTests.nov3), pack: Self.sampleRows.first?.pack,
+                       updateAvailable: true, canDownload: false, note: MissionRow.text(.paused(.slowDown(30))))
+        ]
+        try check(MissionCards(rows: rows, message: MissionRow.serverBusy, words: MissionWordsTests.words)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "missions-busy")
+    }
+
     @Test(arguments: Look.allCases)
     func thePackSummaryIsOnTheThemeBackground(look: Look) throws {
         let pack = try #require(Self.sampleRows.first?.pack)

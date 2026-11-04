@@ -80,7 +80,8 @@ import Testing
 
     @Test(arguments: [
         (200, ServerClient.Kind.success), (206, .success), (401, .refused), (404, .notFound), (410, .shredOrder),
-        (416, .rangeOutside), (429, .slowDown), (500, .failed), (403, .failed)
+        (416, .rangeOutside), (429, .slowDown), (500, .failed), (403, .failed), (502, .busy), (503, .busy),
+        (504, .busy)
     ])
     func everyAnswerBecomesOneOutcome(status: Int, kind: ServerClient.Kind) async {
         #expect(await client(FakeTransport(status: status)).get(Self.path).kind == kind)
@@ -94,11 +95,22 @@ import Testing
         #expect(outcome == .shredOrder(body))
     }
 
-    @Test(arguments: [("30", 30), ("not a number", 60), (nil, 60)])
+    @Test(arguments: [("30", 30), ("not a number", 60), (nil, 60), ("Mon, 26 Oct 2026 07:36:53 GMT", 90)])
     func slowDownSaysHowLongToWait(header: String?, seconds: Int) async {
         let headers = header.map { ["Retry-After": $0] } ?? [:]
 
         #expect(await client(FakeTransport(status: 429, headers: headers)).get(Self.path) == .slowDown(seconds))
+    }
+
+    /// #104: a server restarting or overloaded (502, 503, 504) is busy, not broken. Retry-After is seconds or
+    /// an HTTP date (RFC 9110 10.2.3); nil when it says nothing usable, so the phone picks its own wait.
+    @Test(arguments: [("30", 30), ("0", 0), ("Mon, 26 Oct 2026 07:36:53 GMT", 90),
+                      ("Mon, 26 Oct 2026 07:25:23 GMT", 0), ("-5", nil), ("soon", nil),
+                      (nil, nil)] as [(String?, Int?)])
+    func aBusyServerSaysHowLongToWaitIfItKnows(header: String?, seconds: Int?) async {
+        let headers = header.map { ["Retry-After": $0] } ?? [:]
+
+        #expect(await client(FakeTransport(status: 503, headers: headers)).get(Self.path) == .busy(seconds))
     }
 
     @Test(arguments: [URLError.Code.notConnectedToInternet, .timedOut, .networkConnectionLost,

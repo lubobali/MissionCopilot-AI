@@ -46,6 +46,8 @@ you can run).
 
 ## Tests
 Backend and tooling: `uv run --directory backend pytest`. iOS: Swift Testing on the simulator.
+The app has three builds: Debug (the local server), Staging (its own app, "MC Staging") and Release
+(production only); see [docs/security.md](docs/security.md#which-phones-may-send-data-device-enrollment).
 Every commit runs the same checks as CI through prek hooks.
 
 ## License

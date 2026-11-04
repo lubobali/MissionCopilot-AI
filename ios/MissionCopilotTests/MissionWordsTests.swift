@@ -42,18 +42,38 @@ struct MissionWordsTests {
     }
 
     @Test func eachStoppedDownloadSaysItsOwnReasonAndThatItGoesOn() {
-        let pauses: [MissionPause] = [.offline, .interrupted, .slowDown(30), .locked]
+        let pauses: [MissionPause] = [.offline, .interrupted, .slowDown(30), .busy(120), .locked]
         let texts = pauses.map { Self.words.detail(.paused($0)) ?? "" }
 
         #expect(Set(texts).count == pauses.count)
         #expect(texts[0] == "Waiting for connection. It goes on by itself.")
-        #expect(texts[2] == "The server is busy. It goes on in 30 seconds.")
-        #expect(texts[3] == "Downloaded. It is added when you unlock the app.")
-        #expect(!texts[3].contains("connection"))  // a locked phone is not offline
+        #expect(texts[2] == "Too many requests for now. It goes on by itself in 30 seconds.")
+        #expect(texts[3] == "The server is busy or restarting. It goes on by itself in about 2 minutes.")
+        #expect(texts[4] == "Downloaded. It is added when you unlock the app.")
+        #expect(!texts[4].contains("connection"))  // a locked phone is not offline
+        #expect(!texts[3].contains("connection"))  // a busy server is not a lost signal (#104)
+    }
+
+    /// #104: the wait the phone really waits, in words a person reads at a glance.
+    @Test(arguments: [(5, "5 seconds"), (59, "59 seconds"), (60, "about 1 minute"), (61, "about 2 minutes"),
+                      (300, "about 5 minutes")])
+    func aWaitIsSaidInSecondsOrMinutes(seconds: Int, words: String) {
+        #expect(MissionWords.wait(seconds) == words)
     }
 
     @Test func aFailedDownloadSaysWhyAsASentence() {
         #expect(Self.words.detail(.failed(.notFound)) == "The server has no pack for this mission.")
+        #expect(Self.words.detail(.failed(.serverBusy))
+            == "The server stayed busy after 5 tries. Try again later.")
+    }
+
+    @Test func anUpdateStoppedUnderAReadyPackSaysTheRealWait() {
+        #expect(MissionRow.text(.paused(.busy(45)))
+            == "Update paused: the server is busy or restarting. It goes on by itself in 45 seconds.")
+        #expect(MissionRow.text(.paused(.slowDown(90)))
+            == "Update paused: too many requests for now. It goes on by itself in about 2 minutes.")
+        #expect(MissionRow.text(.failed(.serverBusy))
+            == "Update failed: the server stayed busy after 5 tries. Try again later.")
     }
 
     @Test func notEnoughSpaceSaysHowMuchIsNeededAndHowMuchIsFree() {

@@ -63,14 +63,16 @@ private final class LeaseHolder: @unchecked Sendable {
 
 /// BGContinuedProcessingTask: asked for only when the user starts a download, with the .fail strategy so a
 /// refusal is known at once. Every request has a new identifier under the one wildcard in Info.plist: an
-/// identifier registered twice makes the system end the app.
+/// identifier registered twice makes the system end the app. The wildcard is "<bundle id>.pack.*" and each
+/// build has its own bundle id (Staging, #104), so the identifier is built from the running app's.
 struct ContinuedProcessingRunway: BackgroundRunway {
-    static let prefix = "com.lubobali.missioncopilot.pack."
-
-    static func newIdentifier() -> String { prefix + UUID().uuidString.lowercased() }
+    static func newIdentifier(bundle: String? = Bundle.main.bundleIdentifier) -> String? {
+        guard let bundle, !bundle.isEmpty else { return nil }
+        return "\(bundle).pack.\(UUID().uuidString.lowercased())"
+    }
 
     @MainActor func begin(title: String, subtitle: String, expire: @escaping @Sendable () -> Void) -> BackgroundLease? {
-        let identifier = Self.newIdentifier()
+        guard let identifier = Self.newIdentifier() else { return nil }
         let lease = ContinuedLease(identifier: identifier, expire: expire)
         let registered = BGTaskScheduler.shared.register(forTaskWithIdentifier: identifier, using: nil) { task in
             guard let task = task as? BGContinuedProcessingTask else { return task.setTaskCompleted(success: false) }

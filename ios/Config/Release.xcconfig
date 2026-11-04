@@ -1,0 +1,9 @@
+// The Release build (#104): production only. Set after Base, so the last assignment wins over anything
+// Local.xcconfig says. MC_SERVER_KEYS: the production public signing key and the offline spare, DER in hex.
+// EMPTY ON PURPOSE until the server makes them (#103 step 6.5, after staging passes): until then a Release
+// build says "This build has no server key" and trusts no pack.
+#include "Base.xcconfig"
+
+MC_SERVER_SCHEME = https
+MC_SERVER_HOST = mc.lubot.ai
+MC_SERVER_KEYS =
