@@ -32,6 +32,7 @@ def test_it_runs_for_the_backend_on_prs_and_main():
         "scripts/container_check.py",
         "scripts/mc_backup.py",
         "scripts/mc_deploy.py",
+        "scripts/mc_restore.py",
         "scripts/nginx_check.py",
         "scripts/render_nginx_site.py",
         ".github/workflows/image.yml",

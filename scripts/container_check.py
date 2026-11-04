@@ -27,6 +27,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mc_backup  # noqa: E402 - next to this script
 import mc_deploy  # noqa: E402 - next to this script
+import mc_restore  # noqa: E402 - next to this script
 import nginx_check  # noqa: E402 - next to this script
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -208,6 +209,17 @@ def check_backup(c: Check, args: argparse.Namespace, image: str, folder: Path) -
         c.expect(
             "a backup restores into a throwaway Postgres with every row", codes == [0, 0, 0], codes
         )
+        # A disaster: the demo organization's database is gone. The runbook's restore brings it
+        # back into the live stack, with its own rules (PUBLIC still may not connect).
+        psql = ["exec", "-T", "postgres", "psql", "-U", "missioncopilot_admin", "-d", "postgres"]
+        c.run("exec", "-T", "postgres", "dropdb", "--force", "-U", "missioncopilot_admin",
+              "mc_org_kandor_works")  # fmt: skip
+        restored = mc_restore.main([*where, "--yes-replace-live-data"])
+        status, _, _ = get(c.port, "/v1/ready", {"Host": HOSTNAME})
+        closed = "SELECT has_database_privilege('public', 'mc_org_kandor_works', 'CONNECT')"
+        seen = (restored, status, c.run(*psql, "-tAc", closed))
+        c.expect("a lost database is restored live, ready, and still closed to PUBLIC",
+                 seen == (0, 200, "f"), seen)  # fmt: skip
     finally:
         _sh(*mc_backup.SUDO, "rm", "-rf", str(work), check=False)
 
