@@ -70,6 +70,9 @@ struct ServerClient: Sendable {
     var transport: Transport = URLSessionTransport()
     var now: @Sendable () -> Date = { Date() }
     var allowLocalHTTP = false
+    /// The server's clock (#104): when set, requests are signed with the server's time, measured once from
+    /// /v1/health and again after a refused GET.
+    var clock: ServerClock?
 
     func get(_ path: String, headers: [String: String] = [:]) async -> Outcome {
         await send("GET", path, body: Data(), headers: headers)
@@ -82,6 +85,18 @@ struct ServerClient: Sendable {
     private func send(_ method: String, _ path: String, body: Data, headers: [String: String]) async -> Outcome {
         guard path.hasPrefix("/v1/"), Self.allowed(base, local: allowLocalHTTP),
               let url = URL(string: base.absoluteString + path) else { return .notSent }
+        if let clock, !clock.isMeasured { _ = await measureClock(clock) }
+        let first = await attempt(method, path, url: url, body: body, headers: headers)
+        // A refused GET may be a clock that changed since it was measured: measure again, and if the
+        // difference really moved, send it once more, signed afresh. A POST is never sent twice.
+        guard first == .refused, method == "GET", let clock else { return first }
+        let before = clock.offset
+        guard await measureClock(clock), abs(clock.offset - before) >= ServerClock.meaningful else { return first }
+        return await attempt(method, path, url: url, body: body, headers: headers)
+    }
+
+    private func attempt(_ method: String, _ path: String, url: URL, body: Data,
+                         headers: [String: String]) async -> Outcome {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.httpBody = body.isEmpty ? nil : body
@@ -98,12 +113,24 @@ struct ServerClient: Sendable {
 
     private func signedHeaders(_ method: String, _ path: String, _ body: Data) async throws -> [String: String] {
         let seq = try await counter.next()
-        let time = Int(now().timeIntervalSince1970)
+        let time = clock?.time(now()) ?? Int(now().timeIntervalSince1970)
         let request = SignedRequest(method: method, path: path, deviceId: deviceId, seq: seq, time: time, body: body)
         let signature = try signer.sign(try DeviceSigning.requestMessage(request))
         return ["X-Device-Id": deviceId, "X-Device-Seq": String(seq), "X-Device-Time": String(time),
                 "X-Device-Signature": signature.base64EncodedString()]
     }
+
+    /// GET /v1/health, plain: not signed, so no request number is used. True when the server's time came.
+    private func measureClock(_ clock: ServerClock) async -> Bool {
+        guard let url = URL(string: base.absoluteString + "/v1/health") else { return false }
+        let sent = now()
+        guard case .success(let data, 200, _) = await Self.outcome({ try await transport.send(URLRequest(url: url)) }),
+              let answer = try? JSONDecoder().decode(Health.self, from: data) else { return false }
+        clock.measure(sent: sent, received: now(), server: answer.time)
+        return true
+    }
+
+    private struct Health: Decodable { let time: Int }
 
     /// https anywhere; plain http only to this machine or a .local name, and only when allowed.
     static func allowed(_ base: URL, local: Bool) -> Bool {
