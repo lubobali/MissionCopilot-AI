@@ -42,8 +42,8 @@ struct MissionWords: Sendable {
         switch pause {
         case .offline: "Waiting for connection. It goes on by itself."
         case .interrupted: "Stopped. It goes on when the app is open."
-        case .slowDown(let seconds): "The server is busy. It goes on in \(seconds) seconds."
-        case .busy(let seconds): "The server is restarting. It goes on by itself in \(seconds) seconds."
+        case .slowDown(let seconds): "Too many requests for now. It goes on by itself in \(Self.wait(seconds))."
+        case .busy(let seconds): "The server is busy or restarting. It goes on by itself in \(Self.wait(seconds))."
         case .locked: "Downloaded. It is added when you unlock the app."
         }
     }
@@ -74,6 +74,13 @@ struct MissionWords: Sendable {
             facts.append(Fact(label: "Checklist", value: "\(questions), \(languages)"))
         }
         return facts
+    }
+
+    /// The wait the phone really waits (#104): seconds under a minute, else whole minutes rounded up.
+    static func wait(_ seconds: Int) -> String {
+        guard seconds >= 60 else { return "\(seconds) seconds" }
+        let minutes = (seconds + 59) / 60
+        return minutes == 1 ? "about 1 minute" : "about \(minutes) minutes"
     }
 
     private static func sentence(_ text: String) -> String { text.prefix(1).uppercased() + text.dropFirst() }

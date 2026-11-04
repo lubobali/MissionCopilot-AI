@@ -61,8 +61,12 @@ struct MissionListWorld: Sendable {
         case .shredOrder(let body):
             onShredOrder(body)
             return
-        default:
+        case .offline:
             message = MissionRow.offline
+        case .busy, .slowDown:
+            message = MissionRow.serverBusy
+        default:
+            message = MissionRow.serverFailed
         }
         if list == nil { list = try? missions()?.cachedMissionList() }
         importWaiting()
@@ -173,34 +177,6 @@ struct MissionListWorld: Sendable {
         rebuild()
     }
 
-    /// A busy server: wait the time the row shows, then try again with newly signed requests. After
-    /// Backoff.maxTries busy answers in a row the person decides ("Try again").
-    private func retryLater(_ id: String, asked: Int?, pause: (Int) -> MissionPause) {
-        let attempt = tries[id, default: 0]
-        guard attempt < Backoff.maxTries else {
-            tries[id] = nil
-            activity[id] = .failed(.serverBusy)
-            return
-        }
-        let seconds = Backoff.delay(asked: asked, attempt: attempt, jitter: world.jitter)
-        tries[id] = attempt + 1
-        activity[id] = .paused(pause(seconds))
-        retries[id]?.cancel()
-        let wait = world.wait
-        retries[id] = Task { [weak self] in
-            await wait(seconds)
-            guard !Task.isCancelled else { return }
-            self?.tryAgain(id)
-        }
-    }
-
-    private func tryAgain(_ id: String) {
-        switch activity[id] {
-        case .paused(.slowDown), .paused(.busy): download(id)
-        default: break  // it went on another way, or the person changed it
-        }
-    }
-
     private func importPack(_ ready: PackReady, title: String) {
         let id = ready.manifest.missionId
         guard let store = missions() else {
@@ -255,5 +231,36 @@ struct MissionListWorld: Sendable {
                        activity: activity[mission.id], running: running[mission.id] != nil, now: now)
         }
         onChange?(rows)
+    }
+}
+
+/// Trying a busy server again (#104).
+extension MissionListModel {
+    /// A busy server: wait the time the row shows, then try again with newly signed requests. After
+    /// Backoff.maxTries busy answers in a row the person decides ("Try again").
+    fileprivate func retryLater(_ id: String, asked: Int?, pause: (Int) -> MissionPause) {
+        let attempt = tries[id, default: 0]
+        guard attempt < Backoff.maxTries else {
+            tries[id] = nil
+            activity[id] = .failed(.serverBusy)
+            return
+        }
+        let seconds = Backoff.delay(asked: asked, attempt: attempt, jitter: world.jitter)
+        tries[id] = attempt + 1
+        activity[id] = .paused(pause(seconds))
+        retries[id]?.cancel()
+        let wait = world.wait
+        retries[id] = Task { [weak self] in
+            await wait(seconds)
+            guard !Task.isCancelled else { return }
+            self?.tryAgain(id)
+        }
+    }
+
+    fileprivate func tryAgain(_ id: String) {
+        switch activity[id] {
+        case .paused(.slowDown), .paused(.busy): download(id)
+        default: break  // it went on another way, or the person changed it
+        }
     }
 }

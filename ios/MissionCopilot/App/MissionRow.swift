@@ -13,6 +13,11 @@ struct MissionRow: Equatable, Identifiable, Sendable {
 
     static let offline = "No connection. Showing the missions from the last time this iPhone was online."
     static let notApproved = "This iPhone is not approved yet. Ask your manager, then try again."
+    // The server answered, but not with the list (#104): the phone is not offline, so it does not say so.
+    static let serverBusy = "The server is busy or restarting. Showing the missions from the last time it "
+        + "answered. Pull down to try again."
+    static let serverFailed = "The server could not answer. Showing the missions from the last time it "
+        + "answered. Pull down to try again."
 
     var version: Int? { pack?.version }
 
@@ -47,8 +52,10 @@ struct MissionRow: Equatable, Identifiable, Sendable {
         case .downloading: nil
         case .paused(.offline): "Update paused, waiting for connection."
         case .paused(.interrupted): "Update paused. It goes on when the app is open."
-        case .paused(.slowDown): "The server is busy. The update goes on shortly."
-        case .paused(.busy): "The server is restarting. The update goes on shortly."
+        case .paused(.slowDown(let seconds)):
+            "Update paused: too many requests for now. It goes on by itself in \(MissionWords.wait(seconds))."
+        case .paused(.busy(let seconds)):
+            "Update paused: the server is busy or restarting. It goes on by itself in \(MissionWords.wait(seconds))."
         case .paused(.locked): "Update downloaded. It is added when you unlock the app."
         case .failed(let failure): "Update failed: \(text(failure))"
         }
@@ -62,7 +69,7 @@ struct MissionRow: Equatable, Identifiable, Sendable {
         case .notEnoughSpace: "not enough free space on this iPhone."
         case .badFile: "a file arrived damaged twice."
         case .server: "the server could not answer."
-        case .serverBusy: "the server stayed busy. Try again later."
+        case .serverBusy: "the server stayed busy after \(Backoff.maxTries) tries. Try again later."
         case .storage: "this iPhone could not save the download."
         }
     }

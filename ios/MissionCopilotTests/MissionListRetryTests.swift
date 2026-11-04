@@ -57,6 +57,35 @@ struct MissionListRetryTests {
 
     private var roads: String { MissionListModelTests.roads }
 
+    /// The list's message says what really happened: no signal, a busy server, or a server that failed.
+    @Test(.needsRepoFiles, arguments: [(503, MissionRow.serverBusy), (429, MissionRow.serverBusy),
+                                       (500, MissionRow.serverFailed)])
+    func theListSaysTheServerIsBusyNotThatThereIsNoConnection(status: Int, message: String) async throws {
+        let model = try await list()
+        rig.server.missionList = (status, Data())
+
+        await model.refresh()
+
+        #expect(model.message == message)
+        #expect(!message.contains("connection"))
+    }
+
+    @Test(.needsRepoFiles) func onlyALostSignalSaysNoConnection() async throws {
+        let model = try await list()
+        rig.server.offline = true
+
+        await model.refresh()
+
+        #expect(model.message == MissionRow.offline)
+    }
+
+    @Test func theListMessagesSayWhatHappenedAndWhatToDo() {
+        #expect(MissionRow.serverBusy == "The server is busy or restarting. Showing the missions from the last "
+                + "time it answered. Pull down to try again.")
+        #expect(MissionRow.serverFailed == "The server could not answer. Showing the missions from the last "
+                + "time it answered. Pull down to try again.")
+    }
+
     @Test(.needsRepoFiles) func aServerRestartingMidDownloadPausesThenTheDownloadGoesOnByItself() async throws {
         let model = try await list()
         rig.server.busyAt = [3]
