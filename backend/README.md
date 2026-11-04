@@ -91,8 +91,9 @@ proxy); a browser origin is not https; or a limit is outside 60-6000 (address), 
    organization and user come only from the token. Until an issuer is configured (Phase 8), every
    token route refuses every request. Phones: no token at all; each request is signed by the
    phone's enrolled Secure Enclave key (see docs/security.md), then counted against that phone's own
-   limit (a refused request does not use up its sequence number). Only `/v1/health` (which also
-   sends the server's time, so a phone can correct its clock for the 300 s signature window) and
+   limit (a refused request does not use up its sequence number). Only `/v1/health` (alive, and
+   the server's time, so a phone can correct its clock for the 300 s signature window),
+   `/v1/ready` (200 when the directory database answers, else 503 with Retry-After) and
    `/v1/devices/enroll` (authenticated by its one-time code) need neither.
 5. Data only from the caller's organization's own database, as the caller: another team's or
    another organization's mission answers exactly like a missing one. Phones download their

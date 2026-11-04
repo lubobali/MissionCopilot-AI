@@ -142,4 +142,5 @@ def build(env: Mapping[str, str] = os.environ) -> FastAPI:
         devices=directory.devices,
         signing_key=signing_key,
         lifespan=lifespan,
+        ready=directory.ready,
     )

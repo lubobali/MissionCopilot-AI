@@ -24,7 +24,7 @@ pytestmark = pytest.mark.unit
 
 ISSUER = "https://login.example.org"
 AUDIENCE = "missioncopilot-api"
-PUBLIC_ROUTES = {"/v1/health", "/v1/devices/enroll"}  # enroll is authenticated by its one-time code
+PUBLIC_ROUTES = {"/v1/health", "/v1/ready", "/v1/devices/enroll"}  # enroll: by its one-time code
 
 
 def pem(key: ec.EllipticCurvePrivateKey) -> str:

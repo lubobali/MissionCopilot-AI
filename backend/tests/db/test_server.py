@@ -13,7 +13,8 @@ from pathlib import Path
 
 import psycopg
 import pytest
-from psycopg.conninfo import make_conninfo
+from psycopg import sql
+from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from missioncopilot_backend.db.directory import Directory
 from missioncopilot_backend.db.migrations import load, migrate
@@ -89,6 +90,27 @@ def test_the_server_starts_with_every_database_in_place(world):
         answer = client.get("/v1/health").json()
         assert answer["status"] == "ok"
         assert abs(answer["time"] - time.time()) < 5  # the real server's clock, in Unix seconds
+
+
+def test_the_real_server_is_ready_only_while_its_directory_answers(world):
+    name = sql.Identifier(str(conninfo_to_dict(world.directory_url)["dbname"]))
+    with (
+        local_client(build(world.env())) as client,
+        psycopg.connect(admin_url(), autocommit=True) as admin,
+    ):
+        assert client.get("/v1/ready").status_code == 200
+        admin.execute(sql.SQL("ALTER DATABASE {} ALLOW_CONNECTIONS false").format(name))
+        admin.execute(
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity"
+            " WHERE datname = %s AND pid <> pg_backend_pid()",
+            [conninfo_to_dict(world.directory_url)["dbname"]],
+        )
+        try:
+            down = client.get("/v1/ready")
+            assert (down.status_code, down.headers["retry-after"]) == (503, "5")
+            assert client.get("/v1/health").status_code == 200  # alive, just not ready
+        finally:
+            admin.execute(sql.SQL("ALTER DATABASE {} ALLOW_CONNECTIONS true").format(name))
 
 
 def test_the_start_is_logged_once_with_the_key_id_and_no_secret(world, caplog):

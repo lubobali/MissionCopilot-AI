@@ -3,10 +3,12 @@ connections; a restart kills them, and without a check the next request is hande
 fails with a 500. Every pool now checks a connection before handing it out and replaces a broken
 one. The restart is played by killing the pool's server connections, as a restart does."""
 
+import time
 from pathlib import Path
 
 import psycopg
 import pytest
+from psycopg import sql
 from psycopg.conninfo import conninfo_to_dict
 
 from missioncopilot_backend.db.directory import Directory
@@ -57,3 +59,18 @@ def test_every_pool_in_the_server_comes_from_the_checked_factory():
     ]
 
     assert makers == ["db/pools.py"]
+
+
+def test_the_directory_ping_says_whether_it_answers():
+    with throwaway_database() as url, Directory.open(url) as directory:
+        assert directory.ready() is True
+        name = sql.Identifier(str(conninfo_to_dict(url)["dbname"]))
+        with psycopg.connect(admin_url(), autocommit=True) as admin:
+            admin.execute(sql.SQL("ALTER DATABASE {} ALLOW_CONNECTIONS false").format(name))
+            _kill_connections(url)
+            try:
+                started = time.monotonic()
+                assert directory.ready() is False
+                assert time.monotonic() - started < 5  # a quick no, never a hang
+            finally:
+                admin.execute(sql.SQL("ALTER DATABASE {} ALLOW_CONNECTIONS true").format(name))

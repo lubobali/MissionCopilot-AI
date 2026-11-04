@@ -127,6 +127,8 @@ def check_http(c: Check) -> None:
     c.expect("HSTS in production", "strict-transport-security" in lower)
     status, _, _ = get(c.port, "/v1/health", {"Host": "evil.example"})
     c.expect("an unknown host name gets 400", status == 400, status)
+    status, _, body = get(c.port, "/v1/ready", {"Host": HOSTNAME})
+    c.expect("ready: the directory database answers", status == 200, (status, body[:80]))
 
 
 def check_container(c: Check) -> None:

@@ -50,6 +50,31 @@ paths:
                     description: Server time, whole Unix seconds (UTC)
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /v1/ready:
+    get:
+      tags: [health]
+      operationId: getReady
+      summary: Readiness check
+      description: >-
+        Ready to serve: the server's directory database answers. Health only says the process is
+        alive; a deploy or a monitor waits on this instead. Never touches organization data.
+      security: []
+      responses:
+        "200":
+          description: Ready
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    const: ready
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          $ref: "#/components/responses/NotReady"
   /v1/missions:
     get:
       tags: [missions]
@@ -709,6 +734,23 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/ShredOrder"
+    NotReady:
+      description: The database does not answer yet (starting, or down); retry after the given delay
+      headers:
+        Retry-After:
+          description: Seconds to wait before asking again
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/problem+json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Problem"
+              - type: object
+                properties:
+                  status:
+                    const: 503
     TooManyRequests:
       description: Too many requests from this client; retry after the given delay
       headers:

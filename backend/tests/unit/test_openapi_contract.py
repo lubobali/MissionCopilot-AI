@@ -117,7 +117,7 @@ PHONE_OPERATIONS = {
     "uploadSyncBatch",
     "submitForReview",
 }
-OPEN_OPERATIONS = {"getHealth", "enrollDevice"}  # enroll is authenticated by its one-time code
+OPEN_OPERATIONS = {"getHealth", "getReady", "enrollDevice"}  # enroll: by its one-time code
 
 
 def test_device_enrollment_operations_exist(spec):
