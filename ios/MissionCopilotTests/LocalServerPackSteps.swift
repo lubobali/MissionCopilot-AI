@@ -78,7 +78,8 @@ struct LocalServerPackSteps {
 
     func signal(_ name: String) throws { try Data().write(to: signals.appending(path: name)) }
 
-    func run() async throws {
+    /// Returns the newest version taken, for the mission list step.
+    func run() async throws -> Int {
         // 1. The signal is lost after eight pieces; the next run goes on from the bytes on the phone.
         transport.cut(after: 8)
         #expect(await download() == .paused(.offline))
@@ -109,7 +110,7 @@ struct LocalServerPackSteps {
         #expect(await download() == .failed(.refused(.older)))
         #expect(transport.fileRequests == files)
         transport.replay([:])
-        try signal("packs-checked")
+        return newer?.manifest.version ?? first.manifest.version
     }
 }
 
