@@ -68,6 +68,9 @@ $C run --rm -T admin add-org kandor-works        # and kandor-e2e on staging, fo
 $C run --rm -T admin seed-demo
 $C run --rm -T admin make-signing-key           # prints the PUBLIC half only, for the app
 $C run --rm -T admin publish-demo-pack
+# staging only: the demo again, in the organization the phone's end to end may use up
+$C run --rm -T admin seed-demo --org kandor-e2e
+$C run --rm -T admin publish-demo-pack --org kandor-e2e
 ```
 **Check:** every line says `OK`; Postgres runs as 10121 with no capabilities and no port.
 For prod, make a spare key too (rotation, below) and move its private file off the server.

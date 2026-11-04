@@ -16,7 +16,7 @@ import pytest
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from missioncopilot_backend import admin
-from missioncopilot_backend.db.organizations import drop_database, drop_organization
+from missioncopilot_backend.db.organizations import drop_database, drop_organization, names_for
 from missioncopilot_backend.pack_content import pack_files
 from missioncopilot_backend.pack_format import key_id, verify_pack
 from missioncopilot_backend.server import build
@@ -211,3 +211,31 @@ def test_the_demo_pack_is_published_with_an_admins_checklist(ops):
     listed = {f["path"]: f for f in json.loads(pack.manifest)["files"]}["forms/road-checklist.json"]
     body = (json.dumps(form, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode()
     assert listed["sha256"] == hashlib.sha256(body).hexdigest()
+
+
+def test_the_demo_can_go_into_another_organization_from_the_command_line(ops, capsys):
+    # Staging keeps a second organization for the phone's end to end, so the demo there can be
+    # used up without touching the real demo organization.
+    env = {
+        "MISSIONCOPILOT_ADMIN_URL": admin_url(),
+        "MISSIONCOPILOT_ADDRESS_DIR": str(ops.secrets),
+        "MISSIONCOPILOT_DIRECTORY_DB": ops.directory,
+        "MISSIONCOPILOT_SIGNING_KEY_FILE": str(ops.secrets.parent / "keys" / "signing-key.pem"),
+    }
+    e2e, untouched = ops.org(), ops.org()
+    assert admin.main(["setup"], env) == 0
+    assert admin.main(["add-org", untouched], env) == 0
+    assert admin.main(["make-signing-key"], env) == 0
+
+    assert admin.main(["seed-demo", "--org", e2e], env) == 0
+    assert admin.main(["publish-demo-pack", "--org", e2e], env) == 0
+
+    out = capsys.readouterr().out
+    assert f"OK: demo loaded into {e2e}" in out and f"published into {e2e}" in out
+    for org_id, expected in ((e2e, (2, 1)), (untouched, (0, 0))):  # (missions, packs)
+        database = make_conninfo(admin_url(), dbname=names_for(org_id)[0])
+        with psycopg.connect(database) as conn:
+            found = conn.execute(
+                "SELECT (SELECT count(*) FROM missions), (SELECT count(*) FROM packs)"
+            )
+            assert found.fetchone() == expected

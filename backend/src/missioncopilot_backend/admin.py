@@ -4,10 +4,12 @@ Usage (uv run --directory backend missioncopilot-admin <command>):
   setup              the directory database and its own login (once)
   add-org <org id>   an organization's database, logins and address file
   migrate            every database up to the code's migrations (the server never does this itself)
-  seed-demo          the fictional Kandor organization, two missions and their teams
+  seed-demo [--org ID]  the fictional Kandor demo (two missions and their teams) into kandor-works
+                        or another organization
   make-signing-key   the server's key for packs and shred orders (once); prints its public half
-  publish-demo-pack [--checklist FORM.xlsx]  the Kandor roads pack, built from the demo dataset,
-                     with an admin's checklist if given, checked, signed, as the next version
+  publish-demo-pack [--checklist FORM.xlsx] [--org ID]  the Kandor roads pack, built from the
+                     demo dataset, with an admin's checklist if given, checked, signed, as the
+                     next version (into kandor-works or another organization)
   convert-checklist FORM.xlsx [--out FILE]   check an .xlsx form and write the pack's checklist JSON
                                              (no database; try a form before publishing it)
   issue-code <org> <user> [--label]  a one-time code for one person's phone (15 minutes)
@@ -191,9 +193,13 @@ def _parser() -> argparse.ArgumentParser:
         prog="missioncopilot-admin", description=__doc__.split("\n")[0]
     )
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("setup", "migrate", "seed-demo", "make-signing-key"):
+    for name in ("setup", "migrate", "make-signing-key"):
         commands.add_parser(name)
-    commands.add_parser("publish-demo-pack").add_argument("--checklist", type=Path)
+    # --org: another organization than the demo one, e.g. staging's for the phone's end to end.
+    commands.add_parser("seed-demo").add_argument("--org", default=DEMO_ORG)
+    publish = commands.add_parser("publish-demo-pack")
+    publish.add_argument("--checklist", type=Path)
+    publish.add_argument("--org", default=DEMO_ORG)
     convert = commands.add_parser("convert-checklist")
     convert.add_argument("form", type=Path)
     convert.add_argument("--out", type=Path)
@@ -248,12 +254,13 @@ def _database_command(args: argparse.Namespace, env: Mapping[str, str]) -> None:
             print(f"OK: {name}: applied {versions or 'nothing, up to date'}")
     elif args.command == "publish-demo-pack":
         checklist = from_xlsx(args.checklist)[0] if args.checklist else None
-        pack = publish_demo_pack(admin_url, admin_config.key_path(env), checklist=checklist)
-        print(f"OK: Kandor roads pack version {pack.version} published, signed by key "
-              f"{pack.signature['keyId']}")  # fmt: skip
+        key = admin_config.key_path(env)
+        pack = publish_demo_pack(admin_url, key, org_id=args.org, checklist=checklist)
+        print(f"OK: Kandor roads pack version {pack.version} published into {args.org}, signed "
+              f"by key {pack.signature['keyId']}")  # fmt: skip
     else:
-        seed_demo(admin_url, address_dir)
-        print(f"OK: demo loaded into {DEMO_ORG}")
+        seed_demo(admin_url, address_dir, args.org)
+        print(f"OK: demo loaded into {args.org}")
 
 
 def main(argv: list[str] | None = None, env: Mapping[str, str] = os.environ) -> int:
