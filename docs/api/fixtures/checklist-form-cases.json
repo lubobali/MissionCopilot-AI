@@ -1,0 +1,541 @@
+{
+ "description": "Checklist forms and what the app must say about each (#93): null when the form is read, else the problem and its survey row (counting from 1). The phone's ChecklistForm and the server's check read this same file, so the server never publishes a form every phone would refuse.",
+ "choices": [
+  {
+   "list_name": "yes_no",
+   "name": "yes",
+   "label": "Yes"
+  },
+  {
+   "list_name": "yes_no",
+   "name": "no",
+   "label": "No"
+  }
+ ],
+ "cases": [
+  {
+   "name": "a plain form",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A"
+    },
+    {
+     "type": "integer",
+     "name": "b",
+     "label": "B"
+    }
+   ],
+   "problem": null
+  },
+  {
+   "name": "both ways of writing a select",
+   "survey": [
+    {
+     "type": "select_one yes_no",
+     "name": "a",
+     "label": "A"
+    },
+    {
+     "type": "select_multiple",
+     "name": "b",
+     "label": "B",
+     "select_from_list_name": "yes_no"
+    }
+   ],
+   "problem": null
+  },
+  {
+   "name": "groups three deep",
+   "survey": [
+    {
+     "type": "begin_group",
+     "name": "g1",
+     "label": "G1"
+    },
+    {
+     "type": "begin_group",
+     "name": "g2",
+     "label": "G2"
+    },
+    {
+     "type": "begin_group",
+     "name": "g3",
+     "label": "G3"
+    },
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A"
+    },
+    {
+     "type": "end_group"
+    },
+    {
+     "type": "end_group"
+    },
+    {
+     "type": "end_group"
+    }
+   ],
+   "problem": null
+  },
+  {
+   "name": "a reference to a later question",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A",
+     "relevant": "${b} = 'yes'"
+    },
+    {
+     "type": "text",
+     "name": "b",
+     "label": "B"
+    }
+   ],
+   "problem": null
+  },
+  {
+   "name": "a rule the app cannot read is kept",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A",
+     "relevant": "jr:choice-name(., 'x') = 'y'"
+    }
+   ],
+   "problem": null
+  },
+  {
+   "name": "a regex from a question is kept",
+   "survey": [
+    {
+     "type": "text",
+     "name": "p",
+     "label": "P"
+    },
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A",
+     "constraint": "regex(., ${p})"
+    }
+   ],
+   "problem": null
+  },
+  {
+   "name": "an ordinary regex",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A",
+     "constraint": "regex(., '^[A-Z]{2}-[0-9]{4}$')"
+    }
+   ],
+   "problem": null
+  },
+  {
+   "name": "a group row's own constraint is not read, as on the phone",
+   "survey": [
+    {
+     "type": "begin_group",
+     "name": "g",
+     "label": "G",
+     "constraint": "${nope} > 1"
+    },
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A"
+    },
+    {
+     "type": "end_group"
+    }
+   ],
+   "problem": null
+  },
+  {
+   "name": "an unknown type",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A"
+    },
+    {
+     "type": "calculate",
+     "name": "b",
+     "label": "B"
+    }
+   ],
+   "problem": {
+    "kind": "unknownType",
+    "row": 2
+   }
+  },
+  {
+   "name": "or_other",
+   "survey": [
+    {
+     "type": "select_one yes_no or_other",
+     "name": "a",
+     "label": "A"
+    }
+   ],
+   "problem": {
+    "kind": "unknownType",
+    "row": 1
+   }
+  },
+  {
+   "name": "two questions named the same",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A"
+    },
+    {
+     "type": "text",
+     "name": "b",
+     "label": "B"
+    },
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A"
+    }
+   ],
+   "problem": {
+    "kind": "duplicateName",
+    "row": 3
+   }
+  },
+  {
+   "name": "a group named like a question",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A"
+    },
+    {
+     "type": "begin_group",
+     "name": "a",
+     "label": "A"
+    },
+    {
+     "type": "text",
+     "name": "b",
+     "label": "B"
+    },
+    {
+     "type": "end_group"
+    }
+   ],
+   "problem": {
+    "kind": "duplicateName",
+    "row": 2
+   }
+  },
+  {
+   "name": "a select with no such list",
+   "survey": [
+    {
+     "type": "select_one colours",
+     "name": "a",
+     "label": "A"
+    }
+   ],
+   "problem": {
+    "kind": "noSuchList",
+    "row": 1
+   }
+  },
+  {
+   "name": "a select with no list",
+   "survey": [
+    {
+     "type": "select_one",
+     "name": "a",
+     "label": "A"
+    }
+   ],
+   "problem": {
+    "kind": "noList",
+    "row": 1
+   }
+  },
+  {
+   "name": "a select with two different lists",
+   "survey": [
+    {
+     "type": "select_one yes_no",
+     "name": "a",
+     "label": "A",
+     "select_from_list_name": "other"
+    }
+   ],
+   "problem": {
+    "kind": "noList",
+    "row": 1
+   }
+  },
+  {
+   "name": "a group end with no start",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A"
+    },
+    {
+     "type": "end_group"
+    }
+   ],
+   "problem": {
+    "kind": "unbalancedGroup",
+    "row": 2
+   }
+  },
+  {
+   "name": "a group never ended",
+   "survey": [
+    {
+     "type": "begin_group",
+     "name": "g",
+     "label": "G"
+    },
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A"
+    }
+   ],
+   "problem": {
+    "kind": "unbalancedGroup",
+    "row": 1
+   }
+  },
+  {
+   "name": "groups four deep",
+   "survey": [
+    {
+     "type": "begin_group",
+     "name": "g1",
+     "label": "G1"
+    },
+    {
+     "type": "begin_group",
+     "name": "g2",
+     "label": "G2"
+    },
+    {
+     "type": "begin_group",
+     "name": "g3",
+     "label": "G3"
+    },
+    {
+     "type": "begin_group",
+     "name": "g4",
+     "label": "G4"
+    },
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A"
+    },
+    {
+     "type": "end_group"
+    },
+    {
+     "type": "end_group"
+    },
+    {
+     "type": "end_group"
+    },
+    {
+     "type": "end_group"
+    }
+   ],
+   "problem": {
+    "kind": "tooDeep",
+    "row": 4
+   }
+  },
+  {
+   "name": "a relevant naming no question",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A"
+    },
+    {
+     "type": "text",
+     "name": "b",
+     "label": "B",
+     "relevant": "${nope} = 1"
+    }
+   ],
+   "problem": {
+    "kind": "unknownReference",
+    "row": 2
+   }
+  },
+  {
+   "name": "a constraint naming no question",
+   "survey": [
+    {
+     "type": "integer",
+     "name": "a",
+     "label": "A",
+     "constraint": ". < ${max}"
+    }
+   ],
+   "problem": {
+    "kind": "unknownReference",
+    "row": 1
+   }
+  },
+  {
+   "name": "a default naming no question",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A",
+     "default": "${who}"
+    }
+   ],
+   "problem": {
+    "kind": "unknownReference",
+    "row": 1
+   }
+  },
+  {
+   "name": "a group relevant naming no question",
+   "survey": [
+    {
+     "type": "begin_group",
+     "name": "g",
+     "label": "G",
+     "relevant": "${gone} = 'yes'"
+    },
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A"
+    },
+    {
+     "type": "end_group"
+    }
+   ],
+   "problem": {
+    "kind": "unknownReference",
+    "row": 1
+   }
+  },
+  {
+   "name": "a regex with a backreference",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A"
+    },
+    {
+     "type": "text",
+     "name": "b",
+     "label": "B",
+     "constraint": "regex(., '(a)\\1')"
+    }
+   ],
+   "problem": {
+    "kind": "unsafePattern",
+    "row": 2
+   }
+  },
+  {
+   "name": "a regex with lookbehind",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A",
+     "constraint": "regex(., '(?<=a)b')"
+    }
+   ],
+   "problem": {
+    "kind": "unsafePattern",
+    "row": 1
+   }
+  },
+  {
+   "name": "a regex over 200 characters",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A",
+     "constraint": "regex(., 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')"
+    }
+   ],
+   "problem": {
+    "kind": "unsafePattern",
+    "row": 1
+   }
+  },
+  {
+   "name": "a regex inside a function",
+   "survey": [
+    {
+     "type": "text",
+     "name": "a",
+     "label": "A",
+     "relevant": "not(regex(., '(?<!a)b'))"
+    }
+   ],
+   "problem": {
+    "kind": "unsafePattern",
+    "row": 1
+   }
+  },
+  {
+   "name": "a list with the same choice twice",
+   "choices": [
+    {
+     "list_name": "yes_no",
+     "name": "yes",
+     "label": "Yes"
+    },
+    {
+     "list_name": "yes_no",
+     "name": "no",
+     "label": "No"
+    },
+    {
+     "list_name": "yes_no",
+     "name": "yes",
+     "label": "Yes again"
+    }
+   ],
+   "survey": [
+    {
+     "type": "select_one yes_no",
+     "name": "a",
+     "label": "A"
+    }
+   ],
+   "problem": {
+    "kind": "duplicateChoice",
+    "row": null
+   }
+  }
+ ]
+}
