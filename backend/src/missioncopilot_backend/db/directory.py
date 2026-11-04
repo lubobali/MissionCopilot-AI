@@ -14,12 +14,16 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
 
+import psycopg
 from psycopg import sql
 from psycopg_pool import ConnectionPool
 
 from missioncopilot_backend.db.audit_log import PostgresAuditLog
 from missioncopilot_backend.db.migrations import load, migrate
+from missioncopilot_backend.db.pools import open_pool
 from missioncopilot_backend.devices import CODE_LIFETIME_SECONDS, Device, EnrollmentGrant
+
+READY_TIMEOUT_SECONDS = 2
 
 MIGRATIONS = Path(__file__).parent / "sql" / "directory"
 COLUMNS = "id, org_id, user_id, label, public_key_der, status, enrolled_at, last_seq"
@@ -161,8 +165,18 @@ class Directory:
         to (the server never migrates at start: it checks, and an operator migrates)."""
         if migrations:
             migrate(url, load(MIGRATIONS))
-        with ConnectionPool(url, min_size=1, max_size=8, open=True) as pool:
+        with open_pool(url) as pool:
             yield cls(pool, clock)
+
+    def ready(self) -> bool:
+        """Whether the directory answers a trivial query within 2 s (#103 step 4.5): a quick no,
+        never a hang, so /v1/ready can say 503 while Postgres is down or starting."""
+        try:
+            with self._pool.connection(timeout=READY_TIMEOUT_SECONDS) as conn:
+                conn.execute("SELECT 1")
+        except psycopg.Error:  # includes the pool's PoolTimeout (an OperationalError)
+            return False
+        return True
 
     def organizations(self) -> dict[str, str]:
         """Every organization and the name of its database."""

@@ -102,8 +102,9 @@ def get_pack_file(
 ) -> Response:
     if not UUID.match(missionId) or not SHA256.match(sha256):
         raise NOT_FOUND
-    data = _packs(request, device).file(device.user_id, missionId, sha256)
-    if data is None:
+    packs, user = _packs(request, device), device.user_id
+    size = packs.file_size(user, missionId, sha256)  # the size only: the bytes come below
+    if size is None:
         raise NOT_FOUND
     etag = f'"{sha256}"'
     headers = {"ETag": etag, "Accept-Ranges": "bytes"}
@@ -112,19 +113,24 @@ def get_pack_file(
         wanted = None  # the phone holds part of another file: send all of this one
     else:
         try:
-            wanted = _range(request.headers.get("Range"), len(data))
+            wanted = _range(request.headers.get("Range"), size)
         except Unsatisfiable:
             response = problem(416, "The range is outside the file.")
-            response.headers["Content-Range"] = f"bytes */{len(data)}"
+            response.headers["Content-Range"] = f"bytes */{size}"
             return response
     if wanted is None:
-        return Response(data, media_type="application/octet-stream", headers=headers)
-    first, last = wanted
-    headers["Content-Range"] = f"bytes {first}-{last}/{len(data)}"
+        data = packs.file(user, missionId, sha256)
+        status = 200
+    else:
+        first, last = wanted
+        data = packs.file_piece(user, missionId, sha256, first, last - first + 1)  # only these
+        headers["Content-Range"] = f"bytes {first}-{last}/{size}"
+        status = 206
+    if data is None:  # the user's access ended between the two reads
+        raise NOT_FOUND
     return Response(
-        data[first : last + 1], status_code=206, media_type="application/octet-stream",
-        headers=headers,
-    )  # fmt: skip
+        data, status_code=status, media_type="application/octet-stream", headers=headers
+    )
 
 
 def pack_routes() -> list[APIRouter]:

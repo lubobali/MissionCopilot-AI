@@ -1,0 +1,133 @@
+name: Image
+
+# The backend server image (#103 step 3): built natively for the server's architecture, run with
+# the real compose file (scripts/container_check.py), scanned, and only from main pushed to the
+# private registry: the very image that passed, by digest. Rules pinned by
+# backend/tests/unit/test_image_workflow.py, next to zizmor's lint in ci.yml.
+
+# Least privilege: the workflow gets no permissions; each job asks for the minimum.
+permissions: {}
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "deploy/**"
+      - "scripts/container_check.py"
+      - ".github/workflows/image.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "deploy/**"
+      - "scripts/container_check.py"
+      - ".github/workflows/image.yml"
+
+# A newer pull request run cancels the older one; a run on main always finishes (it may publish).
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Grype, the scanner, as a binary whose SHA-256 is written here (not fetched next to it), and no
+  # third-party action: trivy-action had 76 of 77 tags hijacked in March 2026 (CVE-2026-33634).
+  GRYPE_VERSION: "0.121.0"
+  GRYPE_SHA256: "64e07133d3486115de647a66581461dccf5c732748a0a3119077395565f15519"
+  REGISTRY_IMAGE: ghcr.io/lubobali/missioncopilot-backend
+
+jobs:
+  build:
+    name: Build, check and scan the server image
+    # x86_64, like the server: a native build, no emulation.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read # check out the code
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build the image for linux/amd64
+        run: docker build --platform linux/amd64 --tag missioncopilot-backend:ci backend
+
+      - name: Run it with the real compose file and check it (scripts/container_check.py)
+        run: python3 scripts/container_check.py --image missioncopilot-backend:ci
+
+      - name: Install Grype (SHA-256 pinned above)
+        run: |
+          set -euo pipefail
+          tarball="grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+          curl -fsSLO "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/${tarball}"
+          echo "${GRYPE_SHA256}  ${tarball}" | sha256sum --check
+          tar -xzf "${tarball}" grype
+          sudo mv grype /usr/local/bin/
+
+      - name: Scan the image (fail on a high or critical finding that has a fix)
+        run: grype docker:missioncopilot-backend:ci --only-fixed --fail-on high
+
+      - name: Keep the checked image for the publish job
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: docker save missioncopilot-backend:ci --output image.tar
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          name: checked-image
+          path: image.tar
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    name: Push the checked image to the private registry, by digest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read # nothing is checked out; the default the artifact download needs
+      packages: write # push to GHCR: this job only
+      attestations: write # store the provenance attestation
+      id-token: write # the provenance attestation's signing identity (OIDC)
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: checked-image
+
+      - name: Load the image that passed the checks (never rebuilt)
+        run: docker load --input image.tar
+
+      - name: Push it and record its digest
+        id: push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${GITHUB_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
+          docker tag missioncopilot-backend:ci "${REGISTRY_IMAGE}:sha-${COMMIT}"
+          docker push --quiet "${REGISTRY_IMAGE}:sha-${COMMIT}"
+          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "${REGISTRY_IMAGE}:sha-${COMMIT}")"
+          digest="${digest#*@}"
+          [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "### Server image"
+            echo "Deploy by digest (MC_IMAGE in the values file):"
+            echo '```'
+            echo "${REGISTRY_IMAGE}@${digest}"
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Attest where and how it was built
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ env.REGISTRY_IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      # Last, and always: the attestation above is pushed to the registry too, so the login lasts
+      # until here (the first main run logged out too early and the attestation failed).
+      - name: Log out of the registry
+        if: always()
+        run: docker logout ghcr.io
