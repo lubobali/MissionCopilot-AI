@@ -30,6 +30,7 @@ import json
 import os
 import sys
 from collections.abc import Mapping
+from importlib.resources import files
 from pathlib import Path
 
 import psycopg
@@ -58,7 +59,7 @@ from missioncopilot_backend.signing_key import SigningKeyError, load_signing_key
 BACKEND = Path(__file__).resolve().parents[2]
 DIRECTORY = "mc_directory"
 DEMO_ORG = "kandor-works"
-DATASET = BACKEND.parent / "docs" / "demo" / "kandor-rural-roads.json"
+DATASET = files("missioncopilot_backend") / "data" / "kandor-rural-roads.json"  # copy of docs/demo/
 ROADS = "6f1d2c3a-0000-4000-8000-000000000001"  # the dataset's mission id (the API uses UUIDs)
 BRIDGES = "6f1d2c3a-0000-4000-8000-000000000002"
 DEMO = {  # fictional: Kandor is not a real country
