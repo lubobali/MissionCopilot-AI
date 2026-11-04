@@ -69,13 +69,22 @@ def _chown(path: Path, uid: int, mode: int) -> None:
     _sh(*sudo, "chown", f"{uid}:{uid}", str(path))
 
 
+def _write_owner_only(path: Path, text: str) -> None:
+    """Owner-only from the first byte (never wider, then narrowed), and never over a file."""
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as file:
+        file.write(text + "\n")
+
+
 def make_secrets(folder: Path) -> None:
+    """A throwaway password for this check's own Postgres. Compose secrets are files by design
+    (production's are too, owner-only); this folder is removed when the check ends."""
     password = secrets.token_hex(24)
-    (folder / "pg_admin_password").write_text(password + "\n")
+    _write_owner_only(folder / "pg_admin_password", password)
     url = f"postgresql://missioncopilot_admin:{password}@postgres:5432/postgres"
-    (folder / "admin_url").write_text(url + "\n")
+    _write_owner_only(folder / "admin_url", url)
     for name in ("addresses", "keys"):
-        (folder / name).mkdir()
+        (folder / name).mkdir(mode=0o700)
     for name, (uid, mode) in secrets_layout().items():
         _chown(folder / name, uid, mode)
 
