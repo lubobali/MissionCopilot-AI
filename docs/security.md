@@ -134,7 +134,14 @@ and every request it sends is signed with that key.
   the bytes on the phone. It can go on outside the app (iOS 26 continued processing), but never in a
   background session, which would send old signed requests again.
 - **While it downloads**, a pack waits in its own folder, never backed up, protected until first unlock so it
-  can go on while the phone is locked. Once the pack is in the encrypted store, that folder is deleted (#92).
+  can go on while the phone is locked. Once the pack is in the encrypted store, that folder is deleted (#92);
+  one left behind is removed the next time the mission list opens.
+- **Into the store** (#92): every section is checked against the contract's schema and every file hashed
+  again, then one transaction seals each file with the mission's key, keeps its lineage (pack id, version,
+  the manifest's and the file's SHA-256), replaces the older pack, records the version and writes an audit
+  event. A pack checked while the phone was locked waits and goes in at unlock.
+- **Offline**, the mission list shows the last list the server gave (kept in the encrypted store) and the
+  packs on the phone. A download stopped by a lost signal goes on by itself when the connection returns.
 - Limits live in the contract: 64 files, 20 MiB a file, 50 MiB a pack, three fixed folders, no "..".
 - Packs live in the organization's own database: only the mission's team can read them (row-level security),
   nothing published can be changed, and a mission's version only goes up by one, so an older pack can be
