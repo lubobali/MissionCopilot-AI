@@ -4,7 +4,8 @@ One compose file, [compose.yaml](compose.yaml), runs staging and production on a
 server behind the host's reverse proxy (nginx, which holds the TLS certificate). Each environment
 is its own compose project (`missioncopilot-staging`, `missioncopilot-prod`) with its own
 Postgres, networks, volume, port and secrets: nothing is shared between them or with other apps.
-The step-by-step runbook (first deploy, update, roll back, restore) comes with #103 step 6.
+The step-by-step runbook (first deploy, update, roll back, restore, key rotation):
+[RUNBOOK.md](RUNBOOK.md).
 
 ## Where the image comes from
 
