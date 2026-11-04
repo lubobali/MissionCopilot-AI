@@ -15,12 +15,16 @@ on:
       - "backend/**"
       - "deploy/**"
       - "scripts/container_check.py"
+      - "scripts/nginx_check.py"
+      - "scripts/render_nginx_site.py"
       - ".github/workflows/image.yml"
   pull_request:
     paths:
       - "backend/**"
       - "deploy/**"
       - "scripts/container_check.py"
+      - "scripts/nginx_check.py"
+      - "scripts/render_nginx_site.py"
       - ".github/workflows/image.yml"
 
 # A newer pull request run cancels the older one; a run on main always finishes (it may publish).

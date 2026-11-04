@@ -24,6 +24,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import nginx_check  # noqa: E402 - next to this script
+
 ROOT = Path(__file__).resolve().parents[1]
 COMPOSE = ROOT / "deploy" / "compose.yaml"
 HOSTNAME = "mc-check.example.org"
@@ -205,9 +208,13 @@ def main(argv: list[str] | None = None) -> int:
         check_http(c)
         check_container(c)
         check_client_address(c)
+        nginx_check.start(Path(tempfile.mkdtemp(prefix="mc-check-nginx-")), HOSTNAME, args.port)
+        nginx_check.wait(HOSTNAME)
+        nginx_check.check(c, HOSTNAME, PHONE)  # last: it stops the API to see the 503
     except RuntimeError as error:
         c.expect("the deploy steps run", False, str(error))
     finally:
+        nginx_check.stop()
         _sh(*compose, "--profile", "admin", "down", "-v", "--remove-orphans", env=env, check=False)
         sudo = [] if os.geteuid() == 0 else ["sudo", "-n"]
         _sh(*sudo, "rm", "-rf", str(folder), check=False)
