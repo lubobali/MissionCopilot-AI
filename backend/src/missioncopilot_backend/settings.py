@@ -27,10 +27,16 @@ class Settings:
     # The reverse proxy whose X-Forwarded-For is believed (addresses or networks). None by default:
     # anyone can write that header, and on a shared server other programs can reach loopback.
     forwarded_allow_ips: tuple[str, ...] = ()
+    # The oldest phone build still served (its X-App-Build); 0: every build (app_version.py).
+    min_app_build: int = 0
 
     def __post_init__(self) -> None:
         if "*" in self.allowed_origins or "*" in self.allowed_hosts:
             raise ValueError("a wildcard origin or host defeats the allow-list; name each one")
+        if self.min_app_build < 0:
+            raise ValueError(
+                f"MISSIONCOPILOT_MIN_APP_BUILD cannot be negative: {self.min_app_build}"
+            )
         _check_process(self.host, self.port, self.forwarded_allow_ips)
         for field, (name, _, _) in LIMITS.items():
             if getattr(self, field) < 1:
@@ -72,7 +78,8 @@ class Settings:
             f"trusted_proxy={','.join(self.forwarded_allow_ips) or 'none'} "
             f"limits={self.rate_limit_per_minute}/min per address, "
             f"{self.device_rate_limit_per_minute}/min per phone, body {self.max_body_bytes} bytes "
-            f"docs={'on' if self.docs_enabled else 'off'} signing_key={signing_key_id}"
+            f"min_app_build={self.min_app_build} docs={'on' if self.docs_enabled else 'off'} "
+            f"signing_key={signing_key_id}"
         )
 
     @property
@@ -99,6 +106,7 @@ class Settings:
                 env, "device_rate_limit_per_minute", cls.device_rate_limit_per_minute
             ),
             max_body_bytes=_limit(env, "max_body_bytes", cls.max_body_bytes),
+            min_app_build=_whole_number(env, "MISSIONCOPILOT_MIN_APP_BUILD", cls.min_app_build),
         )
 
 

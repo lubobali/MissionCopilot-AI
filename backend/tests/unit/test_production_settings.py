@@ -106,7 +106,7 @@ def test_the_start_line_says_what_runs_and_nothing_secret():
         "MissionCopilot backend: environment=production listen=0.0.0.0:8110 "
         f"hosts={SERVER} origins=none trusted_proxy={PROXY} "
         "limits=600/min per address, 120/min per phone, body 1048576 bytes "
-        "docs=off signing_key=fake-key-id"
+        "min_app_build=0 docs=off signing_key=fake-key-id"
     )
 
 

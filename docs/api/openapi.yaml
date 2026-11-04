@@ -63,7 +63,11 @@ paths:
         organization and the officer come from the enrolled phone, never from the request; another
         team's or organization's mission is never listed. Only a summary of each pack: the phone
         fetches and checks the signed manifest itself (getPackManifest).
+      parameters:
+        - $ref: "#/components/parameters/AppBuild"
       responses:
+        "403":
+          $ref: "#/components/responses/AppTooOld"
         "200":
           description: The missions, by id
           headers:
@@ -94,8 +98,11 @@ paths:
         before it reads anything. Only a member of the mission's team gets it; another team's or
         organization's mission answers like a missing one.
       parameters:
+        - $ref: "#/components/parameters/AppBuild"
         - $ref: "#/components/parameters/MissionId"
       responses:
+        "403":
+          $ref: "#/components/responses/AppTooOld"
         "200":
           description: The manifest, exactly as signed
           headers:
@@ -127,8 +134,11 @@ paths:
         exactly as served. The label keeps a pack signature from ever passing as a shred order. The
         phone checks it with the server key pinned in the app, chosen by keyId.
       parameters:
+        - $ref: "#/components/parameters/AppBuild"
         - $ref: "#/components/parameters/MissionId"
       responses:
+        "403":
+          $ref: "#/components/responses/AppTooOld"
         "200":
           description: The signature of the newest pack's manifest
           headers:
@@ -158,6 +168,7 @@ paths:
         its signal asks for the rest with Range and If-Range (the ETag it saw); if the file changed
         it gets the whole file again. The phone checks the SHA-256 before using the file.
       parameters:
+        - $ref: "#/components/parameters/AppBuild"
         - $ref: "#/components/parameters/MissionId"
         - name: sha256
           in: path
@@ -179,6 +190,8 @@ paths:
           schema:
             type: string
       responses:
+        "403":
+          $ref: "#/components/responses/AppTooOld"
         "200":
           description: The whole file
           headers:
@@ -233,6 +246,7 @@ paths:
         - deviceSignature: []
       summary: Upload approved, signed items from the phone outbox (idempotent)
       parameters:
+        - $ref: "#/components/parameters/AppBuild"
         - $ref: "#/components/parameters/MissionId"
         - name: Idempotency-Key
           in: header
@@ -248,6 +262,8 @@ paths:
             schema:
               $ref: "#/components/schemas/SyncBatch"
       responses:
+        "403":
+          $ref: "#/components/responses/AppTooOld"
         "410":
           $ref: "#/components/responses/ShredOrder"
         "200":
@@ -284,6 +300,7 @@ paths:
         - deviceSignature: []
       summary: Officer submits the approved report to the manager
       parameters:
+        - $ref: "#/components/parameters/AppBuild"
         - $ref: "#/components/parameters/MissionId"
       requestBody:
         required: true
@@ -292,6 +309,8 @@ paths:
             schema:
               $ref: "#/components/schemas/Approval"
       responses:
+        "403":
+          $ref: "#/components/responses/AppTooOld"
         "410":
           $ref: "#/components/responses/ShredOrder"
         "202":
@@ -444,7 +463,11 @@ paths:
         A phone waiting for a manager's approval gets 401 on every signed request; once approved
         this answers with its own record. A revoked phone gets its shred order. A phone only ever
         sees itself.
+      parameters:
+        - $ref: "#/components/parameters/AppBuild"
       responses:
+        "403":
+          $ref: "#/components/responses/AppTooOld"
         "200":
           description: This phone, approved
           content:
@@ -474,7 +497,11 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/DeviceEnrollment"
+      parameters:
+        - $ref: "#/components/parameters/AppBuild"
       responses:
+        "403":
+          $ref: "#/components/responses/AppTooOld"
         "201":
           description: Enrolled, waiting for a manager's approval
           content:
@@ -581,6 +608,16 @@ components:
         docs/security.md. Replays, old times and unknown or pending devices get 401. A revoked
         device's genuinely signed request gets 410 with a server-signed shred order (ADR 0012).
   parameters:
+    AppBuild:
+      name: X-App-Build
+      in: header
+      required: true
+      description: >
+        The phone app's build number (CFBundleVersion, a whole number), on every request. Below
+        the server's minimum the answer is 403 app_too_old; a missing header counts as too old.
+      schema:
+        type: string
+        pattern: '^[0-9]+$'
     DeviceId:
       name: deviceId
       in: path
@@ -614,6 +651,25 @@ components:
         type: string
         const: no-store
   responses:
+    AppTooOld:
+      description: >
+        This app build is older than the server serves: show "update the app". Answered before the
+        signature check (no sequence number used); never a reason to delete anything on the phone.
+      content:
+        application/problem+json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Problem"
+              - type: object
+                required: [code, minAppBuild]
+                properties:
+                  status:
+                    const: 403
+                  code:
+                    const: app_too_old
+                  minAppBuild:
+                    type: integer
+                    minimum: 1
     BadRequest:
       description: Malformed request
       content:

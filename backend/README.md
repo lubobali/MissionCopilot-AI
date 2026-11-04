@@ -71,6 +71,7 @@ Nothing configured means **production**, the safe default. An unknown value stop
 | `MISSIONCOPILOT_RATE_LIMIT_PER_MINUTE` | `600` | Per client address: loose, only against floods (officers share addresses). |
 | `MISSIONCOPILOT_DEVICE_RATE_LIMIT_PER_MINUTE` | `120` | Per phone, after its signature checked out (a 50 MB pack is about 55 requests). |
 | `MISSIONCOPILOT_MAX_BODY_BYTES` | `1048576` | Largest request body (413 above it). |
+| `MISSIONCOPILOT_MIN_APP_BUILD` | `0` (off) | Oldest phone build served (`X-App-Build`); older, missing or garbled: 403 `app_too_old`, before the signature check. Health is never refused. |
 
 Secret files must be owner-only (`chmod 600`) **and owned by the user the server runs as**; anything
 else stops the start with what to fix.

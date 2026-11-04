@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import Lifespan
 
+from missioncopilot_backend.app_version import AppVersionMiddleware
 from missioncopilot_backend.audit import AuditLog, AuditStore
 from missioncopilot_backend.auth import TokenVerifier
 from missioncopilot_backend.device_routes import device_routes
@@ -62,7 +63,8 @@ def create_app(
     install_error_handlers(app)
     install_shred_orders(app, signing_key)
     # Middleware runs outermost last-added: headers on every answer, then the host check, the
-    # limits, and browser origins closest to the routes.
+    # limits, browser origins, and the phone's app build closest to the routes.
+    app.add_middleware(AppVersionMiddleware, min_build=settings.min_app_build)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.allowed_origins),
