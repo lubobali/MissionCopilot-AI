@@ -85,6 +85,7 @@ enum ChecklistProblem: Error, Equatable {
     case tooDeep(row: Int)
     case unknownReference(row: Int, String)
     case duplicateChoice(list: String, String)
+    case unsafePattern(row: Int)
 
     /// For the admin who wrote the form.
     var text: String {
@@ -98,6 +99,9 @@ enum ChecklistProblem: Error, Equatable {
         case .tooDeep(let row): "Row \(row): groups can be at most \(ChecklistForm.maxDepth) deep."
         case .unknownReference(let row, let name): "Row \(row): ${\(name)} names no question in this form."
         case .duplicateChoice(let list, let name): "The choice list \"\(list)\" has \"\(name)\" twice."
+        case .unsafePattern(let row):
+            "Row \(row): this regex() pattern could make the phone hang. Keep it under "
+                + "\(ChecklistExpression.maxPattern) characters, with no backreferences or lookbehind."
         }
     }
 }

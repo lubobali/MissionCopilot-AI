@@ -121,7 +121,8 @@ struct ChecklistReader {
         return (lists, french)
     }
 
-    /// Every ${name} in a relevant, constraint or default must name a question or group of this form.
+    /// Every ${name} in a relevant, constraint or default must name a question or group of this form, and no
+    /// regex() pattern may be one that could hang the phone (an expression it cannot read is kept, 93.4).
     static func checkReferences(in items: [ChecklistItem], names: Set<String>) throws(ChecklistProblem) {
         for item in items {
             switch item {
@@ -140,6 +141,7 @@ struct ChecklistReader {
         for match in text.matches(of: /\$\{([^}]*)\}/) where !names.contains(String(match.1)) {
             throw .unknownReference(row: row, String(match.1))
         }
+        do { _ = try ChecklistExpression.read(text) } catch { throw .unsafePattern(row: row) }
     }
 }
 
