@@ -13,13 +13,13 @@ import Testing
         #expect(Connection.counter(for: "device-2") !== first)
     }
 
-    @Test(arguments: [ServerConfig.Problem.noAddress, .badAddress, .noKeys, .badKey])
+    @Test(arguments: [ServerConfig.Problem.noAddress, .badAddress, .wrongServer, .noKeys, .badKey])
     func aBuildWithoutAUsableServerSaysWhatIsMissing(problem: ServerConfig.Problem) {
         #expect(!Connection.text(problem).isEmpty)
     }
 
     @Test func eachProblemSaysSomethingDifferent() {
-        let problems: [ServerConfig.Problem] = [.noAddress, .badAddress, .noKeys, .badKey]
+        let problems: [ServerConfig.Problem] = [.noAddress, .badAddress, .wrongServer, .noKeys, .badKey]
 
         #expect(Set(problems.map(Connection.text)).count == problems.count)
     }

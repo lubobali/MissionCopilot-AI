@@ -8,7 +8,7 @@ import Foundation
 /// the start of the SHA-256 of the public key like the server's pack_format.key_id; more than one lets
 /// the server rotate its key. Anything signed by a key that is not pinned is refused.
 struct ServerConfig: Sendable {
-    enum Problem: Error, Equatable { case noAddress, badAddress, noKeys, badKey }
+    enum Problem: Error, Equatable { case noAddress, badAddress, wrongServer, noKeys, badKey }
 
     let base: URL
     let allowLocalHTTP: Bool
@@ -23,13 +23,35 @@ struct ServerConfig: Sendable {
         #endif
     }()
 
-    static func fromApp() throws(Problem) -> ServerConfig {
-        try from(Bundle.main.infoDictionary ?? [:], allowLocalHTTP: allowsLocalHTTP)
+    /// The one server each build may talk to (#104): Staging the staging server, Release production,
+    /// Debug whatever Local.xcconfig names (nil). The xcconfig files say the same (checked by
+    /// scripts/test_ios_builds.py); this is the second lock, so a wrong settings file cannot reach the
+    /// wrong server.
+    static func server(staging: Bool, debug: Bool) -> String? {
+        if staging { return "mc-staging.lubot.ai" }
+        return debug ? nil : "mc.lubot.ai"
     }
 
-    static func from(_ info: [String: Any], allowLocalHTTP: Bool) throws(Problem) -> ServerConfig {
+    static let buildServer: String? = {
+        #if STAGING
+        server(staging: true, debug: false)
+        #elseif DEBUG
+        server(staging: false, debug: true)
+        #else
+        server(staging: false, debug: false)
+        #endif
+    }()
+
+    static func fromApp() throws(Problem) -> ServerConfig {
+        try from(Bundle.main.infoDictionary ?? [:], allowLocalHTTP: allowsLocalHTTP, server: buildServer)
+    }
+
+    /// `server`: the only host this build may use, or nil for any.
+    static func from(_ info: [String: Any], allowLocalHTTP: Bool, server: String? = nil) throws(Problem)
+        -> ServerConfig {
         let host = (info["MCServerHost"] as? String ?? "").trimmingCharacters(in: .whitespaces)
         guard !host.isEmpty else { throw .noAddress }
+        if let server, host != server { throw .wrongServer }
         let scheme = info["MCServerScheme"] as? String ?? ""
         guard ["https", "http"].contains(scheme), !host.contains("/"),
               let base = URL(string: "\(scheme)://\(host)"), ServerClient.allowed(base, local: allowLocalHTTP)

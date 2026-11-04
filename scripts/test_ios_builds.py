@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from check_ios_build_settings import EXPECTED
 
 pytestmark = pytest.mark.unit
 
@@ -112,3 +113,51 @@ def test_the_main_scheme_tests_debug_and_archives_release_and_staging_has_its_ow
     )
     assert (staging["run"]["config"], staging["archive"]["config"]) == ("Staging", "Staging")
     assert "test" not in staging  # the tests need a debug build (testability)
+
+
+def test_the_app_checks_the_same_servers_as_the_settings_files():
+    # ServerConfig.server(staging:debug:) is the app's second lock (#104); it must not drift.
+    swift = (ROOT / "ios/MissionCopilot/Platform/Network/ServerConfig.swift").read_text("utf-8")
+    rule = re.search(r"static func server\(staging: Bool, debug: Bool\).*?\n    \}", swift, re.S)
+
+    assert rule is not None
+    assert re.findall(r'"([^"]+)"', rule.group(0)) == [SERVERS["Staging"], SERVERS["Release"]]
+
+
+@pytest.mark.parametrize("name", ["Staging", "Release"])
+def test_staging_and_release_name_a_real_server(name):
+    host = resolve(f"{name}.xcconfig", LAPTOP)["MC_SERVER_HOST"]
+
+    assert re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", host)  # a name: no port, path or scheme
+    assert not re.fullmatch(r"[0-9.]+", host)  # not an IP address (iOS refuses those over ATS)
+    assert "localhost" not in host and not host.endswith(".local")
+
+
+def test_only_debug_has_the_local_network_exception():
+    # Staging and Release use Info.plist, which has no transport security exception at all.
+    configs = APP["settings"]["configs"]
+
+    assert configs["Debug"]["INFOPLIST_FILE"] == "Config/Info-Debug.plist"
+    assert all("INFOPLIST_FILE" not in configs[name] for name in configs if name != "Debug")
+
+
+def test_the_ci_check_expects_the_same_servers_and_app_ids():
+    assert {name: EXPECTED[name]["MC_SERVER_HOST"] for name in EXPECTED} == SERVERS
+    staging = APP["settings"]["configs"]["Staging"]["PRODUCT_BUNDLE_IDENTIFIER"]
+    assert EXPECTED["Staging"]["PRODUCT_BUNDLE_IDENTIFIER"] == staging
+    release = APP["settings"]["base"]["PRODUCT_BUNDLE_IDENTIFIER"]
+    assert EXPECTED["Release"]["PRODUCT_BUNDLE_IDENTIFIER"] == release
+
+
+def test_each_build_compiles_in_its_own_server_rule():
+    # The unit tests run as Debug, so they cannot see the Staging or Release branch; this reads it.
+    swift = (ROOT / "ios/MissionCopilot/Platform/Network/ServerConfig.swift").read_text("utf-8")
+    block = re.search(r"static let buildServer: String\? = \{(.*?)\}\(\)", swift, re.S)
+
+    assert block is not None
+    branches = re.findall(r"#(if STAGING|elseif DEBUG|else)\s+server\(([^)]*)\)", block.group(1))
+    assert branches == [
+        ("if STAGING", "staging: true, debug: false"),
+        ("elseif DEBUG", "staging: false, debug: true"),
+        ("else", "staging: false, debug: false"),
+    ]

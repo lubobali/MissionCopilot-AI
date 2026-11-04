@@ -36,6 +36,7 @@ import SwiftUI
         switch problem {
         case .noAddress: "This build has no server address. Ask your organization for its build of the app."
         case .badAddress: "This build's server address is not allowed: it must use https."
+        case .wrongServer: "This build names a server it may not use. Ask your organization for its build of the app."
         case .noKeys: "This build has no server key, so it could not trust any mission pack."
         case .badKey: "This build's server key is not a valid P-256 key."
         }
