@@ -94,3 +94,14 @@ def test_the_build_context_lets_in_only_the_package():
         "!src/",
         "!uv.lock",
     ]
+
+
+def test_the_lock_must_have_wheels_for_the_server_and_a_macs_docker():
+    import tomllib
+
+    uv = tomllib.loads((BACKEND / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["uv"]
+
+    assert uv["required-environments"] == [
+        "sys_platform == 'linux' and platform_machine == 'x86_64'",  # the server, CI's runner
+        "sys_platform == 'linux' and platform_machine == 'aarch64'",  # Docker on an Apple Mac
+    ]
