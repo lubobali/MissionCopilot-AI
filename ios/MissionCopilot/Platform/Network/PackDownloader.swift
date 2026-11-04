@@ -146,6 +146,7 @@ actor PackDownloader {
         return switch outcome {
         case .offline: .paused(.offline)
         case .slowDown(let seconds): .paused(.slowDown(seconds))
+        case .busy(let seconds): .paused(.busy(seconds))
         case .refused: .failed(.notApproved)
         case .notFound: .failed(.notFound)
         case .shredOrder(let body): .shredOrder(body)

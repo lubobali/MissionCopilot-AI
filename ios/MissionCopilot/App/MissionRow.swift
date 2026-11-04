@@ -48,6 +48,7 @@ struct MissionRow: Equatable, Identifiable, Sendable {
         case .paused(.offline): "Update paused, waiting for connection."
         case .paused(.interrupted): "Update paused. It goes on when the app is open."
         case .paused(.slowDown): "The server is busy. The update goes on shortly."
+        case .paused(.busy): "The server is restarting. The update goes on shortly."
         case .paused(.locked): "Update downloaded. It is added when you unlock the app."
         case .failed(let failure): "Update failed: \(text(failure))"
         }
@@ -61,6 +62,7 @@ struct MissionRow: Equatable, Identifiable, Sendable {
         case .notEnoughSpace: "not enough free space on this iPhone."
         case .badFile: "a file arrived damaged twice."
         case .server: "the server could not answer."
+        case .serverBusy: "the server stayed busy. Try again later."
         case .storage: "this iPhone could not save the download."
         }
     }

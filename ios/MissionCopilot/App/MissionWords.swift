@@ -43,6 +43,7 @@ struct MissionWords: Sendable {
         case .offline: "Waiting for connection. It goes on by itself."
         case .interrupted: "Stopped. It goes on when the app is open."
         case .slowDown(let seconds): "The server is busy. It goes on in \(seconds) seconds."
+        case .busy(let seconds): "The server is restarting. It goes on by itself in \(seconds) seconds."
         case .locked: "Downloaded. It is added when you unlock the app."
         }
     }

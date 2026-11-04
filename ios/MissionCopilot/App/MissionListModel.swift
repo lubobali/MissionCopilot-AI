@@ -12,11 +12,16 @@ struct MissionListWorld: Sendable {
     var freeSpace: @Sendable () -> Int64
     var now: @Sendable () -> Date = { Date() }
     var chunk = 1 << 20
+    /// The real wait before a busy server is tried again, and the random part of it (#104).
+    var wait: @Sendable (Int) async -> Void = { seconds in try? await Task.sleep(for: .seconds(seconds)) }
+    var jitter: @Sendable (Int) -> Int = { cap in Int.random(in: 0...cap) }
 }
 
 /// The mission list (#92): the server's list joined with the packs in the encrypted store. A download
 /// goes through KeepGoing and PackDownloader, then PackImport; it goes on by itself when the connection
-/// returns, when the app opens, and (if the store was closed when it finished) after the next unlock.
+/// returns, when the app opens, and (if the store was closed when it finished) after the next unlock. A busy
+/// server (#104) is tried again by itself after the wait the row shows (Backoff), at most Backoff.maxTries
+/// times in a row; a run that moved bytes starts the count again.
 /// With no signal the list is the last one the server gave, kept in the store.
 @MainActor @Observable final class MissionListModel {
     private(set) var rows: [MissionRow] = []
@@ -33,6 +38,8 @@ struct MissionListWorld: Sendable {
     private var generation = 0
     private var waiting: [String: PackReady] = [:]  // checked, waiting for the store to open
     private var tasks: [String: Task<Void, Never>] = [:]
+    private var tries: [String: Int] = [:]  // busy answers in a row, per mission
+    private var retries: [String: Task<Void, Never>] = [:]  // a wait before the next try
 
     init(world: MissionListWorld, missions: @escaping @MainActor () -> MissionStore?,
          onShredOrder: @escaping (Data) -> Void = { _ in }) {
@@ -82,18 +89,20 @@ struct MissionListWorld: Sendable {
         rebuild()
         let world = world, job = Job(id: id, title: mission.title, org: list.orgId, store: store)
         tasks[id] = Task {
-            let outcome = await Self.downloadPack(job, world: world) { [weak self] state in
+            let result = await Self.downloadPack(job, world: world) { [weak self] state in
                 Task { @MainActor in self?.progress(id, run: run, state) }
             }
-            finish(id, run: run, title: mission.title, outcome)
+            if result.moved { tries[id] = nil }
+            finish(id, run: run, title: mission.title, (result.outcome, result.staging))
         }
     }
 
     /// Waits until every download started so far has ended (for the tests and the end to end check).
     func downloadsEnded() async {
-        while let (id, task) = tasks.first {
+        while let (id, task) = tasks.first ?? retries.first {
             await task.value
             if tasks[id] == task { tasks[id] = nil }
+            if retries[id] == task { retries[id] = nil }
         }
     }
 
@@ -102,24 +111,41 @@ struct MissionListWorld: Sendable {
         let id: String, title: String, org: String, store: MissionStore
     }
 
+    /// How a run ended, and whether it moved any bytes (a piece came after the first report).
+    private struct RunResult: Sendable {
+        let outcome: PackOutcome, staging: PackStaging?, moved: Bool
+    }
+
     private nonisolated static func downloadPack(_ job: Job, world: MissionListWorld,
                                                  onState: @escaping @Sendable (PackDownloadState) -> Void) async
-        -> (PackOutcome, PackStaging?) {
+        -> RunResult {
         guard let staging = try? PackStaging(base: world.stagingBase, mission: job.id) else {
-            return (.failed(.storage), nil)
+            return RunResult(outcome: .failed(.storage), staging: nil, moved: false)
         }
+        let reports = Reports()
         let outcome = await KeepGoing.run(title: "Downloading mission pack", subtitle: job.title,
                                           runways: world.runways) { report in
             let downloader = PackDownloader(
                 client: world.client, keys: world.keys, store: job.store, staging: staging, chunk: world.chunk,
                 freeSpace: world.freeSpace, now: world.now,
                 onState: { state in
-                    if case .downloading(let done, let total) = state { report(done, total) }
+                    if case .downloading(let done, let total) = state {
+                        reports.add()
+                        report(done, total)
+                    }
                     onState(state)
                 })
             return await downloader.run(org: job.org, mission: job.id)
         }
-        return (outcome, staging)
+        return RunResult(outcome: outcome, staging: staging, moved: reports.count > 1)
+    }
+
+    /// Progress reports of one run: the first is where it starts, every later one a piece that came.
+    private final class Reports: @unchecked Sendable {
+        private let lock = NSLock()
+        private var seen = 0
+        var count: Int { lock.withLock { seen } }
+        func add() { lock.withLock { seen += 1 } }
     }
 
     /// A progress report from download number `run`; one from a run that already ended is dropped (it can
@@ -134,14 +160,45 @@ struct MissionListWorld: Sendable {
         guard running[id] == run else { return }
         running[id] = nil
         switch result.0 {
-        case .verified(let ready): importPack(ready, title: title)
+        case .verified(let ready):
+            tries[id] = nil
+            importPack(ready, title: title)
         case .paused(.offline): activity[id] = .paused(.offline)
         case .paused(.interrupted): activity[id] = .paused(.interrupted)
-        case .paused(.slowDown(let seconds)): activity[id] = .paused(.slowDown(seconds))
+        case .paused(.slowDown(let seconds)): retryLater(id, asked: seconds) { .slowDown($0) }
+        case .paused(.busy(let seconds)): retryLater(id, asked: seconds) { .busy($0) }
         case .failed(let failure): activity[id] = .failed(failure)
         case .shredOrder(let body): onShredOrder(body)
         }
         rebuild()
+    }
+
+    /// A busy server: wait the time the row shows, then try again with newly signed requests. After
+    /// Backoff.maxTries busy answers in a row the person decides ("Try again").
+    private func retryLater(_ id: String, asked: Int?, pause: (Int) -> MissionPause) {
+        let attempt = tries[id, default: 0]
+        guard attempt < Backoff.maxTries else {
+            tries[id] = nil
+            activity[id] = .failed(.serverBusy)
+            return
+        }
+        let seconds = Backoff.delay(asked: asked, attempt: attempt, jitter: world.jitter)
+        tries[id] = attempt + 1
+        activity[id] = .paused(pause(seconds))
+        retries[id]?.cancel()
+        let wait = world.wait
+        retries[id] = Task { [weak self] in
+            await wait(seconds)
+            guard !Task.isCancelled else { return }
+            self?.tryAgain(id)
+        }
+    }
+
+    private func tryAgain(_ id: String) {
+        switch activity[id] {
+        case .paused(.slowDown), .paused(.busy): download(id)
+        default: break  // it went on another way, or the person changed it
+        }
     }
 
     private func importPack(_ ready: PackReady, title: String) {

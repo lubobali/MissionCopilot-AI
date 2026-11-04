@@ -5,6 +5,7 @@ enum EnrollmentResult: Equatable, Sendable {
     case enrolled(deviceId: String)
     case badCode  // unknown, used, expired or mistyped: ask the admin for a new one
     case slowDown(Int)
+    case busy  // restarting or overloaded: the person taps again, never repeated by itself (#104)
     case offline
     case failed
 }
@@ -49,6 +50,7 @@ struct Enroller: Sendable {
             return .enrolled(deviceId: answer.id)
         case .refused: return .badCode
         case .slowDown(let seconds): return .slowDown(seconds)
+        case .busy: return .busy
         case .offline: return .offline
         default: return .failed
         }

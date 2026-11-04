@@ -32,7 +32,7 @@ struct URLSessionTransport: Transport {
 /// Debug build allows it (the local server); only paths under /v1/.
 struct ServerClient: Sendable {
     enum Kind: Equatable, Sendable {
-        case success, refused, notFound, shredOrder, rangeOutside, slowDown, offline, failed, notSent
+        case success, refused, notFound, shredOrder, rangeOutside, slowDown, busy, offline, failed, notSent
     }
 
     enum Outcome: Equatable, Sendable {
@@ -42,6 +42,7 @@ struct ServerClient: Sendable {
         case shredOrder(Data)  // 410: a signed order to destroy every mission, to be checked first
         case rangeOutside  // 416
         case slowDown(Int)  // 429: seconds to wait
+        case busy(Int?)  // 502, 503, 504: restarting or overloaded; seconds to wait, if the server said (#104)
         case offline  // no signal or the server cannot be reached
         case failed(Int)  // any other answer, or a broken one (0)
         case notSent  // refused before sending: an address or path the phone never uses
@@ -54,6 +55,7 @@ struct ServerClient: Sendable {
             case .shredOrder: .shredOrder
             case .rangeOutside: .rangeOutside
             case .slowDown: .slowDown
+            case .busy: .busy
             case .offline: .offline
             case .failed: .failed
             case .notSent: .notSent
@@ -91,7 +93,7 @@ struct ServerClient: Sendable {
         } catch {
             return .notSent
         }
-        return await Self.outcome { try await transport.send(request) }
+        return await Self.outcome(now: now()) { try await transport.send(request) }
     }
 
     private func signedHeaders(_ method: String, _ path: String, _ body: Data) async throws -> [String: String] {
@@ -114,10 +116,10 @@ struct ServerClient: Sendable {
         }
     }
 
-    static func outcome(_ call: () async throws -> (Data, HTTPURLResponse)) async -> Outcome {
+    static func outcome(now: Date = Date(), _ call: () async throws -> (Data, HTTPURLResponse)) async -> Outcome {
         do {
             let (data, response) = try await call()
-            return outcome(status: response.statusCode, data: data, response: response)
+            return outcome(status: response.statusCode, data: data, response: response, now: now)
         } catch let error as URLError where offlineCodes.contains(error.code) {
             return .offline
         } catch {
@@ -130,7 +132,8 @@ struct ServerClient: Sendable {
         .dataNotAllowed, .internationalRoamingOff
     ]
 
-    private static func outcome(status: Int, data: Data, response: HTTPURLResponse) -> Outcome {
+    private static func outcome(status: Int, data: Data, response: HTTPURLResponse, now: Date) -> Outcome {
+        let retryAfter = Backoff.retryAfter(response.value(forHTTPHeaderField: "Retry-After"), now: now)
         switch status {
         case 200, 201, 206:
             let headers = response.allHeaderFields.reduce(into: [String: String]()) { all, field in
@@ -143,7 +146,8 @@ struct ServerClient: Sendable {
         case 404: return .notFound
         case 410: return .shredOrder(data)
         case 416: return .rangeOutside
-        case 429: return .slowDown(Int(response.value(forHTTPHeaderField: "Retry-After") ?? "") ?? 60)
+        case 429: return .slowDown(retryAfter ?? 60)
+        case 502, 503, 504: return .busy(retryAfter)
         default: return .failed(status)
         }
     }

@@ -26,7 +26,8 @@ final class MissionListModelTests {
                                                             key: DataKey.random()), vault: SoftwareKeyVault())
     }
 
-    func model(now: Date = now) throws -> MissionListModel {
+    func model(now: Date = now, wait: @escaping @Sendable (Int) async -> Void = { _ in },
+               jitter: @escaping @Sendable (Int) -> Int = { $0 }) throws -> MissionListModel {
         let client = ServerClient(base: URL(string: "https://kandor-works.example.org")!,
                                   deviceId: "6f1d2c3a-1111-4000-8000-000000000007", signer: SoftwareEvidenceSigner(),
                                   counter: RequestCounter(items: KeychainItems(service: service), account: "phone"),
@@ -37,14 +38,14 @@ final class MissionListModelTests {
         }
         let world = MissionListWorld(client: client, keys: pinned,
                                      stagingBase: base, schema: try PackSectionsTests.schema(), runways: [],
-                                     freeSpace: { 1 << 30 }, now: { now }, chunk: 256)
+                                     freeSpace: { 1 << 30 }, now: { now }, chunk: 256, wait: wait, jitter: jitter)
         let made = MissionListModel(world: world, missions: { [unowned self] in gate.isOpen ? store : nil },
                                     onShredOrder: { [unowned self] in shredOrders.append($0) })
         made.onChange = { [unowned self] in seen.append($0) }
         return made
     }
 
-    private func row(_ model: MissionListModel, _ id: String) -> MissionRow? { model.rows.first { $0.id == id } }
+    func row(_ model: MissionListModel, _ id: String) -> MissionRow? { model.rows.first { $0.id == id } }
 
     private func downloaded() async throws -> MissionListModel {
         let list = try model()
