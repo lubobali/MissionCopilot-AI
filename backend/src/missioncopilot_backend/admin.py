@@ -22,6 +22,8 @@ gitignored): directory.url and orgs/<org id>.url, each readable by its owner onl
 Start the server with MISSIONCOPILOT_DIRECTORY_URL_FILE=<dir>/directory.url and
 MISSIONCOPILOT_ORG_URLS_DIR=<dir>/orgs. The signing key goes to MISSIONCOPILOT_SIGNING_KEY_FILE
 (default backend/.keys/signing-key.pem, gitignored, owner-only); only its public half is printed.
+The defaults and backend/.env apply in a repo checkout only; on a server (an installed package)
+MISSIONCOPILOT_ADDRESS_DIR and MISSIONCOPILOT_SIGNING_KEY_FILE must be set (admin_config).
 """
 
 import argparse
@@ -30,14 +32,16 @@ import json
 import os
 import sys
 from collections.abc import Mapping
+from importlib.resources import files
 from pathlib import Path
 
 import psycopg
 from cryptography.hazmat.primitives import serialization
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
-from missioncopilot_backend import admin_devices
+from missioncopilot_backend import admin_config, admin_devices
 from missioncopilot_backend.admin_common import AdminError, as_admin, directory_url
+from missioncopilot_backend.admin_config import DIRECTORY
 from missioncopilot_backend.checklist_xlsx import from_xlsx
 from missioncopilot_backend.db.directory import Directory
 from missioncopilot_backend.db.migrations import load, migrate
@@ -51,14 +55,11 @@ from missioncopilot_backend.db.organizations import (
 from missioncopilot_backend.db.packs import Pack, publish_pack
 from missioncopilot_backend.pack_content import check_pack_files, pack_files
 from missioncopilot_backend.pack_format import key_id
-from missioncopilot_backend.server import StartupError, read_setting
-from missioncopilot_backend.settings import read_env_file
+from missioncopilot_backend.server import StartupError
 from missioncopilot_backend.signing_key import SigningKeyError, load_signing_key, new_signing_key
 
-BACKEND = Path(__file__).resolve().parents[2]
-DIRECTORY = "mc_directory"
 DEMO_ORG = "kandor-works"
-DATASET = BACKEND.parent / "docs" / "demo" / "kandor-rural-roads.json"
+DATASET = files("missioncopilot_backend") / "data" / "kandor-rural-roads.json"  # copy of docs/demo/
 ROADS = "6f1d2c3a-0000-4000-8000-000000000001"  # the dataset's mission id (the API uses UUIDs)
 BRIDGES = "6f1d2c3a-0000-4000-8000-000000000002"
 DEMO = {  # fictional: Kandor is not a real country
@@ -164,22 +165,6 @@ def publish_demo_pack(
     return publish_pack(url, org_id, ROADS, files, load_signing_key(key_path))
 
 
-def _key_path(env: Mapping[str, str]) -> Path:
-    merged = read_env_file(BACKEND / ".env") | dict(env)
-    default = BACKEND / ".keys" / "signing-key.pem"
-    return Path(merged.get("MISSIONCOPILOT_SIGNING_KEY_FILE", default))
-
-
-def _config(env: Mapping[str, str]) -> tuple[str, Path, str]:
-    merged = read_env_file(BACKEND / ".env") | dict(env)
-    try:
-        admin_url = read_setting(merged, "MISSIONCOPILOT_ADMIN_URL")
-    except StartupError as error:
-        raise AdminError(f"{error}; locally, run scripts/make_dev_env.py") from None
-    address_dir = Path(merged.get("MISSIONCOPILOT_ADDRESS_DIR", BACKEND / ".db-addresses"))
-    return admin_url, address_dir, merged.get("MISSIONCOPILOT_DIRECTORY_DB", DIRECTORY)
-
-
 DEVICE_COMMANDS = {"issue-code", "list-devices", "approve-device", "revoke-device"}
 
 
@@ -226,9 +211,10 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _signing_key_command(env: Mapping[str, str]) -> None:
-    found, public = make_signing_key(_key_path(env))
+    path = admin_config.key_path(env)
+    found, public = make_signing_key(path)
     der = base64.b64decode(public)
-    print(f"OK: signing key {found} written to {_key_path(env)}; pin its public key: {public}")
+    print(f"OK: signing key {found} written to {path}; pin its public key: {public}")
     print(f"For the app (Local.xcconfig): MC_SERVER_KEYS = {der.hex()}")
 
 
@@ -248,7 +234,7 @@ def _convert_command(form_path: Path, out: Path | None) -> None:
 
 
 def _database_command(args: argparse.Namespace, env: Mapping[str, str]) -> None:
-    admin_url, address_dir, directory = _config(env)
+    admin_url, address_dir, directory = admin_config.settings(env)
     if args.command in DEVICE_COMMANDS:
         _devices(args, admin_url, address_dir)
     elif args.command == "setup":
@@ -262,7 +248,7 @@ def _database_command(args: argparse.Namespace, env: Mapping[str, str]) -> None:
             print(f"OK: {name}: applied {versions or 'nothing, up to date'}")
     elif args.command == "publish-demo-pack":
         checklist = from_xlsx(args.checklist)[0] if args.checklist else None
-        pack = publish_demo_pack(admin_url, _key_path(env), checklist=checklist)
+        pack = publish_demo_pack(admin_url, admin_config.key_path(env), checklist=checklist)
         print(f"OK: Kandor roads pack version {pack.version} published, signed by key "
               f"{pack.signature['keyId']}")  # fmt: skip
     else:
@@ -281,6 +267,10 @@ def main(argv: list[str] | None = None, env: Mapping[str, str] = os.environ) -> 
             _database_command(args, env)
     except (AdminError, StartupError, SigningKeyError, ValueError) as error:
         print(f"FAILED: {error}", file=sys.stderr)
+        return 1
+    except (OSError, psycopg.Error) as error:  # a file or the database: one line, no traceback
+        reason = str(error).strip().splitlines()[0] if str(error).strip() else ""
+        print(f"FAILED: {error.__class__.__name__}: {reason}", file=sys.stderr)
         return 1
     return 0
 

@@ -9,7 +9,7 @@ survey, as on the phone; docs/api/fixtures/checklist-form-cases.json holds the t
 
 import json
 import re
-from pathlib import Path
+from importlib.resources import files
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import best_match
@@ -17,7 +17,9 @@ from jsonschema.protocols import Validator
 
 from missioncopilot_backend import checklist_expression as expression
 
-SCHEMA = Path(__file__).resolve().parents[3] / "docs" / "api" / "pack-sections.schema.json"
+# The package's own copy, so it works with no repo around (a server); docs/api/ is the source and
+# tests/unit/test_packaged_data.py fails if the two differ.
+SCHEMA = files("missioncopilot_backend") / "data" / "pack-sections.schema.json"
 SIMPLE = {"text", "integer", "decimal", "note", "date", "geopoint", "image"}
 SELECTS = {"select_one", "select_multiple"}
 MAX_DEPTH = 3

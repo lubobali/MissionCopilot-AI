@@ -41,10 +41,17 @@ def load_signing_key(path: Path) -> ec.EllipticCurvePrivateKey:
         raise SigningKeyError(
             f"no signing key at {path}; run missioncopilot-admin make-signing-key"
         )
-    if path.stat().st_mode & 0o077:
+    if path.stat().st_mode & 0o077:  # checked before a single byte of the key is read
         raise SigningKeyError(f"{path} is readable by others; chmod 600 it")
     try:
-        key = serialization.load_pem_private_key(path.read_bytes(), password=None)
+        pem = path.read_bytes()
+    except OSError as error:  # a folder, or owned by someone else (a container's root)
+        raise SigningKeyError(
+            f"{path} cannot be read ({error.strerror or error.__class__.__name__}); it must be a "
+            f"file owned by this process's user (uid {os.getuid()}), chmod 600"
+        ) from None
+    try:
+        key = serialization.load_pem_private_key(pem, password=None)
     except (ValueError, TypeError):
         raise SigningKeyError(f"cannot read the signing key in {path}") from None
     if not isinstance(key, ec.EllipticCurvePrivateKey) or not isinstance(key.curve, ec.SECP256R1):

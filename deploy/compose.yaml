@@ -1,0 +1,141 @@
+# MissionCopilot backend on a shared server (#103 step 2.2). One file for staging and prod; every
+# value comes from the environment's own values file on the server (never in git):
+#   docker compose --env-file /srv/missioncopilot/<env>/values.env -f deploy/compose.yaml ...
+# MC_ENV (staging|prod), MC_IMAGE (by digest), MC_PORT (loopback port nginx proxies to),
+# MC_HOSTNAME (the public DNS name), MC_EDGE_SUBNET + MC_EDGE_GATEWAY, MC_DB_SUBNET (explicit:
+# Docker's automatic pool must never pick one), MC_SECRETS (the environment's secrets folder).
+# What every value means and who owns each secret file: deploy/README.md.
+# Rules checked by backend/tests/unit/test_deploy_compose.py.
+
+name: missioncopilot-${MC_ENV:?set MC_ENV to staging or prod}
+
+x-boxed-in: &boxed-in
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+
+x-backend: &backend
+  <<: *boxed-in
+  image: ${MC_IMAGE:?set MC_IMAGE to the image by digest}
+  user: "10001:10001"
+  read_only: true
+
+services:
+  postgres:
+    <<: *boxed-in
+    # The same pinned image CI tests against (.github/workflows/ci.yml, backend/compose.yaml).
+    image: postgres:18.6-trixie@sha256:3a4264520e121176619f54ff867d12774bc81e95e7b84db58d63bccdb6144b81
+    command: ["postgres", "-c", "timezone=UTC"]
+    # The entrypoint starts as root to set up its folders, then becomes the postgres user.
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    read_only: true
+    tmpfs: ["/var/run/postgresql:size=1m", "/tmp:size=16m"]
+    environment:
+      POSTGRES_USER: missioncopilot_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_admin_password
+    secrets: [pg_admin_password]
+    volumes:
+      - pgdata:/var/lib/postgresql  # 18+: the data lives in /var/lib/postgresql/18/docker
+    networks: [db]  # no port, no internet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U missioncopilot_admin -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    stop_grace_period: 60s
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1
+    pids_limit: 256
+
+  migrate:
+    <<: *backend
+    command: ["missioncopilot-admin", "migrate"]
+    environment:
+      MISSIONCOPILOT_ADMIN_URL_FILE: /run/secrets/admin_url
+      MISSIONCOPILOT_ADDRESS_DIR: /run/mc/addresses
+    secrets: [admin_url]
+    volumes:
+      - ${MC_SECRETS:?}/addresses:/run/mc/addresses:ro
+    networks: [db]
+    depends_on:
+      postgres: {condition: service_healthy}
+    restart: "no"
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.5
+    pids_limit: 64
+
+  api:
+    <<: *backend
+    environment:
+      MISSIONCOPILOT_ENV: production
+      MISSIONCOPILOT_HOST: 0.0.0.0  # inside the container; published on loopback only
+      MISSIONCOPILOT_PORT: "8110"
+      MISSIONCOPILOT_ALLOWED_HOSTS: ${MC_HOSTNAME:?},127.0.0.1  # 127.0.0.1: the healthcheck
+      # Host nginx reaches the container from this network's gateway: the one proxy believed.
+      MISSIONCOPILOT_FORWARDED_ALLOW_IPS: ${MC_EDGE_GATEWAY:?}
+      MISSIONCOPILOT_MIN_APP_BUILD: ${MC_MIN_APP_BUILD:-0}
+      MISSIONCOPILOT_DIRECTORY_URL_FILE: /run/mc/addresses/directory.url
+      MISSIONCOPILOT_ORG_URLS_DIR: /run/mc/addresses/orgs
+      MISSIONCOPILOT_SIGNING_KEY_FILE: /run/mc/keys/signing-key.pem
+    volumes:
+      - ${MC_SECRETS:?}/addresses:/run/mc/addresses:ro
+      - ${MC_SECRETS:?}/keys:/run/mc/keys:ro
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    ports:
+      - "127.0.0.1:${MC_PORT:?}:8110"
+    networks: [edge, db]
+    depends_on:
+      postgres: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s  # above the server's own 20 s graceful shutdown
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1
+    pids_limit: 256
+
+  # Operator work: docker compose ... run --rm admin missioncopilot-admin <command>
+  admin:
+    <<: *backend
+    profiles: [admin]
+    entrypoint: ["missioncopilot-admin"]
+    environment:
+      MISSIONCOPILOT_ADMIN_URL_FILE: /run/secrets/admin_url
+      MISSIONCOPILOT_ADDRESS_DIR: /run/mc/addresses
+      MISSIONCOPILOT_SIGNING_KEY_FILE: /run/mc/keys/signing-key.pem
+    secrets: [admin_url]
+    volumes:
+      - ${MC_SECRETS:?}/addresses:/run/mc/addresses
+      - ${MC_SECRETS:?}/keys:/run/mc/keys
+    networks: [db]
+    restart: "no"
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.5
+    pids_limit: 64
+
+networks:
+  edge:
+    ipam:
+      config:
+        - {subnet: "${MC_EDGE_SUBNET:?}", gateway: "${MC_EDGE_GATEWAY:?}"}
+  db:
+    internal: true
+    ipam:
+      config:
+        - {subnet: "${MC_DB_SUBNET:?}"}
+
+volumes:
+  pgdata: {}
+
+secrets:
+  pg_admin_password:
+    file: ${MC_SECRETS:?}/pg_admin_password
+  admin_url:
+    file: ${MC_SECRETS:?}/admin_url

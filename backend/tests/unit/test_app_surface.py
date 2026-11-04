@@ -34,7 +34,7 @@ def test_docs_pages_work_in_development(page):
 def test_health_is_versioned_like_the_contract():
     client = local_client(create_app(Settings()))
 
-    assert client.get("/v1/health").json() == {"status": "ok"}
+    assert client.get("/v1/health").json()["status"] == "ok"  # full answer: test_health_time
     assert client.get("/health").status_code == 404
 
 
