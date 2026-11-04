@@ -2,30 +2,42 @@ import Foundation
 import Testing
 @testable import MissionCopilot
 
-/// The phone against the real staging server over the internet (#103 step 7): https://mc-staging.lubot.ai,
+/// The phone against the real staging (and production) server over the internet (#103 step 7):
+/// https://mc-staging.lubot.ai,
 /// organization kandor-e2e only (never the demo). The server session plays the operator by hand on #103:
 /// it issues the code, approves the device id this test writes out, watches its nginx log for 206 during
 /// the resume, and revokes the phone at the end. The key the phone pins is read from Staging.xcconfig, the
 /// one the Staging app ships with. Like the local end to end, the phone's key is a software key in the
 /// chip's format (the Simulator's Secure Enclave is not reliable); the real chip is the iPhone proof (#94).
 ///
+/// The same run checks production (https://mc.lubot.ai, Release.xcconfig's keys) with MC_STAGING_TARGET=prod.
+///
 /// Run (the code is the server's, valid 15 minutes; the folder receives device-id, pack and done):
-///   cd ios && TEST_RUNNER_MC_STAGING_CODE=<code> TEST_RUNNER_MC_STAGING_OUT=<folder> xcodebuild test \
+///   cd ios && TEST_RUNNER_MC_STAGING_CODE=<code> TEST_RUNNER_MC_STAGING_OUT=<folder> \
+///     [TEST_RUNNER_MC_STAGING_TARGET=prod] \
+///     xcodebuild test \
 ///     -project MissionCopilot.xcodeproj -scheme MissionCopilot \
 ///     -destination "platform=iOS Simulator,name=iPhone 13 Pro Max" -only-testing:MissionCopilotTests/StagingE2ETests
 private struct Staging {
-    let code: String, out: URL
+    let code: String, out: URL, prod: Bool
 
-    static let host = "mc-staging.lubot.ai"
     static let config: Staging? = {
         let env = ProcessInfo.processInfo.environment
         guard let code = env["MC_STAGING_CODE"], let out = env["MC_STAGING_OUT"] else { return nil }
-        return Staging(code: code, out: URL(fileURLWithPath: out))
+        return Staging(code: code, out: URL(fileURLWithPath: out), prod: env["MC_STAGING_TARGET"] == "prod")
     }()
 
-    /// The staging server's public key(s), as Staging.xcconfig pins them (its comment after // dropped).
-    static func pinnedKeys() throws -> String {
-        let file = PackVerifierTests.repo.appending(path: "ios/Config/Staging.xcconfig")
+    /// The server this run talks to, as the Staging or the Release build does: its only host and its keys.
+    static func server(prod: Bool) throws -> ServerConfig {
+        let only = ServerConfig.server(staging: !prod, debug: false)
+        return try ServerConfig.from(["MCServerScheme": "https", "MCServerHost": only ?? "",
+                                      "MCServerKeys": try pinnedKeys(prod ? "Release" : "Staging")],
+                                     allowLocalHTTP: false, server: only)
+    }
+
+    /// The server's public key(s), as that build's settings file pins them (its comment after // dropped).
+    static func pinnedKeys(_ build: String) throws -> String {
+        let file = PackVerifierTests.repo.appending(path: "ios/Config/\(build).xcconfig")
         let line = try #require(try String(contentsOf: file, encoding: .utf8).split(separator: "\n")
             .first { $0.hasPrefix("MC_SERVER_KEYS") })
         let value = line.split(separator: "=", maxSplits: 1).last.map(String.init) ?? ""
@@ -56,11 +68,8 @@ struct StagingE2ETests {
 
     @Test(.needsRepoFiles) func enrollGetApprovedDownloadWithACutThenGetRevokedAndShred() async throws {
         let staging = try #require(Staging.config)
-        // The same lock as the Staging build: only the staging host, https, the pinned staging key.
-        let only = ServerConfig.server(staging: true, debug: false)
-        let config = try ServerConfig.from(["MCServerScheme": "https", "MCServerHost": Staging.host,
-                                            "MCServerKeys": try Staging.pinnedKeys()],
-                                           allowLocalHTTP: false, server: only)
+        // The same lock as the Staging (or Release) build: its only host, https, its pinned keys.
+        let config = try Staging.server(prod: staging.prod)
         let signer = SoftwareEvidenceSigner()
 
         // 1. Enroll with the operator's code; the device id goes out for the operator to approve.
@@ -151,14 +160,23 @@ struct StagingPackSteps {
     }
 }
 
-/// Runs every time (not only by hand): the key the staging run reads is the one the Staging app ships.
+/// Runs every time (not only by hand): the keys the run reads are the ones the Staging and Release apps ship.
 struct StagingKeyTests {
+    private func ids(_ config: ServerConfig) -> Set<String> {
+        Set(config.pinnedKeys.map { ServerConfig.keyId($0.derRepresentation) })
+    }
+
     @Test(.needsRepoFiles) func theStagingKeyReadFromItsSettingsFileMakesAValidStagingConfig() throws {
-        let config = try ServerConfig.from(["MCServerScheme": "https", "MCServerHost": Staging.host,
-                                            "MCServerKeys": try Staging.pinnedKeys()], allowLocalHTTP: false,
-                                           server: ServerConfig.server(staging: true, debug: false))
+        let config = try Staging.server(prod: false)
 
         #expect(config.base.absoluteString == "https://mc-staging.lubot.ai")
-        #expect(config.pinnedKeys.map { ServerConfig.keyId($0.derRepresentation) } == ["4bf338c69bae5bfa"])
+        #expect(ids(config) == ["4bf338c69bae5bfa"])
+    }
+
+    @Test(.needsRepoFiles) func theReleaseKeysMakeAValidProductionConfigWithTheSpare() throws {
+        let config = try Staging.server(prod: true)
+
+        #expect(config.base.absoluteString == "https://mc.lubot.ai")
+        #expect(ids(config) == ["961f36f2f593bc81", "6846cc2ed260cde7"])
     }
 }
