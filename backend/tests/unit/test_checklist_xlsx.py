@@ -169,3 +169,11 @@ def test_a_file_that_is_not_a_workbook_is_refused(tmp_path):
     with pytest.raises(FormProblem) as refused:
         from_xlsx(path)
     assert refused.value.text == "This file is not an .xlsx form."
+
+
+def test_a_file_too_big_to_be_a_checklist_is_refused_before_it_is_read(tmp_path):
+    path = tmp_path / "form.xlsx"
+    path.write_bytes(b"\0" * (5 * 1024 * 1024 + 1))
+    with pytest.raises(FormProblem) as refused:
+        from_xlsx(path)
+    assert refused.value.text == "This file is over 5 MB: too big to be a checklist."

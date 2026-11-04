@@ -18,6 +18,7 @@ from missioncopilot_backend.checklist_check import FormProblem, check_form
 
 TRANSLATED = re.compile(r"^(label|hint|constraint_message)::(.+)$")
 FRENCH = "::French (fr)"
+MAX_BYTES = 5 * 1024 * 1024  # a checklist is kilobytes; anything near this is not one (T56)
 COLUMNS = {
     "survey": {"type", "name", "label", "hint", "required", "relevant", "constraint",
                "constraint_message", "default", "select_from_list_name"},
@@ -101,6 +102,8 @@ def _settings(workbook: dict, dropped: list[str]) -> dict:
 
 def from_xlsx(path: Path) -> tuple[dict, list[str]]:
     """The pack's checklist from an .xlsx form, and what was dropped (looks only), or a refusal."""
+    if path.stat().st_size > MAX_BYTES:
+        raise FormProblem("unreadable", None, "This file is over 5 MB: too big to be a checklist.")
     try:
         workbook = xlsx_to_dict(str(path))
     except Exception:  # noqa: BLE001 - pyxform raises several kinds for a file that is not a form
