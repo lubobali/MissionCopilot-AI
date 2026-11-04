@@ -38,6 +38,7 @@ flowchart LR
     manager(["Manager<br/>browser"])
     cloud(["Cloud AI<br/>public data only"])
     imports(["Imports: model files,<br/>packages, checklists"])
+    neighbours(["Other apps on the<br/>shared server"])
 
     world -- B1 --> capture --> code
     code -- B2 --> model -- B2 --> code
@@ -49,6 +50,7 @@ flowchart LR
     api -- B8 --> cloud
     imports -- B9 --> phone
     imports -- B9 --> server
+    neighbours -- B10 --> server
 ```
 
 | Boundary | What crosses it |
@@ -62,6 +64,7 @@ flowchart LR
 | B7 Manager browser ↔ backend | Dashboard sessions and approvals |
 | B8 Backend ↔ cloud AI | Public-labelled data only |
 | B9 Imports (supply chain) | Model files, code dependencies, CI actions, checklists, mission packs |
+| B10 The shared server (#103) | Other apps on the same machine, its nginx and Docker daemon, deploys, backups leaving the server |
 
 ## 2. What can go wrong, and what we do about it (STRIDE)
 
@@ -162,6 +165,18 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | T50 | T | The SQLCipher database library (our GRDB fork) drifts | Pinned revision, recorded in the SBOM; a commit check fails if Package.resolved and the SBOM differ | built | `scripts/test_check_bom.py` |
 | T51 | T | A malicious or old mission pack is imported | Packs signed by the server (P-256 over a pack label and the exact manifest bytes), every file listed by SHA-256 and size, limits in the contract (64 files, 20 MiB a file, 50 MiB a pack, fixed folders), versions only go up, expiry; served only to the mission's team. The phone checks the same before it keeps anything: the signature with a pinned key and the pack label, the contract's rules again after the signature, the key id, expiry and app version, the mission and organization it asked for, a version above the last one it accepted (a genuine older pack played back is refused), free space for three times the pack, then each file's size and SHA-256. Before the pack is kept, every section and the checklist must match the contract's schema (an unknown field refused), every staged file is hashed again, and the version rule runs again inside the one transaction that stores it. Every piece is its own freshly signed request: no background session, which would send old signed requests again (T27) | built | `backend/tests/unit/test_pack_verify.py`, `backend/tests/db/test_packs.py`, `backend/tests/db/test_pack_routes.py`, `ios/MissionCopilotTests/PackVerifierTests.swift`, `ios/MissionCopilotTests/PackAcceptanceTests.swift`, `ios/MissionCopilotTests/PackDownloaderTests.swift`, `ios/MissionCopilotTests/PackSectionsTests.swift`, `ios/MissionCopilotTests/PackImportTests.swift`, `ios/MissionCopilotTests/LocalServerPackSteps.swift`, `ios/MissionCopilotTests/LocalServerListSteps.swift` |
 | T52 | T | The model was poisoned upstream (ATLAS AML.T0020) | Frozen public model, source, revision, hash and license in the ML-BOM (checked against the signature), outputs checked by code | built | `docs/sbom/app.cdx.json`, `scripts/test_check_bom.py` |
+
+### B10 The shared server (#103, ADR 0013)
+| ID | STRIDE | Threat | Control | Status | Test or phase |
+|---|---|---|---|---|---|
+| T61 | I | Another app on the same server reads MissionCopilot's secrets or data | Nothing shared with other apps (own containers, networks, volumes, database, nginx file, certificate, backups); own uids that no other process uses (10120 the server, 10121 Postgres: the images' 999 and the usual 10001 were other apps' there); every secret file 0600 with one owner; Postgres has no port; the API listens on loopback only | built | `scripts/container_check.py`, `backend/tests/unit/test_deploy_compose.py` |
+| T62 | S | A client writes its own X-Forwarded-For to share or escape a rate limit, or to put a false address in the audit log | The API believes the header only from its own network's gateway (the host's nginx), never `*`; nginx overwrites it with the real address; behind the proxy only the rightmost untrusted address counts | built | `backend/tests/unit/test_process_settings.py`, `scripts/nginx_check.py`, `scripts/container_check.py` |
+| T63 | D | A bad image or a restart takes the server down, or phones hammer it while it is down | Deploys by digest only, with a readiness check and an automatic way back to the previous image; pools replace broken connections after a database restart; nginx answers a JSON 503 with Retry-After while the API is down, a JSON 429 with Retry-After for floods | built | `scripts/test_mc_deploy.py`, `scripts/container_check.py`, `backend/tests/db/test_pool_restart.py` |
+| T64 | D | The data is lost (a lost server, an operator's mistake) and the backups cannot be read | Nightly encrypted backup (restic) of every database, the roles and the secrets to the environment's own private bucket; every week the latest is restored into a throwaway Postgres and a tenth of the stored data read back; a live restore brings each database back with its own rules; the restic password is also kept off the server | built | `scripts/test_mc_backup.py`, `scripts/test_systemd_units.py`, `scripts/container_check.py` |
+| T65 | I | Weak or old TLS between the phone and the server | nginx offers TLS 1.2 and 1.3 only, forward-secret AEAD ciphers, a Let's Encrypt certificate; TLS 1.0 and 1.1 refused (checked against the live server); the app's ATS has no exception outside Debug; SSL Labs A+ on staging (#103 step 7) | built | `scripts/test_render_nginx_site.py`, `scripts/test_ios_builds.py` |
+| T66 | T | A tampered or vulnerable server image is deployed | Built only by CI, natively; every base and tool pinned by digest; checked with the real Compose file and scanned (Grype, its checksum written in the workflow, a fixable high or critical finding fails); pushed only from main, only the checked image, with a provenance attestation; deployed only by digest | built | `backend/tests/unit/test_image_workflow.py`, `backend/tests/unit/test_container_image.py` |
+| T67 | E | A broken-into API or Postgres container reaches the server or the internet | Read-only root, no capabilities, no new privileges, its own non-root uid, memory, CPU and process limits; Postgres on an internal network with no way out; no Docker socket anywhere | built | `scripts/container_check.py`, `backend/tests/unit/test_deploy_compose.py` |
+| T68 | E | Someone who controls the server (root, or its Docker daemon) controls MissionCopilot's containers, secrets and signing key | Accepted for the demo: the server is shared (ADR 0013); access only over the admin VPN; the prod spare signing key is kept off the server, so a key rotation needs no new app. For real users: a server of its own and the signing key in a hardware key store (ADR 0008) | accepted | ADR 0013 and ADR 0008: a shared server is a demo choice, revisited before real users or real data |
 
 ## 3. Privacy (LINDDUN)
 

@@ -171,6 +171,26 @@ and every request it sends is signed with that key.
 - **A rule the app cannot read never blocks the form:** the question shows and is marked unchecked.
 - English and French only, the two languages tested; more can be added later, each with its own tests.
 
+## The server (shared, #103, ADR 0013)
+The backend runs on one rented server that also runs other apps. It shares only the kernel, the
+Docker daemon and the host's nginx with them:
+- **Own everything else:** containers, networks (subnets written out, never picked by Docker),
+  database, nginx file, certificate, backups and timers. The server runs as uid 10120 and Postgres
+  as 10121, ids no other app uses there.
+- **Boxed in:** the API listens on `127.0.0.1` only, read-only, no capabilities, its own non-root
+  uid, hard limits. Postgres has no port and no way to the internet.
+- **TLS 1.2 and 1.3 only** at nginx, a Let's Encrypt certificate; the API believes the client's
+  address only from nginx.
+- **Secrets are files**, 0600, readable only by the uid that needs it; the API never gets the admin
+  login. Prod has a spare signing key kept off the server.
+- **Deploys by image digest**, built and scanned in CI with an attestation; a deploy that does not
+  come up goes back to the previous image by itself.
+- **Encrypted backups** every night to a private bucket per environment; every week the latest is
+  restored into a throwaway Postgres and checked.
+
+Each claim has its test in the [threat model](threat-model.md) (B10, T61 to T68). How to run it:
+[deploy/RUNBOOK.md](../deploy/RUNBOOK.md).
+
 ## Check it yourself
 The code is open source. The [spike report](spikes/03-encryption.md) shows how to copy the database off a phone
 you own and try to read it with standard tools. The same check runs automatically in CI on the spike package
@@ -183,6 +203,9 @@ and in the app's tests, and was done on a copy from the iPhone ([store proof](st
 - **A phone without a passcode.** iOS Data Protection needs one; with the app lock such a phone cannot open
   mission data at all.
 - **A compromised or jailbroken phone**, or attacks on memory while the app is open.
+- **Whoever controls the shared server** (root, or its Docker daemon) controls our containers and can read
+  the server's signing key. Accepted for the demo (T68); a server of its own and a hardware key store before
+  real users.
 - **A bad model we signed ourselves.** The signature proves the model is the one we checked, not that the upstream
   model is free of problems. The app never lets the model decide a fact or a flag (ADR 0005).
 - **Losing unsynced data.** If the phone is lost before sync, that data is gone. This is deliberate: losing data
