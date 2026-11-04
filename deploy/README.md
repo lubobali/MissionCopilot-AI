@@ -60,6 +60,13 @@ file anyone else can read, and says so when it cannot read one.
 The admin writes into `addresses/` and `keys/` from inside the compose network, so every address
 says `host=postgres`, and every file it writes already has the right owner and mode.
 
+## Database connections
+
+The API keeps one pool per database, up to 8 connections each (`db/pools.py`): the directory plus
+one per organization, so `8 x (1 + organizations)`, plus a few for `migrate` and `admin` runs.
+Postgres allows 100 by default: plenty for the demo (one organization: 16). Each pool checks a
+connection before handing it out, so after a Postgres restart the first request still works.
+
 ## Operator commands
 
 Always `run --rm`, so no container (and no one-time code in its log) is left behind:

@@ -19,6 +19,7 @@ from psycopg_pool import ConnectionPool
 
 from missioncopilot_backend.db.audit_log import PostgresAuditLog
 from missioncopilot_backend.db.migrations import load, migrate
+from missioncopilot_backend.db.pools import open_pool
 from missioncopilot_backend.devices import CODE_LIFETIME_SECONDS, Device, EnrollmentGrant
 
 MIGRATIONS = Path(__file__).parent / "sql" / "directory"
@@ -161,7 +162,7 @@ class Directory:
         to (the server never migrates at start: it checks, and an operator migrates)."""
         if migrations:
             migrate(url, load(MIGRATIONS))
-        with ConnectionPool(url, min_size=1, max_size=8, open=True) as pool:
+        with open_pool(url) as pool:
             yield cls(pool, clock)
 
     def organizations(self) -> dict[str, str]:

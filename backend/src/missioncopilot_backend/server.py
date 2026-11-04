@@ -21,12 +21,12 @@ import psycopg
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import FastAPI
 from psycopg.conninfo import conninfo_to_dict
-from psycopg_pool import ConnectionPool
 
 from missioncopilot_backend.app import create_app
 from missioncopilot_backend.db.directory import Directory
 from missioncopilot_backend.db.migrations import MigrationError, load, pending
 from missioncopilot_backend.db.missions import ORG_MIGRATIONS, PostgresOrgDatabases
+from missioncopilot_backend.db.pools import open_pool
 from missioncopilot_backend.pack_format import key_id
 from missioncopilot_backend.settings import Settings
 from missioncopilot_backend.signing_key import SigningKeyError, load_signing_key
@@ -94,7 +94,7 @@ def _org_pools(
         if named != database:
             raise StartupError(f"the address for {org_id} points at {named}, not {database}")
         _check_migrated(f"database of {org_id}", url, ORG_MIGRATIONS)
-        pools[org_id] = stack.enter_context(ConnectionPool(url, min_size=1, max_size=8, open=True))
+        pools[org_id] = stack.enter_context(open_pool(url))
     return PostgresOrgDatabases(pools)
 
 
