@@ -3,9 +3,10 @@ with Retry-After; it tracks a capped number of clients, so many addresses cannot
 A body over the limit answers 413: refused before reading when Content-Length says so, and counted
 while it streams in, because a chunked body declares no length.
 
-The client address is the connection's own. X-Forwarded-For is not trusted here: anyone can send
-it. Behind a reverse proxy, run uvicorn with --proxy-headers and --forwarded-allow-ips set to that
-proxy only. One process keeps its own counts; a real deployment also limits at the proxy."""
+The client address is the connection's own. X-Forwarded-For is not read here: anyone can send it.
+Behind a reverse proxy, MISSIONCOPILOT_FORWARDED_ALLOW_IPS names that proxy, and uvicorn then puts
+the phone's address in its place before this runs (missioncopilot_backend.uvicorn_options). One
+process keeps its own counts; a real deployment also limits at the proxy."""
 
 import math
 import time
