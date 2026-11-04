@@ -12,6 +12,7 @@ import hashlib
 from dataclasses import dataclass
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import Headers
 
 from missioncopilot_backend.auth import audit
@@ -54,10 +55,16 @@ def _signed_fields(headers: Headers) -> tuple[int, int, bytes] | None:
 
 
 async def require_device(request: Request) -> DevicePrincipal:
+    """The body is read here, on the event loop; every database call (device, sequence number,
+    audit log) then runs in the thread pool, so a slow query never freezes other requests (S1)."""
+    body = await request.body()  # cached: the route reads the same bytes
+    return await run_in_threadpool(_check_signed, request, body)
+
+
+def _check_signed(request: Request, body: bytes) -> DevicePrincipal:
     devices: DeviceStore = request.app.state.devices
     device = devices.find(request.headers.get("X-Device-Id", ""))
     fields = _signed_fields(request.headers)
-    body = await request.body()  # cached: the route reads the same bytes
     if device is None or device.status not in ("active", "revoked") or fields is None:
         return _refuse(request, device.id if device else None)
     seq, at, signature = fields
