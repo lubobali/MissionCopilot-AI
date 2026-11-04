@@ -14,6 +14,10 @@ up to 30); every sync renews it. **Retention** = after the server confirms a mis
 found before the organization is known (phones, enrollment codes, the audit log); it holds ids, never
 mission data.
 
+**Today's server (the demo, #103):** TK is planned (ADR 0008 rule 3), not built yet, so on the demo
+server the databases sit unencrypted on its disk; only fictional data is there. The backups are
+encrypted (restic). See [ADR 0013](adr/0013-hosting-on-a-shared-server.md) for when that changes.
+
 | Data | Where it lives | How long | Encryption | Who can see it | Hosted | How it ends |
 |---|---|---|---|---|---|---|
 | Mission pack (budget, payments, milestones, last report, site checklist) | Phone (the newest pack only: a newer one replaces it in one transaction); org database (each version kept, never changed) | Phone: until retention or lease ends | DK + MK, every file sealed with MK and kept with its lineage (pack id, version, manifest and file SHA-256); TK; signed by the server | The mission's team only (row-level security) | Phone; org database | Crypto-shred on the phone; org records policy on the server |
@@ -32,6 +36,9 @@ mission data.
 | Database key | Phone's Keychain, this device only | While the app is installed and the phone has a passcode | Hardware-backed Keychain; released only after Face ID or passcode | Nobody; released to the app after Face ID or passcode | Phone only | Deleted with the app or when the phone's passcode is removed |
 | Device registration (public key, status) | Directory | Until an admin removes it; revoked stays revoked | Database access control | Organization admins | Directory | Removed by an admin; a revoked phone gets a shred order |
 | Shred record (mission, reason, time) | Phone; org database after sync | Phone: until synced; server: with the audit log | DK; TK | Organization admins and auditors | Phone; org database | Kept as evidence of what was destroyed and when |
+| Client IP address (audit log, server logs) | Directory: the `client` of an audit event (who asked, for refusals, limits, downloads, shred orders); the server's nginx access log and the API's log (address, time, path, answer) | Audit log: as long as the audit log (append-only, org records policy); nginx log: 14 days (rotated daily); API log: until 30 MB of newer lines replace it | In transit TLS; at rest not yet encrypted on the demo server (TK planned) | Audit log: organization admins and auditors; logs: the server's administrators | Directory; the server | Logs rotate out by themselves; audit rows only with the audit log, by org records policy |
+| Server signing key | The server's secrets folder: one file, owned by the API's user, 0600; prod's spare key off the server | Until rotated (deploy/RUNBOOK.md) | File permissions only (a hardware key store is planned, ADR 0008) | The API process and the server's root; the spare's holder | The server | Replaced by a rotation; the app stops pinning the old key |
+| Backups (every database, the roles, the server's secrets) | Each environment's own restic repository in a private bucket | 7 daily, 5 weekly, 6 monthly snapshots (about 6 months) | restic (AES-256, its own password) and the bucket's own encryption | Whoever holds the restic password: the server's root, and one copy off the server | The backup bucket's provider | restic forgets and prunes older snapshots; the bucket keeps only a file's last version |
 
 **Not on this sheet because they are not data about anyone:** the on-device model (public, signed, see
 [docs/models](models/README.md)) and the fictional demo dataset.
