@@ -47,10 +47,33 @@ class Settings:
                 "MISSIONCOPILOT_ALLOWED_HOSTS names only this machine; add the server's DNS name "
                 "(127.0.0.1 may stay, for the container healthcheck)"
             )
+        if not ipaddress.ip_address(self.host).is_loopback and not self.forwarded_allow_ips:
+            problems.append(
+                f"listening on {self.host} with no {FORWARDED}: behind a proxy every phone would "
+                "have the proxy's address; name the proxy"
+            )
+        problems += [
+            f"MISSIONCOPILOT_ALLOWED_ORIGINS: {origin} is not https"
+            for origin in self.allowed_origins
+            if not origin.startswith("https://")
+        ]
         for field, (name, low, high) in LIMITS.items():
             if not low <= getattr(self, field) <= high:
                 problems.append(f"{name} is {getattr(self, field)}; production allows {low}-{high}")
         return problems
+
+    def summary(self, signing_key_id: str) -> str:
+        """One line for the log at start: what runs, so a wrong deploy shows at once. Nothing here
+        is secret (the key id is the public half's fingerprint, as the app pins it)."""
+        return (
+            f"MissionCopilot backend: environment={self.environment} "
+            f"listen={self.host}:{self.port} hosts={','.join(self.allowed_hosts)} "
+            f"origins={','.join(self.allowed_origins) or 'none'} "
+            f"trusted_proxy={','.join(self.forwarded_allow_ips) or 'none'} "
+            f"limits={self.rate_limit_per_minute}/min per address, "
+            f"{self.device_rate_limit_per_minute}/min per phone, body {self.max_body_bytes} bytes "
+            f"docs={'on' if self.docs_enabled else 'off'} signing_key={signing_key_id}"
+        )
 
     @property
     def docs_enabled(self) -> bool:

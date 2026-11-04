@@ -11,6 +11,7 @@ And, as a file only (a private key never travels in an environment variable):
   MISSIONCOPILOT_SIGNING_KEY_FILE  the P-256 key that signs mission packs and shred orders
 """
 
+import logging
 import os
 from collections.abc import AsyncGenerator, Mapping
 from contextlib import ExitStack, asynccontextmanager
@@ -26,6 +27,7 @@ from missioncopilot_backend.app import create_app
 from missioncopilot_backend.db.directory import Directory
 from missioncopilot_backend.db.migrations import MigrationError, load, pending
 from missioncopilot_backend.db.missions import ORG_MIGRATIONS, PostgresOrgDatabases
+from missioncopilot_backend.pack_format import key_id
 from missioncopilot_backend.settings import Settings
 from missioncopilot_backend.signing_key import SigningKeyError, load_signing_key
 
@@ -124,6 +126,8 @@ def build(env: Mapping[str, str] = os.environ) -> FastAPI:
     except BaseException:
         stack.close()
         raise
+    # uvicorn's own logger: it is configured before the factory runs, so the line is never lost.
+    logging.getLogger("uvicorn.error").info(settings.summary(key_id(signing_key.public_key())))
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
