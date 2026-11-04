@@ -106,14 +106,15 @@ def test_every_build_shows_the_same_logo_launch_screen():
     assert _plist("Info-Debug.plist")["UILaunchScreen"] == launch
 
 
-def test_every_build_reads_the_server_from_the_build_settings_and_public_builds_have_none():
+def test_every_build_reads_the_server_from_the_build_settings_and_base_has_none():
     server = {"MCServerScheme", "MCServerHost", "MCServerKeys"}
     release, debug = _plist("Info.plist"), _plist("Info-Debug.plist")
 
     assert {k: release[k] for k in server} == {k: debug[k] for k in server}
     assert release["MCServerHost"] == "$(MC_SERVER_HOST)"
     base = (ROOT / "ios" / "Config" / "Base.xcconfig").read_text(encoding="utf-8")
-    # Empty unless Local.xcconfig sets them, so a public build has no server.
+    # Empty in Base: Debug has only the server Local.xcconfig gives it; Staging and Release set
+    # their own after Base (#104, test_ios_builds.py).
     assert "MC_SERVER_HOST =\n" in base and "MC_SERVER_KEYS =\n" in base
 
 

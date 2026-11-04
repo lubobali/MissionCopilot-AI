@@ -1,0 +1,8 @@
+// The Staging build (#104): its own app on the phone ("MC Staging", see project.yml), talking only to the
+// staging server. Set after Base, so the last assignment wins over anything Local.xcconfig says.
+// MC_SERVER_KEYS: the staging server's public signing key(s), DER in hex, added when the server makes them.
+#include "Base.xcconfig"
+
+MC_SERVER_SCHEME = https
+MC_SERVER_HOST = mc-staging.lubot.ai
+MC_SERVER_KEYS =
