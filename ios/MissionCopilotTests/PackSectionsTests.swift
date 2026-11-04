@@ -145,6 +145,18 @@ struct PackSectionsTests {
         #expect(throws: PackRefusal.badSection) { try PackSections.check(extra, schema: Self.schema()) }
     }
 
+    @Test(.needsRepoFiles) func aChecklistThatPassesTheContractButNobodyCouldFillIsRefused() throws {
+        var files = Self.files
+        let data = try #require(files["forms/road-checklist.json"])
+        var form = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        var survey = try #require(form["survey"] as? [[String: Any]])
+        survey.append(survey[0])  // a name used twice: the contract allows it, the form check does not
+        form["survey"] = survey
+        files["forms/road-checklist.json"] = try JSONSerialization.data(withJSONObject: form)
+
+        #expect(throws: PackRefusal.badChecklist) { try PackSections.check(files, schema: Self.schema()) }
+    }
+
     @Test(.needsRepoFiles) func aSectionThatIsNotJSONIsRefused() throws {
         var broken = Self.files
         broken["sections/financing.json"] = Data("{\"loanId\":".utf8)

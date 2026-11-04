@@ -25,22 +25,29 @@ struct ChecklistFormTests {
 
     // The Kandor checklist
 
-    @Test(.needsRepoFiles) func theKandorChecklistReadsAsFiveQuestions() throws {
+    @Test(.needsRepoFiles) func theKandorChecklistReadsWithItsBridgeGroupInEnglishAndFrench() throws {
         let data = try #require(PackSectionsTests.files["forms/road-checklist.json"])
 
         let form = try ChecklistForm.read(data)
 
-        #expect(form.title == "Site supervision checklist, Package 1 road" && form.version == "2026110301")
-        #expect(form.questions.map(\.name) == ["bridge_started", "road_width_m", "drainage_present", "sample_point",
-                                                "sample_photo"])
-        #expect(form.questions.map(\.kind) == [.selectOne("yes_no"), .decimal, .selectOne("yes_no"), .geopoint,
-                                                .image])
-        #expect(form.questions.map(\.required) == [true, true, true, true, false])
+        #expect(form.title == "Site supervision checklist, Package 1 road" && form.version == "2026110401")
+        #expect(form.questions.map(\.name) == ["bridge_started", "road_width_m", "drainage_present", "defects",
+                                                "board_ref", "piers_built", "bridge_work_started", "stand_note",
+                                                "sample_point", "sample_photo"])
+        #expect(form.questions.map(\.kind) == [.selectOne("yes_no"), .decimal, .selectOne("yes_no"),
+                                                .selectMultiple("defects"), .text, .integer, .date, .note,
+                                                .geopoint, .image])
+        #expect(form.questions.map(\.required) == [true, true, true, true, false, true, false, false, true, false])
         let width = form.questions[1]
         #expect(width.constraint == ". > 0 and . < 20")
         #expect(width.constraintMessage?.english == "A road width is between 0 and 20 metres")
         #expect(width.hint?.english == "Tape across the paved surface, edge to edge")
-        #expect(form.choices["yes_no"]?.map(\.name) == ["yes", "no"])
+        #expect(width.label.text(for: "fr") == "Largeur de chaussée mesurée au point d'échantillonnage (m)")
+        guard case .group(let bridge)? = form.items.first(where: { if case .group = $0 { true } else { false } })
+        else { Issue.record("no bridge group"); return }
+        #expect(bridge.relevant == "${bridge_started} = 'yes'" && bridge.items.count == 2)
+        #expect(form.choices["yes_no"]?.map(\.name) == ["yes", "no"] && form.choices["defects"]?.count == 4)
+        #expect(form.hasFrench)
     }
 
     // What a form can hold

@@ -74,6 +74,19 @@ struct ChecklistForm: Equatable, Sendable {
     }
 }
 
+/// What the pack summary says about the checklist: how many questions (notes are not), and whether it
+/// has French.
+struct ChecklistSummary: Equatable, Sendable {
+    let questions: Int
+    let french: Bool
+
+    init(questions: Int, french: Bool) { (self.questions, self.french) = (questions, french) }
+
+    init(_ form: ChecklistForm) {
+        self.init(questions: form.questions.filter { $0.kind != .note }.count, french: form.hasFrench)
+    }
+}
+
 /// Why a checklist was refused, with the survey row to fix.
 enum ChecklistProblem: Error, Equatable {
     case unreadable

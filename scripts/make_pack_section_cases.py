@@ -102,9 +102,9 @@ def _set(path: Path_, value: Any) -> dict[str, Any]:
 
 
 def checklist_changes() -> list[tuple[str, dict[str, Any]]]:
-    """Named changes to the Kandor checklist: its rows are a yes/no select (0), a decimal with a
-    constraint (1), another select (2), a geopoint (3) and an image (4)."""
-    end = ["survey", 5]  # one more row at the end of the survey
+    """Named changes to the Kandor checklist: its first rows are a yes/no select (0) and a decimal
+    with a hint and a constraint (1)."""
+    end = ["survey", len(fixture_files()[CHECKLIST]["survey"])]  # one more row at the end
     group = {"type": "begin_group", "name": "bridge", "label": "Bridge"}
     language = ["settings", "default_language"]
     return [

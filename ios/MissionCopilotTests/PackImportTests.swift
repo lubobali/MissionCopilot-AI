@@ -55,6 +55,7 @@ struct PackImportTests {
         let stored = try run(ready, into: rig.store)
 
         #expect(stored.files.count == 12)
+        #expect(stored.checklist == ChecklistSummary(questions: 9, french: true))  // the import's own answer
         for file in ready.manifest.files {
             #expect(try rig.store.packFile(file.path, in: Self.mission) == FakePackServer.file("files/\(file.sha256)"))
         }
@@ -84,6 +85,7 @@ struct PackImportTests {
         #expect(stored.manifestSHA256 == PackVerifier.hex(SHA256.hash(data: ready.manifestBytes)))
         #expect(stored.createdAt == ready.manifest.createdAt && stored.expiresAt == ready.manifest.expiresAt)
         #expect(stored.importedAt == now && stored.project.title == Self.title)
+        #expect(stored.checklist == ChecklistSummary(questions: 9, french: true))
         #expect(stored.files.map(\.sha256).sorted() == ready.manifest.files.map(\.sha256).sorted())
     }
 

@@ -22,7 +22,9 @@ extension MissionStore {
             importedAt: Date(timeIntervalSince1970: pack["imported_at"]),
             files: rows.1.map { StoredPackFile(path: $0["path"], mediaType: $0["media_type"], size: $0["size"],
                                                sha256: $0["sha256"]) },
-            project: project)
+            project: project,
+            checklist: (try? ChecklistForm.read(packFile("forms/road-checklist.json", in: mission)))
+                .map(ChecklistSummary.init))
     }
 
     /// One file of the mission's pack, exactly as signed.

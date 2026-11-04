@@ -83,6 +83,18 @@ struct MissionWordsTests {
                                        "Nov 10, 2026"])
     }
 
+    @Test func thePackSummarySaysHowManyQuestionsTheChecklistHasAndInWhichLanguages() {
+        let both = PackFacts(version: 3, files: 12, bytes: 48_000, projectRef: "KN-RR-001", published: Self.nov3,
+                             downloaded: Self.nov3, expires: Self.nov10,
+                             checklist: ChecklistSummary(questions: 9, french: true))
+        let one = PackFacts(version: 1, files: 1, bytes: 900, projectRef: "KN", published: Self.nov3,
+                            downloaded: Self.nov3, expires: Self.nov10,
+                            checklist: ChecklistSummary(questions: 1, french: false))
+
+        #expect(Self.words.summary(both).last == .init(label: "Checklist", value: "9 questions, English and French"))
+        #expect(Self.words.summary(one).last == .init(label: "Checklist", value: "1 question, English"))
+    }
+
     @Test func oneFileIsSaidAsOneFile() {
         let pack = PackFacts(version: 1, files: 1, bytes: 900, projectRef: "KN", published: Self.nov3,
                              downloaded: Self.nov3, expires: Self.nov10)

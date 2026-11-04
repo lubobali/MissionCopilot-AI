@@ -3,7 +3,7 @@ and French, and limits. Each named change to the real Kandor checklist must land
 reading the contract would expect; the phone is then held to the same cases (PackSectionsTests)."""
 
 import pytest
-from make_pack_section_cases import CHECKLIST, build_cases, checklist_changes
+from make_pack_section_cases import CHECKLIST, build_cases, checklist_changes, fixture_files
 
 pytestmark = pytest.mark.unit
 
@@ -79,4 +79,5 @@ def test_an_unknown_column_on_any_question_is_refused():
         if case["file"] == CHECKLIST and case["path"][:1] == ["survey"] and case["op"] == "add"
         and case["path"][-1] == "unexpected"
     ]  # fmt: skip
-    assert len(unknown) == 5  # one for each of the Kandor checklist's five questions
+    rows = fixture_files()[CHECKLIST]["survey"]
+    assert len(unknown) == len(rows) > 5  # one for each row of the Kandor checklist

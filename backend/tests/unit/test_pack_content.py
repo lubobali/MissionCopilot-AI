@@ -49,8 +49,8 @@ def test_the_checklist_matches_its_schema_and_is_koboStyle():
     form = json.loads(FILES["forms/road-checklist.json"])
 
     assert _errors("road-checklist", form) == []
-    assert {row["name"] for row in form["survey"]} >= {"bridge_started", "road_width_m"}
-    assert {c["list_name"] for c in form["choices"]} == {"yes_no"}
+    assert {row.get("name") for row in form["survey"]} >= {"bridge_started", "road_width_m"}
+    assert {c["list_name"] for c in form["choices"]} == {"yes_no", "defects"}
 
 
 @pytest.mark.parametrize(

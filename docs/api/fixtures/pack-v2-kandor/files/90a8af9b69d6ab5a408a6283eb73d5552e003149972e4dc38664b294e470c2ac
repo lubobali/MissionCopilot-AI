@@ -1,0 +1,148 @@
+{
+  "choices": [
+    {
+      "label": "Yes",
+      "label::French (fr)": "Oui",
+      "list_name": "yes_no",
+      "name": "yes"
+    },
+    {
+      "label": "No",
+      "label::French (fr)": "Non",
+      "list_name": "yes_no",
+      "name": "no"
+    },
+    {
+      "label": "Potholes",
+      "label::French (fr)": "Nids-de-poule",
+      "list_name": "defects",
+      "name": "potholes"
+    },
+    {
+      "label": "Broken road edges",
+      "label::French (fr)": "Bords de chaussée cassés",
+      "list_name": "defects",
+      "name": "edge_breaks"
+    },
+    {
+      "label": "Standing water",
+      "label::French (fr)": "Eau stagnante",
+      "list_name": "defects",
+      "name": "standing_water"
+    },
+    {
+      "label": "None",
+      "label::French (fr)": "Aucun",
+      "list_name": "defects",
+      "name": "none"
+    }
+  ],
+  "settings": {
+    "default_language": "English (en)",
+    "form_id": "kandor_road_check",
+    "form_title": "Site supervision checklist, Package 1 road",
+    "version": "2026110401"
+  },
+  "survey": [
+    {
+      "label": "Has work on the Section 3 bridge started?",
+      "label::French (fr)": "Les travaux du pont de la section 3 ont-ils commencé ?",
+      "name": "bridge_started",
+      "required": "yes",
+      "type": "select_one yes_no"
+    },
+    {
+      "constraint": ". > 0 and . < 20",
+      "constraint_message": "A road width is between 0 and 20 metres",
+      "constraint_message::French (fr)": "Une largeur de route est comprise entre 0 et 20 mètres",
+      "hint": "Tape across the paved surface, edge to edge",
+      "hint::French (fr)": "Mesurer la surface revêtue d'un bord à l'autre",
+      "label": "Measured carriageway width at the sample point (m)",
+      "label::French (fr)": "Largeur de chaussée mesurée au point d'échantillonnage (m)",
+      "name": "road_width_m",
+      "required": "yes",
+      "type": "decimal"
+    },
+    {
+      "label": "Are side drains built at the sample point?",
+      "label::French (fr)": "Les fossés latéraux sont-ils construits au point d'échantillonnage ?",
+      "name": "drainage_present",
+      "required": "yes",
+      "type": "select_one yes_no"
+    },
+    {
+      "constraint": "not(selected(., 'none') and count-selected(.) > 1)",
+      "constraint_message": "\"None\" cannot be chosen with a defect",
+      "constraint_message::French (fr)": "« Aucun » ne peut pas être choisi avec un défaut",
+      "hint": "Choose all that apply",
+      "hint::French (fr)": "Choisir tout ce qui s'applique",
+      "label": "Which defects do you see on this stretch?",
+      "label::French (fr)": "Quels défauts voyez-vous sur ce tronçon ?",
+      "name": "defects",
+      "required": "yes",
+      "type": "select_multiple defects"
+    },
+    {
+      "constraint": "regex(., '^KN-[0-9]{4}$')",
+      "constraint_message": "Write it as KN and four digits, like KN-0042",
+      "constraint_message::French (fr)": "Écrire KN et quatre chiffres, par exemple KN-0042",
+      "hint": "Like KN-0042",
+      "hint::French (fr)": "Par exemple KN-0042",
+      "label": "Number on the contractor's site board",
+      "label::French (fr)": "Numéro sur le panneau de chantier de l'entreprise",
+      "name": "board_ref",
+      "required": "no",
+      "type": "text"
+    },
+    {
+      "label": "Section 3 bridge",
+      "label::French (fr)": "Pont de la section 3",
+      "name": "bridge",
+      "relevant": "${bridge_started} = 'yes'",
+      "type": "begin_group"
+    },
+    {
+      "constraint": ". >= 0 and . <= 4",
+      "constraint_message": "The bridge has 4 piers",
+      "constraint_message::French (fr)": "Le pont a 4 piles",
+      "label": "How many of the 4 piers are built?",
+      "label::French (fr)": "Combien des 4 piles sont construites ?",
+      "name": "piers_built",
+      "required": "yes",
+      "type": "integer"
+    },
+    {
+      "constraint": ". <= today()",
+      "constraint_message": "The date cannot be in the future",
+      "constraint_message::French (fr)": "La date ne peut pas être dans le futur",
+      "label": "When did work on the bridge start?",
+      "label::French (fr)": "Quand les travaux du pont ont-ils commencé ?",
+      "name": "bridge_work_started",
+      "required": "no",
+      "type": "date"
+    },
+    {
+      "type": "end_group"
+    },
+    {
+      "label": "Stand at the sample point for the last two questions.",
+      "label::French (fr)": "Restez au point d'échantillonnage pour les deux dernières questions.",
+      "name": "stand_note",
+      "type": "note"
+    },
+    {
+      "label": "Location of the sample point",
+      "label::French (fr)": "Emplacement du point d'échantillonnage",
+      "name": "sample_point",
+      "required": "yes",
+      "type": "geopoint"
+    },
+    {
+      "label": "Photo of the road at the sample point",
+      "label::French (fr)": "Photo de la route au point d'échantillonnage",
+      "name": "sample_photo",
+      "required": "no",
+      "type": "image"
+    }
+  ]
+}

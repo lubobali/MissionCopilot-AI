@@ -28,6 +28,34 @@ struct ChecklistRulesTests {
         #expect(rules.state(of: "sample_photo", in: [:]) == .init(shown: true))  // not required
     }
 
+    @Test(.needsRepoFiles) func theKandorBridgeQuestionsShowOnlyOnceTheBridgeHasStarted() throws {
+        let rules = try Self.kandor()
+
+        #expect(rules.state(of: "piers_built", in: ["bridge_started": "no"]) == .init(shown: false))
+        #expect(rules.state(of: "piers_built", in: ["bridge_started": "yes"])?.problem == .missing)
+        #expect(rules.state(of: "piers_built", in: ["bridge_started": "yes", "piers_built": "5"])?.problem
+            != nil)
+        #expect(rules.state(of: "bridge_work_started", in: ["bridge_started": "yes",
+                                                            "bridge_work_started": "2026-11-04"])?.problem != nil)
+        #expect(rules.state(of: "bridge_work_started", in: ["bridge_started": "yes",
+                                                            "bridge_work_started": "2026-07-01"])?.problem == nil)
+    }
+
+    @Test(.needsRepoFiles) func theKandorDefectsAndSiteBoardAreChecked() throws {
+        let rules = try Self.kandor()
+
+        #expect(rules.state(of: "defects", in: ["defects": "none potholes"])?.problem != nil)
+        #expect(rules.state(of: "defects", in: ["defects": "potholes edge_breaks"])?.problem == nil)
+        #expect(rules.state(of: "board_ref", in: ["board_ref": "KN-0042"]) == .init(shown: true))
+        #expect(rules.state(of: "board_ref", in: ["board_ref": "kn-42"])?.problem != nil)
+        #expect(rules.unreadable.isEmpty)  // every rule of the real form is read
+    }
+
+    static func kandor() throws -> ChecklistRules {
+        let form = try ChecklistForm.read(try #require(PackSectionsTests.files["forms/road-checklist.json"]))
+        return ChecklistRules(form: form, now: ChecklistEvaluatorTests.nov3, timeZone: .gmt)
+    }
+
     @Test func aHiddenQuestionIsNotRequiredAndItsConstraintIsNotRun() throws {
         let rules = try Self.rules([
             Question.question("started", "select_one yes_no"),

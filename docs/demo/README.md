@@ -20,7 +20,7 @@ started, and at km 18 the road is narrower than specified.
 | Payment ahead of progress | `pack.payments`, `pack.physicalProgress` | **MC-01 raised**: 85% paid vs 50% built (35 points) |
 | Late milestone | `pack.milestones` | **R067 raised**: Section 3 bridge past due, not met |
 | Payments within contract | `pack.payments`, `pack.contractValue` | **R068 clear** ($8.5M ≤ $10M) |
-| Guided site inspection | `pack.checklist` | Checklist questions; road width measured |
+| Guided site inspection | `pack.checklist` (from `forms/road-checklist.xlsx`, an admin's KoBo-style form) | 9 questions in English and French: the bridge group shows only once work has started; road width, defects, the site board number, a date that cannot be in the future |
 | Ground finding | `fieldFindings.roadWidth` | Road about 30% narrower than specified at km 18 |
 | Ministry letter in French | `documents[letter]` | Note: extension to 15 March 2027 if a new work plan arrives in two weeks |
 | Report and approval | all facts above | Every sentence linked to facts; untraceable sentences blocked |

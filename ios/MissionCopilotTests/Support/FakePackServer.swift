@@ -81,7 +81,10 @@ final class FakePackServer: Transport, @unchecked Sendable {
         if path.hasSuffix("/pack/signature") {
             if publishInBetween > 0 {
                 publishInBetween -= 1
-                let other = #"{"keyId":"6763784ff41d7ab5","algorithm":"ecdsa-p256-sha256","signature":"MEUCIQD/"}"#
+                // The fixture's own key (read, so a new fixture key cannot leave it stale), another signature.
+                let fixture = try? JSONSerialization.jsonObject(with: Self.file("signature.json")) as? [String: Any]
+                let keyId = fixture?["keyId"] as? String ?? ""
+                let other = #"{"keyId":"\#(keyId)","algorithm":"ecdsa-p256-sha256","signature":"MEUCIQD/"}"#
                 return Answer(200, [:], Data(other.utf8))
             }
             return Answer(200, [:], Self.file("signature.json"))

@@ -12,6 +12,8 @@ enum PackRefusal: Error, Equatable, Sendable {
     case storeUnavailable
     /// A section or the checklist is missing or does not match the pack sections schema (#92).
     case badSection
+    /// The checklist passes the schema but no one could fill it: ChecklistForm refuses it (#93, T54).
+    case badChecklist
 }
 
 struct PackFileEntry: Equatable, Sendable {
