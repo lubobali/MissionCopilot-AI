@@ -834,6 +834,7 @@
       }
     },
     "road-checklist": {
+      "description": "A site checklist in KoBoToolbox's flat JSON (XLSForm rows): survey, choices and settings. Only the columns and question types the app reads, labels in English (the default) and optionally French, and limits so a pack cannot carry a form that is too big to read (#93, threat T54).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -853,46 +854,132 @@
           "properties": {
             "form_id": {
               "type": "string",
-              "pattern": "^[a-z][a-z0-9_]*$"
+              "pattern": "^[a-z][a-z0-9_]*$",
+              "maxLength": 64
             },
             "form_title": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "maxLength": 200
             },
             "version": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "default_language": {
+              "const": "English (en)"
             }
           }
         },
         "survey": {
           "type": "array",
           "minItems": 1,
+          "maxItems": 200,
           "items": {
-            "type": "object",
-            "required": [
-              "type",
-              "name",
-              "label"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "minLength": 1
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "name",
+                  "label"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "pattern": "^(text|integer|decimal|note|date|geopoint|image|begin_group|select_one|select_multiple|(select_one|select_multiple) [a-z][a-z0-9_]*)$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]*$",
+                    "maxLength": 64
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "label::French (fr)": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "hint": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "hint::French (fr)": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "required": {
+                    "enum": [
+                      "yes",
+                      "no",
+                      "true",
+                      "false",
+                      true,
+                      false
+                    ]
+                  },
+                  "relevant": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "constraint": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "constraint_message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "constraint_message::French (fr)": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "default": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "select_from_list_name": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]*$",
+                    "maxLength": 64
+                  }
+                }
               },
-              "name": {
-                "type": "string",
-                "pattern": "^[a-z][a-z0-9_]*$"
-              },
-              "label": {
-                "type": "string",
-                "minLength": 1
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "end_group"
+                  },
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]*$",
+                    "maxLength": 64
+                  }
+                }
               }
-            }
+            ]
           }
         },
         "choices": {
           "type": "array",
+          "maxItems": 500,
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -904,15 +991,23 @@
             "properties": {
               "list_name": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "maxLength": 64
               },
               "name": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "^[^\\s]+$",
+                "maxLength": 64
               },
               "label": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "maxLength": 1000
+              },
+              "label::French (fr)": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
               }
             }
           }

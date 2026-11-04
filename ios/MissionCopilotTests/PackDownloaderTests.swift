@@ -11,7 +11,7 @@ import Testing
 struct PackDownloaderTests {
     static let mission = "6f1d2c3a-0000-4000-8000-000000000001"
     static let org = "kandor-works"
-    static let packBytes = 8_921  // the twelve files of the fixture
+    static let packBytes = 12_579  // the twelve files of the fixture
 
     /// Everything one download needs, on a fresh phone: the client, the store and the staging folder.
     final class Rig: @unchecked Sendable {

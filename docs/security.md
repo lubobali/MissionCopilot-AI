@@ -148,6 +148,19 @@ and every request it sends is signed with that key.
   refused. Downloads resume after a lost signal (byte ranges); every manifest download is in the audit log.
 - Production would keep the signing key in an HSM or cloud KMS (Iteration 9).
 
+## Site checklists (KoBo / XLSForm format, #93)
+- A mission pack carries a site checklist in KoBoToolbox's flat JSON. An admin writes it as an XLSForm
+  .xlsx; the backend converts it (pyxform's reader), refuses anything the app does not read, and checks
+  it as the phone does before it can be published.
+- A signed pack proves who sent the checklist, not that it is safe (threat T54), so the phone checks it
+  again: the contract's columns, types and limits, then the form itself, refused with the row to fix.
+- **Expressions are never run as code.** A parser of our own reads the ODK subset (references, and, or,
+  comparisons, math, selected, count-selected, string-length, regex, if, coalesce, number, int, today),
+  capped at 500 characters and 32 deep. A regex() pattern that could hang the phone (over 200
+  characters, backreferences, lookbehind) refuses the form; every regex runs with a 50 ms budget.
+- **A rule the app cannot read never blocks the form:** the question shows and is marked unchecked.
+- English and French only, the two languages tested; more can be added later, each with its own tests.
+
 ## Check it yourself
 The code is open source. The [spike report](spikes/03-encryption.md) shows how to copy the database off a phone
 you own and try to read it with standard tools. The same check runs automatically in CI on the spike package

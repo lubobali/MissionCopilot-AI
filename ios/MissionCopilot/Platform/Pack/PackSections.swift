@@ -10,7 +10,8 @@ struct PackProject: Codable, Sendable, Equatable {
 /// A pack's sections and checklist, checked before anything of them is used (#92, threat T51): a signed
 /// pack proves who sent it, and this proves the app can read it as the contract says. Every section and
 /// the checklist must be there, each must match its definition in the pack sections schema (an unknown
-/// field refused), and nothing else may sit in their folders. The other sections get typed readers when
+/// field refused), and nothing else may sit in their folders; the checklist must also be one a person
+/// could fill (ChecklistForm, #93). The other sections get typed readers when
 /// the rule engine needs them (Phase 6); until then they are checked here and stored as they came.
 enum PackSections {
     static let sections = ["project", "components", "ratings", "results", "financing", "contracts", "milestones",
@@ -27,6 +28,8 @@ enum PackSections {
                 throw .badSection
             }
         }
+        guard let checklist = checked["forms/road-checklist.json"], (try? ChecklistForm.read(checklist)) != nil
+        else { throw .badChecklist }
         guard let project = checked["sections/project.json"],
               let decoded = try? JSONDecoder().decode(PackProject.self, from: project) else { throw .badSection }
         return decoded

@@ -57,7 +57,8 @@ struct ScreenshotTests {
     static let sampleRows: [MissionRow] = {
         let nov3 = MissionWordsTests.nov3, nov10 = MissionWordsTests.nov10
         let pack = PackFacts(version: 3, files: 12, bytes: 48_000, projectRef: "KN-RR-001", published: nov3,
-                             downloaded: nov3, expires: nov3.addingTimeInterval(60 * 86_400))
+                             downloaded: nov3, expires: nov3.addingTimeInterval(60 * 86_400),
+                             checklist: ChecklistSummary(questions: 9, french: true))
         return [
             MissionRow(id: "a", title: "Kandor Rural Roads Project, Package 1", status: .ready(updated: nov3),
                        pack: pack, updateAvailable: false, canDownload: false, note: nil),

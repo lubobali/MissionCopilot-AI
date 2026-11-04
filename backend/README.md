@@ -33,6 +33,8 @@ uv run --directory backend missioncopilot-admin seed-demo   # org kandor-works, 
 uv run --directory backend missioncopilot-admin migrate     # after pulling new migrations
 uv run --directory backend missioncopilot-admin make-signing-key  # once: signs packs and shred orders
 uv run --directory backend missioncopilot-admin publish-demo-pack # the Kandor roads pack, next version
+uv run --directory backend missioncopilot-admin convert-checklist form.xlsx --out form.json  # try a form (no database)
+uv run --directory backend missioncopilot-admin publish-demo-pack --checklist form.xlsx      # publish with it
 uv run --directory backend missioncopilot-admin issue-code kandor-works officer-7   # a phone's one-time code
 uv run --directory backend missioncopilot-admin approve-device <id> --by <you>      # never your own phone
 cd backend && MISSIONCOPILOT_DIRECTORY_URL_FILE=.db-addresses/directory.url \

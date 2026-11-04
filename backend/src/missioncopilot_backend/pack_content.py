@@ -9,6 +9,8 @@ always gives the same files and the same manifest."""
 import json
 from datetime import date
 
+from missioncopilot_backend.checklist_check import check_form, contract
+
 SECTIONS = (
     "project", "components", "ratings", "results", "financing", "contracts", "milestones",
     "safeguards", "agreed-actions",
@@ -97,11 +99,25 @@ def _progress_report(data: dict) -> str:
     )
 
 
-def pack_files(data: dict) -> dict[str, bytes]:
-    """Every file of the mission's pack by its path in the pack, as of the mission's start."""
+def pack_files(data: dict, checklist: dict | None = None) -> dict[str, bytes]:
+    """Every file of the mission's pack by its path in the pack, as of the mission's start; with
+    `checklist`, an admin's form (checklist_xlsx) in place of the dataset's."""
     as_of = date.fromisoformat(data["mission"]["startDate"])
     files = {f"sections/{name}.json": _json(body) for name, body in _sections(data, as_of).items()}
-    files["forms/road-checklist.json"] = _json(_road_checklist(data["pack"]))
+    files["forms/road-checklist.json"] = _json(checklist or _road_checklist(data["pack"]))
     files["documents/aide-memoire-2026-05.md"] = _aide_memoire(data["pack"]).encode()
     files["documents/progress-report-2026-09.md"] = _progress_report(data).encode()
     return files
+
+
+def check_pack_files(files: dict[str, bytes]) -> None:
+    """Every section and the checklist against the pack's contract, and the checklist as the phone
+    checks it, before anything is published (#93: a pack the phones would refuse never goes out)."""
+    for path, body in sorted(files.items()):
+        if not path.endswith(".json"):
+            continue
+        document = json.loads(body)
+        if path.startswith("forms/"):
+            check_form(document)
+        elif not contract(path.removeprefix("sections/").removesuffix(".json")).is_valid(document):
+            raise ValueError(f"{path} does not match the pack's contract")

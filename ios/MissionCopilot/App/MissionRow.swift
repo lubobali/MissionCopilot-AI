@@ -75,12 +75,13 @@ struct PackFacts: Equatable, Sendable {
     let published: Date
     let downloaded: Date
     let expires: Date
+    var checklist: ChecklistSummary?
 }
 
 extension PackFacts {
     init(_ stored: StoredPack) {
         self.init(version: stored.version, files: stored.files.count, bytes: stored.files.reduce(0) { $0 + $1.size },
                   projectRef: stored.project.projectRef, published: stored.createdAt,
-                  downloaded: stored.importedAt, expires: stored.expiresAt)
+                  downloaded: stored.importedAt, expires: stored.expiresAt, checklist: stored.checklist)
     }
 }

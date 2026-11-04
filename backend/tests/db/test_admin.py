@@ -2,6 +2,8 @@
 load the demo; secrets land in owner-only files and are never printed. The end-to-end test starts
 the real server from exactly what these commands wrote."""
 
+import hashlib
+import json
 import stat
 import uuid
 from collections.abc import Generator
@@ -15,6 +17,7 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from missioncopilot_backend import admin
 from missioncopilot_backend.db.organizations import drop_database, drop_organization
+from missioncopilot_backend.pack_content import pack_files
 from missioncopilot_backend.pack_format import key_id, verify_pack
 from missioncopilot_backend.server import build
 from missioncopilot_backend.signing_key import load_signing_key
@@ -190,3 +193,21 @@ def test_the_demo_pack_is_published_signed_and_counts_up(ops):
     manifest = verify_pack(second.manifest, second.signature, {key_id(public): public}, now=NOW)
     assert (first.version, second.version) == (1, 2)
     assert manifest["missionId"] == admin.ROADS and len(manifest["files"]) == 12
+
+
+def test_the_demo_pack_is_published_with_an_admins_checklist(ops):
+    admin.setup(admin_url(), ops.secrets, ops.directory)
+    demo = ops.org()
+    admin.seed_demo(admin_url(), ops.secrets, demo)
+    key = ops.secrets.parent / "keys" / "signing-key.pem"
+    admin.make_signing_key(key)
+    form = json.loads(
+        pack_files(json.loads(admin.DATASET.read_text()))["forms/road-checklist.json"]
+    )
+    form["settings"]["version"] = "2026110399"
+
+    pack = admin.publish_demo_pack(admin_url(), key, demo, checklist=form)
+
+    listed = {f["path"]: f for f in json.loads(pack.manifest)["files"]}["forms/road-checklist.json"]
+    body = (json.dumps(form, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode()
+    assert listed["sha256"] == hashlib.sha256(body).hexdigest()

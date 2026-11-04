@@ -6,7 +6,10 @@ Usage (uv run --directory backend missioncopilot-admin <command>):
   migrate            every database up to the code's migrations (the server never does this itself)
   seed-demo          the fictional Kandor organization, two missions and their teams
   make-signing-key   the server's key for packs and shred orders (once); prints its public half
-  publish-demo-pack  the Kandor roads pack, built from the demo dataset, signed, as the next version
+  publish-demo-pack [--checklist FORM.xlsx]  the Kandor roads pack, built from the demo dataset,
+                     with an admin's checklist if given, checked, signed, as the next version
+  convert-checklist FORM.xlsx [--out FILE]   check an .xlsx form and write the pack's checklist JSON
+                                             (no database; try a form before publishing it)
   issue-code <org> <user> [--label]  a one-time code for one person's phone (15 minutes)
   list-devices <org>                 the organization's phones
   approve-device <id> --by <you>     approve a pending phone (never your own)
@@ -35,6 +38,7 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from missioncopilot_backend import admin_devices
 from missioncopilot_backend.admin_common import AdminError, as_admin, directory_url
+from missioncopilot_backend.checklist_xlsx import from_xlsx
 from missioncopilot_backend.db.directory import Directory
 from missioncopilot_backend.db.migrations import load, migrate
 from missioncopilot_backend.db.missions import ORG_MIGRATIONS
@@ -45,7 +49,7 @@ from missioncopilot_backend.db.organizations import (
     provision,
 )
 from missioncopilot_backend.db.packs import Pack, publish_pack
-from missioncopilot_backend.pack_content import pack_files
+from missioncopilot_backend.pack_content import check_pack_files, pack_files
 from missioncopilot_backend.pack_format import key_id
 from missioncopilot_backend.server import StartupError, read_setting
 from missioncopilot_backend.settings import read_env_file
@@ -145,14 +149,19 @@ def make_signing_key(path: Path) -> tuple[str, str]:
     return key_id(public), base64.b64encode(der).decode()
 
 
-def publish_demo_pack(admin_url: str, key_path: Path, org_id: str = DEMO_ORG) -> Pack:
-    """The roads mission's next pack from the demo dataset. Kandor bridges stays without one."""
+def publish_demo_pack(
+    admin_url: str, key_path: Path, org_id: str = DEMO_ORG, checklist: dict | None = None
+) -> Pack:
+    """The roads mission's next pack from the demo dataset (with an admin's checklist if given),
+    checked against the contract first. Kandor bridges stays without one."""
     data = json.loads(DATASET.read_text(encoding="utf-8"))
     if data["mission"]["id"] != ROADS:
         raise AdminError("the demo dataset's mission is not the demo roads mission")
     database, _, _ = names_for(org_id)
     url = make_conninfo(admin_url, dbname=database)
-    return publish_pack(url, org_id, ROADS, pack_files(data), load_signing_key(key_path))
+    files = pack_files(data, checklist)
+    check_pack_files(files)
+    return publish_pack(url, org_id, ROADS, files, load_signing_key(key_path))
 
 
 def _key_path(env: Mapping[str, str]) -> Path:
@@ -197,8 +206,12 @@ def _parser() -> argparse.ArgumentParser:
         prog="missioncopilot-admin", description=__doc__.split("\n")[0]
     )
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("setup", "migrate", "seed-demo", "make-signing-key", "publish-demo-pack"):
+    for name in ("setup", "migrate", "seed-demo", "make-signing-key"):
         commands.add_parser(name)
+    commands.add_parser("publish-demo-pack").add_argument("--checklist", type=Path)
+    convert = commands.add_parser("convert-checklist")
+    convert.add_argument("form", type=Path)
+    convert.add_argument("--out", type=Path)
     commands.add_parser("add-org").add_argument("org_id")
     code = commands.add_parser("issue-code")
     code.add_argument("org_id")
@@ -219,6 +232,21 @@ def _signing_key_command(env: Mapping[str, str]) -> None:
     print(f"For the app (Local.xcconfig): MC_SERVER_KEYS = {der.hex()}")
 
 
+def _convert_command(form_path: Path, out: Path | None) -> None:
+    form, dropped = from_xlsx(form_path)
+    body = json.dumps(form, indent=2, ensure_ascii=False) + "\n"
+    if out:
+        out.write_text(body, encoding="utf-8")
+    else:
+        print(body, end="")
+    french = any("::French (fr)" in key for row in form["survey"] + form["choices"] for key in row)
+    rows = sum(1 for row in form["survey"] if row["type"] != "end_group")
+    print(f"OK: {rows} questions and groups, {len(form['choices'])} choices, "
+          f"English{' and French' if french else ''}")  # fmt: skip
+    for note in dropped:
+        print(f"dropped: {note}")
+
+
 def _database_command(args: argparse.Namespace, env: Mapping[str, str]) -> None:
     admin_url, address_dir, directory = _config(env)
     if args.command in DEVICE_COMMANDS:
@@ -233,7 +261,8 @@ def _database_command(args: argparse.Namespace, env: Mapping[str, str]) -> None:
         for name, versions in migrate_all(admin_url, address_dir).items():
             print(f"OK: {name}: applied {versions or 'nothing, up to date'}")
     elif args.command == "publish-demo-pack":
-        pack = publish_demo_pack(admin_url, _key_path(env))
+        checklist = from_xlsx(args.checklist)[0] if args.checklist else None
+        pack = publish_demo_pack(admin_url, _key_path(env), checklist=checklist)
         print(f"OK: Kandor roads pack version {pack.version} published, signed by key "
               f"{pack.signature['keyId']}")  # fmt: skip
     else:
@@ -246,6 +275,8 @@ def main(argv: list[str] | None = None, env: Mapping[str, str] = os.environ) -> 
     try:
         if args.command == "make-signing-key":  # needs no database
             _signing_key_command(env)
+        elif args.command == "convert-checklist":  # needs no database either
+            _convert_command(args.form, args.out)
         else:
             _database_command(args, env)
     except (AdminError, StartupError, SigningKeyError, ValueError) as error:

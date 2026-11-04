@@ -30,5 +30,10 @@ Option 3.
 - One extra layer to maintain per integration.
 - Mocks must be clearly labelled so nobody mistakes them for real connections.
 
+Update (Nov 2026, #93): the checklist adapter is built. An admin's XLSForm .xlsx (the KoBoToolbox and
+ODK format) is converted at publish by the backend with pyxform's reader (BSD-2, ODK) into KoBo's flat
+JSON, checked as the phone checks it, and signed into the mission pack. The phone reads English and
+French; other languages, and columns that change what is checked but are not read, are refused.
+
 ## Revisit when
 - A real organization provides a document system or identity provider to connect.

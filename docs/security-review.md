@@ -10,7 +10,7 @@ code or test behind it, and most can be checked with one command from the reposi
 | Min | Read | What it shows | Check it yourself |
 |---|---|---|---|
 | 1 | [security.md](security.md) | How data is protected on the phone and the server, and what is **not** protected | |
-| 2 | [threat-model.md](threat-model.md) | 60 threats and privacy risks, each built, spike, planned or accepted, with its proof | `python3 scripts/check_threat_model.py` |
+| 2 | [threat-model.md](threat-model.md) | 63 threats and privacy risks, each built, spike, planned or accepted, with its proof | `python3 scripts/check_threat_model.py` |
 | 1 | [masvs.md](masvs.md) | All 24 OWASP MASVS v2.1 controls with their official wording and status | `python3 scripts/check_masvs.py` |
 | 1 | [data-handling.md](data-handling.md) | Every data item: where it lives, how long, encryption, who sees it, how it ends | `python3 scripts/check_data_handling.py` |
 | 1 | [ADR 0012](adr/0012-lost-seized-or-coerced-phone.md) | A lost, seized or forced phone: expiring keys, signed shred order, no hidden wipe, staff card | `uv run --directory backend pytest tests/unit/test_shred_order.py` |

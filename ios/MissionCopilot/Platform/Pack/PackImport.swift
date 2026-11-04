@@ -14,6 +14,7 @@ struct StoredPack: Sendable, Equatable {
     let createdAt: Date, expiresAt: Date, importedAt: Date
     let files: [StoredPackFile]
     let project: PackProject
+    var checklist: ChecklistSummary?
 }
 
 /// Moves a verified pack from its download folder into the encrypted mission store (#92, threats T51 and
@@ -54,7 +55,8 @@ enum PackImport {
             ready.manifestBytes), createdAt: pack.createdAt, expiresAt: pack.expiresAt, importedAt: now,
             files: pack.files.map { StoredPackFile(path: $0.path, mediaType: $0.mediaType, size: $0.size,
                                                    sha256: $0.sha256) },
-            project: project)
+            project: project, checklist: files["forms/road-checklist.json"].flatMap { try? ChecklistForm.read($0) }
+                .map(ChecklistSummary.init))
     }
 
     /// The mission's key, or a new one (and its wrapped form) for a mission the store does not have yet.

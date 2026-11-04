@@ -6,11 +6,13 @@ import Testing
 /// checklist there, each matching the pack sections schema, the very file the server's tests use. The
 /// shared cases (docs/api/fixtures/pack-section-cases.json: real Kandor files with one small change each)
 /// hold the phone's check to the reference validator's answers, never laxer and never stricter.
-/// One shared case: a file of the pack, where in it, and the change ("add", "set" or "delete").
+/// One shared case: a file of the pack, where in it, and the change ("add", "set", "delete", or "repeat":
+/// the list there becomes its first item `count` times, to reach a limit).
 struct SectionCase: Decodable {
     let file: String, path: [PackSectionsTests.Step], operation: String
     let value: PackSectionsTests.AnyJSON?
-    enum CodingKeys: String, CodingKey { case file, path, operation = "op", value }
+    let count: Int?
+    enum CodingKeys: String, CodingKey { case file, path, operation = "op", value, count }
 }
 
 struct PackSectionsTests {
@@ -65,7 +67,12 @@ struct PackSectionsTests {
 
     /// The document with one case's change, as scripts/make_pack_section_cases.py applies it.
     static func apply(_ change: SectionCase, at path: ArraySlice<Step>, to node: JSONValue) -> JSONValue {
-        guard let step = path.first else { return change.value?.value ?? .null }
+        guard let step = path.first else {
+            if change.operation == "repeat", case .array(let items) = node, let first = items.first {
+                return .array(Array(repeating: first, count: change.count ?? 0))
+            }
+            return change.value?.value ?? .null
+        }
         let last = path.count == 1
         switch (node, step) {
         case (.object(var fields), .key(let key)):
@@ -138,6 +145,18 @@ struct PackSectionsTests {
         #expect(throws: PackRefusal.badSection) { try PackSections.check(extra, schema: Self.schema()) }
     }
 
+    @Test(.needsRepoFiles) func aChecklistThatPassesTheContractButNobodyCouldFillIsRefused() throws {
+        var files = Self.files
+        let data = try #require(files["forms/road-checklist.json"])
+        var form = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        var survey = try #require(form["survey"] as? [[String: Any]])
+        survey.append(survey[0])  // a name used twice: the contract allows it, the form check does not
+        form["survey"] = survey
+        files["forms/road-checklist.json"] = try JSONSerialization.data(withJSONObject: form)
+
+        #expect(throws: PackRefusal.badChecklist) { try PackSections.check(files, schema: Self.schema()) }
+    }
+
     @Test(.needsRepoFiles) func aSectionThatIsNotJSONIsRefused() throws {
         var broken = Self.files
         broken["sections/financing.json"] = Data("{\"loanId\":".utf8)
@@ -157,7 +176,7 @@ struct PackSectionsTests {
     @Test(arguments: [#"{"$defs":{"x":{"type":"string","format":"date"}}}"#,
                       ##"{"$defs":{"x":{"$ref":"#/$defs/y"}}}"##,
                       #"{"$defs":{"x":{"type":"object","additionalProperties":{"type":"string"}}}}"#,
-                      #"{"$defs":{"x":{"properties":{"y":{"maxLength":3}}}}}"#])
+                      #"{"$defs":{"x":{"properties":{"y":{"uniqueItems":true}}}}}"#])
     func aSchemaWithAKeywordTheAppDoesNotApplyIsRefused(schema: String) {
         #expect(throws: PackSchema.Problem.self) { try PackSchema(json: Data(schema.utf8)) }
     }
@@ -168,6 +187,23 @@ struct PackSectionsTests {
 
         #expect(schema.isValid(.number(1.5), as: "x"))  // a number only
         #expect(!schema.isValid(.number(2), as: "x"))  // both: refused
+    }
+
+    @Test func aLengthIsCountedInCodePointsAsTheReferenceCounts() throws {
+        let schema = try PackSchema(json: Data(#"{"$defs":{"x":{"type":"string","maxLength":2}}}"#.utf8))
+
+        #expect(schema.isValid(.string("e\u{301}"), as: "x"))  // one letter, two code points
+        #expect(!schema.isValid(.string("e\u{301}e"), as: "x"))  // two letters, three code points
+        #expect(!schema.isValid(.string("\u{1F44D}\u{1F3FD}x"), as: "x"))  // a toned thumb is two
+        #expect(schema.isValid(.number(123), as: "x") == false && schema.isValid(.string("ab"), as: "x"))
+    }
+
+    @Test func maxItemsCountsTheItemsAndSaysNothingAboutAString() throws {
+        let schema = try PackSchema(json: Data(#"{"$defs":{"x":{"maxItems":2}}}"#.utf8))
+
+        #expect(schema.isValid(.array([.null, .null]), as: "x"))
+        #expect(!schema.isValid(.array([.null, .null, .null]), as: "x"))
+        #expect(schema.isValid(.string("three"), as: "x"))
     }
 
     @Test func trueAndOneAreNotTheSameAndOnePointZeroIsAnInteger() throws {

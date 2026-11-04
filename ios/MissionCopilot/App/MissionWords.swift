@@ -59,7 +59,7 @@ struct MissionWords: Sendable {
 
     func summary(_ pack: PackFacts) -> [Fact] {
         let files = pack.files == 1 ? "1 file" : "\(pack.files) files"
-        return [
+        var facts = [
             Fact(label: "Project", value: pack.projectRef),
             Fact(label: "Version", value: "\(pack.version)"),
             Fact(label: "Files", value: "\(files), \(size(pack.bytes))"),
@@ -67,6 +67,12 @@ struct MissionWords: Sendable {
             Fact(label: "Downloaded", value: day(pack.downloaded)),
             Fact(label: "Expires", value: day(pack.expires))
         ]
+        if let checklist = pack.checklist {
+            let questions = checklist.questions == 1 ? "1 question" : "\(checklist.questions) questions"
+            let languages = checklist.french ? "English and French" : "English"
+            facts.append(Fact(label: "Checklist", value: "\(questions), \(languages)"))
+        }
+        return facts
     }
 
     private static func sentence(_ text: String) -> String { text.prefix(1).uppercased() + text.dropFirst() }
