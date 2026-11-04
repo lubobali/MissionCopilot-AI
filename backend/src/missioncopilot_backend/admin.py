@@ -59,7 +59,7 @@ ROADS = "6f1d2c3a-0000-4000-8000-000000000001"  # the dataset's mission id (the 
 BRIDGES = "6f1d2c3a-0000-4000-8000-000000000002"
 DEMO = {  # fictional: Kandor is not a real country
     ROADS: ("Kandor Rural Roads Project, Package 1", ("officer-7", "manager-1")),
-    BRIDGES: ("Kandor Bridges", ("officer-8", "manager-1")),
+    BRIDGES: ("Kandor Bridges", ("officer-7", "officer-8", "manager-1")),  # #92: both on one phone
 }
 
 

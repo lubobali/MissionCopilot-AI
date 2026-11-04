@@ -142,6 +142,28 @@ enum StoreSchema {
                 BEGIN SELECT RAISE(ABORT, 'append-only: audit events cannot be deleted'); END;
                 """)
         }
+        // Mission packs (#92, ADR 0009): mission_pack is the lineage source (the signed pack: its id, version
+        // and the manifest's SHA-256, the manifest itself sealed), one per mission; pack_file holds each file
+        // sealed with the mission key, with its own SHA-256. A newer pack replaces both; a shred makes them
+        // unreadable and purge removes them with the mission.
+        migrator.registerMigration("v9-pack-files") { database in
+            try database.execute(sql: """
+                CREATE TABLE mission_pack (
+                    mission_id TEXT PRIMARY KEY REFERENCES mission(id) ON DELETE CASCADE,
+                    pack_id TEXT NOT NULL, version INTEGER NOT NULL CHECK (version >= 1),
+                    manifest_sha256 TEXT NOT NULL CHECK (length(manifest_sha256) = 64),
+                    sealed_manifest BLOB NOT NULL,
+                    created_at REAL NOT NULL, expires_at REAL NOT NULL, imported_at REAL NOT NULL);
+                CREATE TABLE pack_file (
+                    mission_id TEXT NOT NULL REFERENCES mission_pack(mission_id) ON DELETE CASCADE,
+                    path TEXT NOT NULL, media_type TEXT NOT NULL, size INTEGER NOT NULL CHECK (size >= 0),
+                    sha256 TEXT NOT NULL CHECK (length(sha256) = 64),
+                    classification TEXT NOT NULL CHECK (classification IN
+                        ('strictly_confidential', 'official_use_only', 'public')),
+                    sealed BLOB NOT NULL,
+                    PRIMARY KEY (mission_id, path));
+                """)
+        }
         return migrator
     }
 }

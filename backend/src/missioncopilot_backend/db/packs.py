@@ -21,6 +21,15 @@ class Pack:
     signature: dict[str, str]
 
 
+@dataclass(frozen=True)
+class PackSummary:
+    """What a phone needs to know about a mission's newest pack before downloading it (#92)."""
+
+    version: int
+    created_at: datetime
+    expires_at: datetime
+
+
 def publish_pack(
     admin_url: str,
     org_id: str,
@@ -92,6 +101,17 @@ class PostgresPacks:
                 [mission_id],
             ).fetchone()
         return Pack(row[0], bytes(row[1]), row[2]) if row else None
+
+    def newest_summaries(self, user_id: str, mission_ids: list[str]) -> dict[str, PackSummary]:
+        """The newest pack of each of these missions this user may read; a mission without one
+        is left out."""
+        with as_user(self._pool, user_id) as conn:
+            rows = conn.execute(
+                "SELECT DISTINCT ON (mission_id) mission_id, version, created_at, expires_at"
+                " FROM packs WHERE mission_id = ANY(%s) ORDER BY mission_id, version DESC",
+                [mission_ids],
+            ).fetchall()
+        return {row[0]: PackSummary(row[1], row[2], row[3]) for row in rows}
 
     def file(self, user_id: str, mission_id: str, sha256: str) -> bytes | None:
         """A file of any of this mission's packs the user may read, so a download started on an

@@ -113,6 +113,7 @@ PHONE_OPERATIONS = {
     "getPackSignature",
     "getPackFile",
     "getOwnDevice",
+    "listMyMissions",
     "uploadSyncBatch",
     "submitForReview",
 }

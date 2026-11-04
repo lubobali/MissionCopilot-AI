@@ -6,6 +6,8 @@ struct ContentView: View {
     var onLock: () -> Void = {}
     /// The open store's missions, for a shred order (nil while locked).
     var missions: @MainActor () -> MissionStore? = { nil }
+    /// The mission list (nil in previews and tests that draw only this screen).
+    var hub: MissionsHub?
 
     var body: some View {
         NavigationStack {
@@ -21,11 +23,16 @@ struct ContentView: View {
                         .multilineTextAlignment(.center)
                         .padding(.top, 8)
                 }
+                if let hub {
+                    NavigationLink("Missions") { MissionListScreen(hub: hub) }
+                        .buttonStyle(.fieldPrimary)
+                        .padding(.top, 24)
+                }
                 NavigationLink("Connect this iPhone") {
                     ConnectionScreen(user: AppSession.localProfile, missions: missions)
                 }
                     .buttonStyle(.fieldSecondary)
-                    .padding(.top, 24)
+                    .padding(.top, hub == nil ? 24 : 0)
                 NavigationLink("Licenses") { AcknowledgementsView() }
                     .buttonStyle(.fieldSecondary)
                 #if DEBUG

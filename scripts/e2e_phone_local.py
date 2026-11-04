@@ -5,9 +5,10 @@ Needs the local Postgres with the demo loaded (backend/README.md) and the local 
 starts the server on 127.0.0.1:8110, issues a one-time code for officer-7, and runs the app's
 LocalServerE2ETests in the Simulator. Then it plays the operator: it approves the new phone when
 it appears, publishes the next version of the Kandor roads pack once the phone holds the first
-(#91), and revokes the phone once it has checked the packs. The two keep in step with marker files
-in a temporary folder. Exit 0 only if the test passed. Local development only: it changes the local
-databases (one phone, enrolled then revoked; one more pack version, as packs are append-only).
+(#91), and revokes the phone once it has checked the packs and its mission list (#92). The two
+keep in step with marker files in a temporary folder. Exit 0 only if the test passed. Local
+development only: it changes the local databases (one phone, enrolled then revoked; one more pack
+version, as packs are append-only).
 """
 
 import os
@@ -82,7 +83,7 @@ def _operator(admin_url: str, test: subprocess.Popen, started: float, signals: P
             print(f"operator: published pack version {pack.version}")
         elif (signals / "packs-checked").exists():
             admin_devices.revoke(admin_url, ADDRESSES, phone, by="e2e-operator")
-            print(f"operator: revoked {phone} after its pack checks")
+            print(f"operator: revoked {phone} after its pack and list checks")
             return
         time.sleep(1)
 
@@ -104,6 +105,7 @@ def main() -> int:
             "TEST_RUNNER_MC_E2E_CODE": code,
             "TEST_RUNNER_MC_E2E_KEYS": public.hex(),
             "TEST_RUNNER_MC_E2E_MISSION": admin.ROADS,
+            "TEST_RUNNER_MC_E2E_BRIDGES": admin.BRIDGES,
             "TEST_RUNNER_MC_E2E_SIGNALS": str(signals),
         }
         # The project file is generated: without this a new test file is not built (#91).

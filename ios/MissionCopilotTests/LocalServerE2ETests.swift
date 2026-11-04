@@ -5,17 +5,18 @@ import Testing
 /// The phone and the real server, end to end (#90), over real HTTP to the local server. Started only by
 /// scripts/e2e_phone_local.py, which plays the operator: it issues the code, approves this phone when it
 /// shows up, publishes a newer pack when this phone holds the first (#91), and revokes it after the pack
-/// checks. The key is a software key in the chip's format (the Simulator's Secure Enclave is not
+/// and mission list checks (#92). The key is a software key in the chip's format (the Simulator's Secure Enclave is not
 /// reliable); the real chip is proven on the iPhone (#94).
 private struct E2E {
-    let base: URL, code: String, keys: String, mission: String, signals: URL
+    let base: URL, code: String, keys: String, mission: String, bridges: String, signals: URL
 
     static let config: E2E? = {
         let env = ProcessInfo.processInfo.environment
         guard let base = env["MC_E2E_BASE"].flatMap(URL.init(string:)), let code = env["MC_E2E_CODE"],
-              let keys = env["MC_E2E_KEYS"], let mission = env["MC_E2E_MISSION"],
+              let keys = env["MC_E2E_KEYS"], let mission = env["MC_E2E_MISSION"], let bridges = env["MC_E2E_BRIDGES"],
               let signals = env["MC_E2E_SIGNALS"] else { return nil }
-        return E2E(base: base, code: code, keys: keys, mission: mission, signals: URL(fileURLWithPath: signals))
+        return E2E(base: base, code: code, keys: keys, mission: mission, bridges: bridges,
+                   signals: URL(fileURLWithPath: signals))
     }()
 }
 
@@ -54,10 +55,16 @@ struct LocalServerE2ETests {
         _ = try await waitFor(client, "/v1/devices/me") { $0.kind == .success }
 
         // 3. The pack: the whole of it, cut off and resumed, a newer one taken, the older played back refused.
-        try await LocalServerPackSteps(client: client, transport: transport, config: config, org: "kandor-works",
-                                       mission: e2e.mission, signals: e2e.signals).run()
+        let steps = try LocalServerPackSteps(client: client, transport: transport, config: config,
+                                             org: "kandor-works", mission: e2e.mission, signals: e2e.signals)
+        let newest = try await steps.run()
 
-        // 4. Revoked: the next signed request gets the shred order, checked and then acted on.
+        // 4. The mission list (#92): both missions listed, roads downloaded into the store as Ready.
+        try await LocalServerListSteps(client: client, config: config, roads: e2e.mission, bridges: e2e.bridges,
+                                       newest: newest).run()
+        try steps.signal("packs-checked")
+
+        // 5. Revoked: the next signed request gets the shred order, checked and then acted on.
         let revoked = try await waitFor(client, "/v1/devices/me") { $0.kind == .shredOrder }
         guard case .shredOrder(let order) = revoked else { return }
         let path = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).sqlite")

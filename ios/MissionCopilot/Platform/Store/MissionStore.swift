@@ -16,14 +16,26 @@ struct MissionStore: Sendable {
                 now: Date = Date()) throws {
         let wrapped = try vault.wrap(SymmetricKey(size: .bits256), for: mission)
         try store.write { database in
-            try database.execute(sql: "INSERT INTO mission VALUES (?, ?, ?, ?, ?)", arguments: [
-                mission, title, classification.rawValue, wrapped.encapsulatedKey, wrapped.ciphertext
-            ])
-            try database.execute(sql: "INSERT INTO mission_lease VALUES (?, ?, ?)",
-                                 arguments: [mission, now.timeIntervalSince1970, KeyLease.defaultDays])
-            try EncryptedStore.appendAudit(AuditEntry(action: .missionCreated, actor: actor, mission: mission,
-                                                      target: nil, time: now), in: database)
+            try insert(NewMission(id: mission, title: title, classification: classification, wrapped: wrapped),
+                       now: now, in: database)
         }
+    }
+
+    /// A mission about to be written, its key already wrapped.
+    struct NewMission {
+        let id: String, title: String, classification: Classification, wrapped: WrappedMissionKey
+    }
+
+    /// The rows of a new mission, inside a write that may do more (a pack import, #92).
+    func insert(_ mission: NewMission, now: Date, in database: Database) throws {
+        try database.execute(sql: "INSERT INTO mission VALUES (?, ?, ?, ?, ?)", arguments: [
+            mission.id, mission.title, mission.classification.rawValue, mission.wrapped.encapsulatedKey,
+            mission.wrapped.ciphertext
+        ])
+        try database.execute(sql: "INSERT INTO mission_lease VALUES (?, ?, ?)",
+                             arguments: [mission.id, now.timeIntervalSince1970, KeyLease.defaultDays])
+        try EncryptedStore.appendAudit(AuditEntry(action: .missionCreated, actor: actor, mission: mission.id,
+                                                  target: nil, time: now), in: database)
     }
 
     func addNote(_ text: String, to mission: String) throws {

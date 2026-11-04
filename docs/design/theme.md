@@ -66,6 +66,21 @@ the home screens are Simulator screenshots of the Debug build.
 |---|---|---|
 | ![Home, light](img/home-light.png) | ![Home, dark](img/home-dark.png) | ![Home, largest text](img/home-largest-text.png) |
 
+| Missions, light | Missions, dark | Missions, largest text |
+|---|---|---|
+| ![Mission list, light](img/missions-light.png) | ![Mission list, dark](img/missions-dark.png) | ![Mission list, largest text](img/missions-largest-text.png) |
+
+| Pack, light | Pack, dark | Pack, largest text |
+|---|---|---|
+| ![Pack summary, light](img/pack-light.png) | ![Pack summary, dark](img/pack-dark.png) | ![Pack summary, largest text](img/pack-largest-text.png) |
+
+The mission list and the pack summary (#92) are drawn by the same tests from fictional Kandor rows: one
+mission Ready, one downloading, one expiring with an update on the server, one not downloaded. The
+tests draw the content without its scrolling frame and title bar (ImageRenderer draws neither), check a
+pixel inside the first card is the surface color, and fail on a picture that is only background. At the
+largest text sizes the cards grow and wrap instead of cutting words, and the summary puts each label
+above its value.
+
 ## The logo
 
 The L and the key belong to Lubo Bali and are **not** covered by the MIT license (README). The app icon

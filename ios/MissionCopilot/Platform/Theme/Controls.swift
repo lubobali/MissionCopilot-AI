@@ -8,6 +8,7 @@ struct FieldPrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
+            .multilineTextAlignment(.center)  // the largest text sizes wrap the words
             .foregroundStyle(Color(Self.label))
             .frame(maxWidth: .infinity, minHeight: 48)
             .padding(.horizontal)

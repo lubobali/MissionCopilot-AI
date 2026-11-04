@@ -14,6 +14,7 @@ from missioncopilot_backend.devices import CodeStore, DeviceRegistry, DeviceStor
 from missioncopilot_backend.errors import install_error_handlers
 from missioncopilot_backend.headers import SecurityHeadersMiddleware
 from missioncopilot_backend.limits import LimitsMiddleware, RateLimiter
+from missioncopilot_backend.mission_routes import mission_routes
 from missioncopilot_backend.pack_routes import pack_routes
 from missioncopilot_backend.settings import Settings
 from missioncopilot_backend.shred_order import install_shred_orders
@@ -78,6 +79,6 @@ def create_app(
     app.include_router(v1)
     for router in device_routes():
         app.include_router(router)
-    for router in pack_routes():
+    for router in [*mission_routes(), *pack_routes()]:
         app.include_router(router)
     return app
