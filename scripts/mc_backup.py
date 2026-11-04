@@ -8,6 +8,7 @@ restore-check: the latest snapshot is restored into a throwaway Postgres (no net
 tmpfs) and every table must have at least the rows counted at backup time (the dumps come after
 the counts and these tables only grow). Nothing touches the live database.
 init: create the repository (once).
+verify: restic reads back a tenth of the stored data and checks it (weekly).
 
 Everything runs in containers (Postgres's own tools, restic pinned by digest), so the server needs
 nothing installed. Run as root (the secrets folder belongs to the containers' users).
@@ -45,6 +46,8 @@ COUNTED = {
     "directory": ["organizations", "devices", "enrollment_codes", "audit_events"],
     "organization": ["missions", "mission_members", "packs", "pack_files", "pack_contents"],
 }
+# `check` alone reads no stored data; this reads back a tenth of it each time (a week apart).
+VERIFY = ["check", "--read-data-subset", "10%"]
 KEEP = ["--keep-daily", "7", "--keep-weekly", "5", "--keep-monthly", "6", "--prune"]
 SUDO = [] if os.geteuid() == 0 else ["sudo", "-n"]
 
@@ -213,7 +216,7 @@ def restore_check(values: Path, restic: dict) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("command", choices=["init", "backup", "restore-check"])
+    parser.add_argument("command", choices=["init", "backup", "restore-check", "verify"])
     parser.add_argument("--values", type=Path, required=True)
     parser.add_argument("--password-file", required=True)
     where = parser.add_mutually_exclusive_group(required=True)
@@ -223,8 +226,9 @@ def main(argv: list[str] | None = None) -> int:
     restic = {"env_file": args.restic_env, "password_file": args.password_file,
               "local_repo": args.local_repo}  # fmt: skip
     try:
-        if args.command == "init":
-            _run(restic_command(Stack(args.values).env, args=["init"], tag=False, **restic))
+        if args.command in ("init", "verify"):
+            command = ["init"] if args.command == "init" else VERIFY
+            _run(restic_command(Stack(args.values).env, args=command, tag=False, **restic))
             return 0
         if args.command == "backup":
             backup(args.values, restic)

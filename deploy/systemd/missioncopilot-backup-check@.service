@@ -1,0 +1,13 @@
+# MissionCopilot: weekly proof that the backups come back. The latest snapshot is restored into a
+# throwaway Postgres and every table checked, then restic reads back a tenth of the stored data.
+[Unit]
+Description=MissionCopilot %i: restore test and data check of the backups
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /srv/missioncopilot-dev/scripts/mc_backup.py restore-check --values /srv/missioncopilot/%i/values.env --restic-env /srv/missioncopilot/%i/backup.env --password-file /srv/missioncopilot/backup/restic-password
+ExecStart=/usr/bin/python3 /srv/missioncopilot-dev/scripts/mc_backup.py verify --values /srv/missioncopilot/%i/values.env --restic-env /srv/missioncopilot/%i/backup.env --password-file /srv/missioncopilot/backup/restic-password
+Nice=10
+IOSchedulingClass=idle

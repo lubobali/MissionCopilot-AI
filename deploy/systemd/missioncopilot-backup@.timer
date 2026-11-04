@@ -1,0 +1,12 @@
+# Daily at 07:15 UTC: after the server's busy hours (00:00-06:30 UTC: other apps' backups, the
+# mirror, cleanups, upgrades). A run missed while the server was down happens at the next boot.
+[Unit]
+Description=MissionCopilot %i: nightly backup
+
+[Timer]
+OnCalendar=*-*-* 07:15:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
