@@ -13,12 +13,14 @@ on:
       - "docs/demo/scans/**"
       - "docs/demo/audio/**"
       - ".github/workflows/ios.yml"
+      - "scripts/check_ios_build_settings.py"
   pull_request:
     paths:
       - "ios/**"
       - "docs/demo/scans/**"
       - "docs/demo/audio/**"
       - ".github/workflows/ios.yml"
+      - "scripts/check_ios_build_settings.py"
 
 concurrency:
   group: ios-${{ github.ref }}
@@ -83,6 +85,16 @@ jobs:
       - name: Generate Xcode project from project.yml
         working-directory: ios
         run: xcodegen generate
+
+      - name: Staging and Release talk only to their own server (#104)
+        working-directory: ios
+        run: |
+          set -euo pipefail
+          for config in Staging Release; do
+            xcodebuild -showBuildSettings -json -project MissionCopilot.xcodeproj \
+              -target MissionCopilot -configuration "$config" \
+              | python3 "$GITHUB_WORKSPACE/scripts/check_ios_build_settings.py" "$config"
+          done
 
       - name: Test on an iPhone simulator
         working-directory: ios
