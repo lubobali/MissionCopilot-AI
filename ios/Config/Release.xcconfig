@@ -1,9 +1,11 @@
 // The Release build (#104): production only. Set after Base, so the last assignment wins over anything
-// Local.xcconfig says. MC_SERVER_KEYS: the production public signing key and the offline spare, DER in hex.
-// EMPTY ON PURPOSE until the server makes them (#103 step 6.5, after staging passes): until then a Release
-// build says "This build has no server key" and trusts no pack.
+// Local.xcconfig says. MC_SERVER_KEYS: the production public signing keys, DER in hex, made on the server
+// (#103 step 6.5): the live key (key id 961f36f2f593bc81) and the offline spare (6846cc2ed260cde7), whose
+// private half is not on the running server, so a key rotation needs no new app. Public: they let the phone
+// check, never sign. The secret scan reads the long hex as a possible secret, so the line is marked as a
+// checked false alarm (gitleaks:allow); scripts/test_ios_builds.py proves both are P-256 public keys.
 #include "Base.xcconfig"
 
 MC_SERVER_SCHEME = https
 MC_SERVER_HOST = mc.lubot.ai
-MC_SERVER_KEYS =
+MC_SERVER_KEYS = 3059301306072a8648ce3d020106082a8648ce3d030107034200047b4ae1ada1456086e79180c1db5b1054d13afaa57d83c155c92388d117184ab6f19980c9f11690e932f7dcdad9cb652c9bca997079ba4626ca3e72e1da7b112f 3059301306072a8648ce3d020106082a8648ce3d030107034200043b77a54f03b9f72f294e151f69a4dc5f7438477676de192c0a275ec80ef6b2aeaf7962a62a5d6afe382d5692ee72ff045c9049ef31643d1bccff25cb5e215554  // gitleaks:allow

@@ -175,7 +175,8 @@ def test_the_build_number_is_a_whole_number_the_server_can_compare():
 
 # The keys each build pins, by key id (the first 16 hex digits of the SHA-256 of the DER key, as the
 # server's pack_format.key_id and the phone's ServerConfig.keyId name them).
-PINNED = {"Staging": {"4bf338c69bae5bfa"}, "Release": set()}  # Release: after #103 step 6.5
+# Release: the live key and the offline spare (#103 step 6.5).
+PINNED = {"Staging": {"4bf338c69bae5bfa"}, "Release": {"961f36f2f593bc81", "6846cc2ed260cde7"}}
 
 
 @pytest.mark.parametrize("name", ["Staging", "Release"])
