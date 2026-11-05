@@ -27,9 +27,10 @@ final class MissionListModelTests {
     }
 
     func model(now: Date = now, wait: @escaping @Sendable (Int) async -> Void = { _ in },
-               jitter: @escaping @Sendable (Int) -> Int = { $0 }) throws -> MissionListModel {
+               jitter: @escaping @Sendable (Int) -> Int = { $0 },
+               signer: EvidenceSigner = SoftwareEvidenceSigner()) throws -> MissionListModel {
         let client = ServerClient(base: URL(string: "https://kandor-works.example.org")!,
-                                  deviceId: "6f1d2c3a-1111-4000-8000-000000000007", signer: SoftwareEvidenceSigner(),
+                                  deviceId: "6f1d2c3a-1111-4000-8000-000000000007", signer: signer,
                                   counter: RequestCounter(items: KeychainItems(service: service), account: "phone"),
                                   transport: server)
         let key = PackVerifierTests.fixtureKey

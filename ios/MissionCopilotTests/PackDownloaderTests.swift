@@ -21,6 +21,7 @@ struct PackDownloaderTests {
         let service = "missioncopilot.tests.pack.\(UUID().uuidString)"
         var keys: [P256.Signing.PublicKey] = [PackVerifierTests.fixtureKey]
         var space: Int64 = 1 << 30
+        var signer: EvidenceSigner = SoftwareEvidenceSigner()
         private(set) var states: [PackDownloadState] = []
         private let lock = NSLock()
 
@@ -35,7 +36,7 @@ struct PackDownloaderTests {
         func run(chunk: Int = 256) async -> PackOutcome {
             let client = ServerClient(base: URL(string: "https://kandor-works.example.org")!,
                                       deviceId: "6f1d2c3a-1111-4000-8000-000000000007",
-                                      signer: SoftwareEvidenceSigner(),
+                                      signer: signer,
                                       counter: RequestCounter(items: KeychainItems(service: service), account: "phone"),
                                       transport: server)
             let pinned = keys, space = space

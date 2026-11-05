@@ -59,6 +59,7 @@ struct MissionRow: Equatable, Identifiable, Sendable {
         case .paused(.busy(let seconds)):
             "Update paused: the server is busy or restarting. It goes on by itself in \(MissionWords.wait(seconds))."
         case .paused(.locked): "Update downloaded. It is added when you unlock the app."
+        case .paused(.phoneLocked): "Update paused while the iPhone is locked. It goes on when you open the app again."
         case .failed(let failure): "Update failed: \(text(failure))"
         }
     }

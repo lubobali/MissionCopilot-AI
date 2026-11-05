@@ -63,6 +63,8 @@ struct MissionListWorld: Sendable {
             return
         case .offline:
             message = MissionRow.offline
+        case .phoneLocked:
+            break  // the list from the last time stays; it is asked again when the app opens
         case .busy, .slowDown:
             message = MissionRow.serverBusy
         case .appTooOld:
@@ -171,6 +173,7 @@ struct MissionListWorld: Sendable {
             importPack(ready, title: title)
         case .paused(.offline): activity[id] = .paused(.offline)
         case .paused(.interrupted): activity[id] = .paused(.interrupted)
+        case .paused(.phoneLocked): activity[id] = .paused(.phoneLocked)
         case .paused(.slowDown(let seconds)): retryLater(id, asked: seconds) { .slowDown($0) }
         case .paused(.busy(let seconds)): retryLater(id, asked: seconds) { .busy($0) }
         case .failed(let failure): activity[id] = .failed(failure)

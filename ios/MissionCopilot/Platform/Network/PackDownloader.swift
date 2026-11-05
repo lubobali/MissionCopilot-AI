@@ -147,6 +147,7 @@ actor PackDownloader {
         case .offline: .paused(.offline)
         case .slowDown(let seconds): .paused(.slowDown(seconds))
         case .busy(let seconds): .paused(.busy(seconds))
+        case .phoneLocked: .paused(.phoneLocked)
         case .shredOrder(let body): .shredOrder(body)
         default: .failed(Self.failure(outcome))
         }

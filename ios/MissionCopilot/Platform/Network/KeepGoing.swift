@@ -4,7 +4,8 @@ import UIKit
 /// One way the system can keep work going after the user leaves the app (#91).
 protocol BackgroundRunway: Sendable {
     /// Asks for time; nil if the system does not give it. `expire` is called when it wants the time back.
-    @MainActor func begin(title: String, subtitle: String, expire: @escaping @Sendable () -> Void) -> BackgroundLease?
+    @MainActor func begin(title: String, subtitle: String, expire: @escaping @Sendable () -> Void) async
+        -> BackgroundLease?
 }
 
 /// Time the system gave. It sees the progress (and may show it) and is given back exactly once.
@@ -27,7 +28,7 @@ enum KeepGoing {
         let holder = LeaseHolder()
         let task = Task { await work { done, total in holder.progress(done: done, total: total) } }
         for runway in runways {
-            if let lease = runway.begin(title: title, subtitle: subtitle, expire: { task.cancel() }) {
+            if let lease = await runway.begin(title: title, subtitle: subtitle, expire: { task.cancel() }) {
                 holder.set(lease)
                 break
             }
@@ -71,7 +72,8 @@ struct ContinuedProcessingRunway: BackgroundRunway {
         return "\(bundle).pack.\(UUID().uuidString.lowercased())"
     }
 
-    @MainActor func begin(title: String, subtitle: String, expire: @escaping @Sendable () -> Void) -> BackgroundLease? {
+    @MainActor func begin(title: String, subtitle: String, expire: @escaping @Sendable () -> Void) async
+        -> BackgroundLease? {
         guard let identifier = Self.newIdentifier() else { return nil }
         let lease = ContinuedLease(identifier: identifier, expire: expire)
         let registered = BGTaskScheduler.shared.register(forTaskWithIdentifier: identifier, using: nil) { task in
@@ -81,12 +83,17 @@ struct ContinuedProcessingRunway: BackgroundRunway {
         guard registered else { return nil }
         let request = BGContinuedProcessingTaskRequest(identifier: identifier, title: title, subtitle: subtitle)
         request.strategy = .fail
-        do {
-            try BGTaskScheduler.shared.submit(request)
-        } catch {
-            return nil  // the Simulator, or the system cannot run it now: the short background time is next
+        // The Simulator, or the system cannot run it now: the short background time is next.
+        return await Self.submit(request) ? lease : nil
+    }
+
+    /// iOS 27 reports every reason a request is refused only through the asynchronous call (the one that throws
+    /// at once is deprecated there); iOS 26 has only that one.
+    @MainActor private static func submit(_ request: BGContinuedProcessingTaskRequest) async -> Bool {
+        if #available(iOS 27.0, *) {
+            return (try? await BGTaskScheduler.shared.submitTaskRequest(request)) != nil
         }
-        return lease
+        return (try? BGTaskScheduler.shared.submit(request)) != nil
     }
 }
 
