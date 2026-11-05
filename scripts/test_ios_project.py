@@ -200,3 +200,30 @@ def test_the_app_uses_no_other_required_reason_api_than_it_declares():
         used = [n for n in names if n in code]
         assert category in declared or not used, f"{category}: {used}"
     assert "volumeAvailableCapacity" in code  # the one that is declared is really used
+
+
+def _app_test_step() -> str:
+    workflow = (ROOT / ".github" / "workflows" / "ios.yml").read_text(encoding="utf-8")
+    step = workflow[workflow.index("Test on an iPhone simulator") :]
+    return step[: step.index("- name:")]
+
+
+def test_the_app_is_built_once_then_tested_without_building_so_each_is_timed():
+    # #127 step 6.2.0.1: build and test time measured apart before any caching is tried.
+    step = _app_test_step()
+
+    build, test = "xcodebuild build-for-testing", "xcodebuild test-without-building"
+    assert step.index(build) < step.index(test)
+    assert "xcodebuild test \\" not in step  # the old build-and-test in one call is gone
+    assert "-showBuildTimingSummary" in step
+
+
+def test_build_and_test_use_the_same_build_folder_and_the_same_signing():
+    step = _app_test_step()
+    middle = step.index("xcodebuild test-without-building")
+    build, test = step[step.index("xcodebuild build-for-testing") : middle], step[middle:]
+
+    for part in (build, test):
+        assert '-derivedDataPath "$RUNNER_TEMP/dd"' in part
+        assert '-destination "id=${udid}"' in part
+    assert "CODE_SIGN_IDENTITY=-" in build
