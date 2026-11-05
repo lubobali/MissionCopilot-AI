@@ -100,16 +100,15 @@ final class MissionListModelTests {
 
     // Stopped, and going on by itself
 
-    @Test(.needsRepoFiles) func aLostSignalPausesAndTheDownloadGoesOnWhenTheConnectionReturns() async throws {
-        let list = try model()
+    @Test(.needsRepoFiles) func aLostSignalPausesAndTheDownloadGoesOnByItself() async throws {
+        let list = try model()  // waits are instant here: the offline pause tries again at once (#94)
         await list.refresh()
         server.dropOnce = 6
 
         list.download(Self.roads)
         await list.downloadsEnded()
-        #expect(row(list, Self.roads)?.status == .paused(.offline))
-        list.connectionChanged(online: true)
-        await list.downloadsEnded()
+
+        #expect(seen.contains { $0.first { $0.id == Self.roads }?.status == .paused(.offline) })
 
         #expect(row(list, Self.roads)?.status == .ready(updated: Self.now))
         #expect(server.bytesSent == PackDownloaderTests.packBytes)  // not one byte twice

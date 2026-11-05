@@ -39,6 +39,7 @@ struct MissionListWorld: Sendable {
     private var waiting: [String: PackReady] = [:]  // checked, waiting for the store to open
     private var tasks: [String: Task<Void, Never>] = [:]
     private var tries: [String: Int] = [:]  // busy answers in a row, per mission
+    private var offlineTries: [String: Int] = [:]  // tries with no connection in a row, per mission (#94)
     private var retries: [String: Task<Void, Never>] = [:]  // a wait before the next try
 
     init(world: MissionListWorld, missions: @escaping @MainActor () -> MissionStore?,
@@ -100,7 +101,7 @@ struct MissionListWorld: Sendable {
             let result = await Self.downloadPack(job, world: world) { [weak self] state in
                 Task { @MainActor in self?.progress(id, run: run, state) }
             }
-            if result.moved { tries[id] = nil }
+            if result.moved { tries[id] = nil; offlineTries[id] = nil }
             finish(id, run: run, title: mission.title, (result.outcome, result.staging))
         }
     }
@@ -170,8 +171,9 @@ struct MissionListWorld: Sendable {
         switch result.0 {
         case .verified(let ready):
             tries[id] = nil
+            offlineTries[id] = nil
             importPack(ready, title: title)
-        case .paused(.offline): activity[id] = .paused(.offline)
+        case .paused(.offline): retryOffline(id)
         case .paused(.interrupted): activity[id] = .paused(.interrupted)
         case .paused(.phoneLocked): activity[id] = .paused(.phoneLocked)
         case .paused(.slowDown(let seconds)): retryLater(id, asked: seconds) { .slowDown($0) }
@@ -254,6 +256,24 @@ extension MissionListModel {
         let seconds = Backoff.delay(asked: asked, attempt: attempt, jitter: world.jitter)
         tries[id] = attempt + 1
         activity[id] = .paused(pause(seconds))
+        schedule(id, after: seconds)
+    }
+
+    /// No connection (#94): the network may be back already but not ready (seen on the iPhone right after
+    /// airplane mode went off), so try again after a growing wait, Backoff.maxTries times; then wait for the
+    /// next network change. Offline a try fails at once and costs no data. It stays a pause, never a failure.
+    fileprivate func retryOffline(_ id: String) {
+        activity[id] = .paused(.offline)
+        let attempt = offlineTries[id, default: 0]
+        guard attempt < Backoff.maxTries else {
+            offlineTries[id] = nil
+            return
+        }
+        offlineTries[id] = attempt + 1
+        schedule(id, after: Backoff.delay(asked: nil, attempt: attempt, jitter: world.jitter))
+    }
+
+    private func schedule(_ id: String, after seconds: Int) {
         retries[id]?.cancel()
         let wait = world.wait
         retries[id] = Task { [weak self] in
@@ -265,7 +285,7 @@ extension MissionListModel {
 
     fileprivate func tryAgain(_ id: String) {
         switch activity[id] {
-        case .paused(.slowDown), .paused(.busy): download(id)
+        case .paused(.slowDown), .paused(.busy), .paused(.offline): download(id)
         default: break  // it went on another way, or the person changed it
         }
     }
