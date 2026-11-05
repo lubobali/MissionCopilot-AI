@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import os
 
 /// Downloads a mission pack before going offline (#91). Every request is built and signed afresh by
 /// ServerClient: never a background session, which would replay an old signed request that the server
@@ -19,13 +20,15 @@ actor PackDownloader {
     private let now: @Sendable () -> Date
     private let appVersion: String
     private let onState: @Sendable (PackDownloadState) -> Void
+    private let log: @Sendable (String) -> Void
 
     typealias P256Key = P256.Signing.PublicKey
 
     init(client: ServerClient, keys: @escaping @Sendable (String) -> P256Key?, store: MissionStore,
          staging: PackStaging, chunk: Int = 1 << 20, freeSpace: @escaping @Sendable () -> Int64,
          now: @escaping @Sendable () -> Date = { Date() }, appVersion: String = PackVerifier.appVersion,
-         onState: @escaping @Sendable (PackDownloadState) -> Void = { _ in }) {
+         onState: @escaping @Sendable (PackDownloadState) -> Void = { _ in },
+         log: @escaping @Sendable (String) -> Void = PackLog.system) {
         self.client = client
         self.keys = keys
         self.store = store
@@ -35,11 +38,13 @@ actor PackDownloader {
         self.now = now
         self.appVersion = appVersion
         self.onState = onState
+        self.log = log
     }
 
     func run(org: String, mission: String) async -> PackOutcome {
         onState(.checking)
         let outcome = await download(org: org, mission: mission)
+        log("run end \(PackLog.text(outcome))")
         switch outcome {
         case .verified: onState(.verified)
         case .paused(let pause): onState(.paused(pause))
@@ -77,11 +82,12 @@ actor PackDownloader {
     }
 
     private func files(of pack: PackManifest, manifestBytes: Data, base: String) async -> PackOutcome {
-        reuseStored(pack)
+        let reused = reuseStored(pack)
         let total = pack.files.reduce(0) { $0 + $1.size }
         var done = pack.files.reduce(0) { sum, file in
             sum + (staging.isReady(file) ? file.size : ((try? staging.partialSize(of: file)) ?? 0))
         }
+        log("run start version=\(pack.version) files=\(pack.files.count) reused=\(reused) saved=\(done) total=\(total)")
         let needed = Int64(total - done) * 3, available = freeSpace()
         guard available >= needed else { return .failed(.notEnoughSpace(needed: needed, available: available)) }
         onState(.downloading(done: done, total: total))
@@ -94,12 +100,15 @@ actor PackDownloader {
     /// Files the phone already holds in its encrypted store, same SHA-256 as the signed manifest says, are
     /// taken from there and checked again (#94): an update fetches only what changed. Any doubt (not
     /// found, the store closed, a mismatch) and the file is simply fetched.
-    private func reuseStored(_ pack: PackManifest) {
+    private func reuseStored(_ pack: PackManifest) -> Int {
+        var reused = 0
         for file in pack.files where !staging.isReady(file) {
-            if let data = try? store.packFile(sha256: file.sha256, in: pack.missionId) {
-                try? staging.place(data, as: file)
+            if let data = try? store.packFile(sha256: file.sha256, in: pack.missionId),
+               (try? staging.place(data, as: file)) != nil {
+                reused += 1
             }
         }
+        return reused
     }
 
     /// One file, piece by piece, then checked; nil when it is ready.
@@ -136,7 +145,11 @@ actor PackDownloader {
     private func piece(of file: PackFileEntry, from have: Int, base: String) async -> Piece {
         let last = min(have + chunk, file.size) - 1
         let headers = ["Range": "bytes=\(have)-\(last)", "If-Range": "\"\(file.sha256)\""]
-        switch await client.get("\(base)/files/\(file.sha256)", headers: headers) {
+        let name = String(file.sha256.prefix(8))
+        log("ask \(name) bytes=\(have)-\(last)")
+        let answer = await client.get("\(base)/files/\(file.sha256)", headers: headers)
+        log(PackLog.text(answer, file: name))
+        switch answer {
         case .success(let data, 206, let answer) where answer["content-range"]?.hasPrefix("bytes \(have)-") == true:
             guard (try? staging.append(data, to: file)) != nil else { return .stop(.failed(.storage)) }
             return .piece(change: data.count, progressed: !data.isEmpty)
@@ -180,5 +193,27 @@ actor PackDownloader {
     static func availableSpace(at url: URL) -> Int64 {
         let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
         return values?.volumeAvailableCapacityForImportantUsage ?? 0
+    }
+}
+
+/// The download's log (#94): technical facts only, beside the server's log when a run is checked. No device
+/// id, no signature, nothing of a file's contents; a file is named by the start of its SHA-256.
+enum PackLog {
+    static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.lubobali.missioncopilot",
+                               category: "pack")
+    static let system: @Sendable (String) -> Void = { line in logger.info("\(line, privacy: .public)") }
+
+    static func text(_ outcome: PackOutcome) -> String {
+        switch outcome {
+        case .verified: "verified"
+        case .paused(let pause): "paused(\(pause))"
+        case .failed(let failure): "failed(\(failure))"
+        case .shredOrder: "shredOrder"
+        }
+    }
+
+    static func text(_ answer: ServerClient.Outcome, file: String) -> String {
+        guard case .success(let data, let status, let headers) = answer else { return "stop \(file) \(answer.kind)" }
+        return "got \(file) status=\(status) range=\(headers["content-range"] ?? "none") bytes=\(data.count)"
     }
 }

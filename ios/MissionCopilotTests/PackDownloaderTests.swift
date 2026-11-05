@@ -23,6 +23,7 @@ struct PackDownloaderTests {
         var space: Int64 = 1 << 30
         var signer: EvidenceSigner = SoftwareEvidenceSigner()
         private(set) var states: [PackDownloadState] = []
+        private(set) var lines: [String] = []
         private let lock = NSLock()
 
         init() throws {
@@ -46,7 +47,8 @@ struct PackDownloaderTests {
             let downloader = PackDownloader(client: client, keys: lookup, store: store,
                                             staging: staging, chunk: chunk, freeSpace: { space },
                                             now: { PackVerifierTests.now }, appVersion: "0.5.0",
-                                            onState: { state in self.lock.withLock { self.states.append(state) } })
+                                            onState: { state in self.lock.withLock { self.states.append(state) } },
+                                            log: { line in self.lock.withLock { self.lines.append(line) } })
             return await downloader.run(org: PackDownloaderTests.org, mission: PackDownloaderTests.mission)
         }
 
