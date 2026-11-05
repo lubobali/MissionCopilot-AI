@@ -3,7 +3,8 @@
 Status: **passed** on an iPhone 13 Pro Max (iOS 27.2, the Staging build "MC Staging", Nov 4 to 5 2026),
 against the real staging server `https://mc-staging.lubot.ai`, organization `kandor-e2e` (the demo
 organization `kandor-works` and production were never touched). The last fix (a shredded mission taking a
-new pack, 94.0h) is tested on the Simulator; its check on the phone is the one step left. Fictional data only
+new pack, 94.0h) was then checked on the phone on Nov 5: after the shred the iPhone connected again and the
+roads mission took v9, "Ready for offline" (13 files, 15 MB, checklist 9 questions). Fictional data only
 (mission Kandor).
 
 This is what only the real phone can show: the Secure Enclave key end to end, a download that goes on
@@ -80,7 +81,8 @@ Each was fixed test first and mutation checked, on branch `story/94-iphone-proof
 10. **A shredded mission could not take a new pack** (3bfccc3). The store allowed one shred per mission ever,
     so reusing the mission would make its next shred fail, and the error showed as "locked". Now a mission has
     lives (schema v10, ADR 0008): the next life under a fresh key, the next shred destroys it again, the
-    history stays. A store error that is not a lock now says "could not save" (threat T71).
+    history stays. A store error that is not a lock now says "could not save" (threat T71). Proven on the
+    iPhone: the shredded mission downloaded v9 again.
 11. **After a shred the Missions screen stayed on "Loading missions"** (852a3af). Now the Missions and home
     screens say "Your organization disconnected this iPhone, so its N missions were destroyed. Ask your admin
     before connecting again."
