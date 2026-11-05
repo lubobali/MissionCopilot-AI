@@ -111,7 +111,9 @@ and every request it sends is signed with that key.
   mission is crypto-shredded. A lost phone protects itself without anyone acting.
 - **Shred order:** when the organization revokes a phone, its next genuine request gets a server-signed
   order to destroy every mission (`backend/tests/unit/test_shred_order.py`). Anyone else asking learns
-  nothing.
+  nothing. The phone judges the order's age by the server's time, never its own clock, so a clock set wrong
+  on purpose cannot make it refuse the order; the shred also deletes the phone's chip key, so it cannot
+  sign again, and a new connection starts from a fresh key (both found on the iPhone, `docs/pack-proof.md`).
 - **Visible shred, no secret wipe:** the officer can destroy a mission (the organization can turn this off);
   it is confirmed, recorded and reported. There is **no hidden duress PIN**: in 2025 a traveller was
   prosecuted for wiping a phone that way during a border search.
