@@ -77,6 +77,7 @@ actor PackDownloader {
     }
 
     private func files(of pack: PackManifest, manifestBytes: Data, base: String) async -> PackOutcome {
+        reuseStored(pack)
         let total = pack.files.reduce(0) { $0 + $1.size }
         var done = pack.files.reduce(0) { sum, file in
             sum + (staging.isReady(file) ? file.size : ((try? staging.partialSize(of: file)) ?? 0))
@@ -88,6 +89,17 @@ actor PackDownloader {
             if let stop = await fetch(file, base: base, done: &done, total: total) { return stop }
         }
         return .verified(PackReady(manifest: pack, manifestBytes: manifestBytes, staging: staging))
+    }
+
+    /// Files the phone already holds in its encrypted store, same SHA-256 as the signed manifest says, are
+    /// taken from there and checked again (#94): an update fetches only what changed. Any doubt (not
+    /// found, the store closed, a mismatch) and the file is simply fetched.
+    private func reuseStored(_ pack: PackManifest) {
+        for file in pack.files where !staging.isReady(file) {
+            if let data = try? store.packFile(sha256: file.sha256, in: pack.missionId) {
+                try? staging.place(data, as: file)
+            }
+        }
     }
 
     /// One file, piece by piece, then checked; nil when it is ready.

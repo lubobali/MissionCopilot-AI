@@ -73,6 +73,14 @@ struct PackStaging: Sendable {
 
     func ready(_ file: PackFileEntry) throws -> Data { try Data(contentsOf: readyURL(file)) }
 
+    /// A file taken from the phone's own store (#94) becomes a ready file, only if it matches its entry.
+    func place(_ data: Data, as file: PackFileEntry) throws {
+        try PackVerifier.check(file, data: data)
+        guard FileManager.default.createFile(atPath: Self.path(readyURL(file)), contents: data,
+                                             attributes: [.protectionKey: Self.protection])
+        else { throw CocoaError(.fileWriteUnknown) }
+    }
+
     func restart(_ file: PackFileEntry) throws {
         if FileManager.default.fileExists(atPath: Self.path(partURL(file))) {
             try FileManager.default.removeItem(at: partURL(file))

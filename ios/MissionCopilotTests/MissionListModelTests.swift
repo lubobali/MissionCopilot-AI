@@ -31,14 +31,15 @@ final class MissionListModelTests {
 
     func model(now: Date = now, wait: @escaping @Sendable (Int) async -> Void = { _ in },
                jitter: @escaping @Sendable (Int) -> Int = { $0 },
-               signer: EvidenceSigner = SoftwareEvidenceSigner()) throws -> MissionListModel {
+               signer: EvidenceSigner = SoftwareEvidenceSigner(),
+               also: P256.Signing.PublicKey? = nil) throws -> MissionListModel {
         let client = ServerClient(base: URL(string: "https://kandor-works.example.org")!,
                                   deviceId: "6f1d2c3a-1111-4000-8000-000000000007", signer: signer,
                                   counter: RequestCounter(items: KeychainItems(service: service), account: "phone"),
                                   transport: server)
         let key = PackVerifierTests.fixtureKey
         let pinned: @Sendable (String) -> P256.Signing.PublicKey? = { id in
-            ServerConfig.keyId(key.derRepresentation) == id ? key : nil
+            [key, also].compactMap { $0 }.first { ServerConfig.keyId($0.derRepresentation) == id }
         }
         let world = MissionListWorld(client: client, keys: pinned,
                                      stagingBase: base, schema: try PackSectionsTests.schema(), runways: [],
