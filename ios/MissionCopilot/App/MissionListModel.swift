@@ -198,6 +198,9 @@ struct MissionListWorld: Sendable {
         } catch .storeUnavailable {
             waiting[id] = ready
             activity[id] = .paused(.locked)
+        } catch .storeFailed {
+            waiting[id] = nil
+            activity[id] = .failed(.storage)
         } catch {
             waiting[id] = nil
             activity[id] = .failed(.refused(error))

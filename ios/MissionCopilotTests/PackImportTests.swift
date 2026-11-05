@@ -182,4 +182,61 @@ struct PackImportTests {
 
         #expect(try rowCount(rig.store, "pack_file") == 0 && rowCount(rig.store, "mission_pack") == 0)
     }
+
+    // After a shred (#94, found on the iPhone: a shredded phone connected again could never take its
+    // mission back, the import asked for a key the shred had destroyed)
+
+    @Test(.needsRepoFiles) func aShreddedMissionTakesANewPackUnderAFreshKey() async throws {
+        let (rig, ready) = try await downloaded()
+        _ = try run(ready, into: rig.store)
+        _ = try rig.store.shredAll(reason: .shredOrder, at: Date(), policy: FieldPolicy())
+
+        let stored = try run(try republished(ready, version: 2), into: rig.store)
+
+        #expect(stored.version == 2)
+        let project = try #require(ready.manifest.files.first { $0.path == "sections/project.json" })
+        #expect(try rig.store.packFile("sections/project.json", in: Self.mission)
+                == FakePackServer.file("files/\(project.sha256)"))
+        #expect(try rig.store.isShredded(Self.mission) == false)  // the mission lives again
+        #expect(try rig.store.shredRecords().map(\.mission) == [Self.mission])  // and the shred stays on record
+        #expect(try rig.store.store.auditEvents()
+            .contains { $0.action == .missionPurged && $0.mission == Self.mission })
+        if case .valid = try rig.store.store.verifyAudit() {} else { Issue.record("the audit chain broke") }
+    }
+
+    @Test(.needsRepoFiles) func theNextShredDestroysTheMissionAgain() async throws {
+        let (rig, ready) = try await downloaded()
+        _ = try run(ready, into: rig.store)
+        _ = try rig.store.shredAll(reason: .shredOrder, at: Date(), policy: FieldPolicy())
+        _ = try run(try republished(ready, version: 2), into: rig.store)
+
+        let again = try rig.store.shredAll(reason: .shredOrder, at: Date(), policy: FieldPolicy())
+
+        #expect(again.map(\.mission) == [Self.mission])
+        #expect(try rig.store.shredRecords().count == 2)  // one per life, both kept
+        #expect(throws: (any Error).self) { try rig.store.packFile("sections/project.json", in: Self.mission) }
+    }
+
+    @Test(.needsRepoFiles) func aPackOlderThanOneAcceptedBeforeTheShredIsStillRefused() async throws {
+        let (rig, ready) = try await downloaded()
+        _ = try run(try republished(ready, version: 3), into: rig.store)
+        _ = try rig.store.shredAll(reason: .shredOrder, at: Date(), policy: FieldPolicy())
+
+        #expect(throws: PackRefusal.older) { try run(try republished(ready, version: 2), into: rig.store) }
+        #expect(try rig.store.isShredded(Self.mission))  // refused before anything changed
+        #expect(!(try rig.store.store.auditEvents().contains { $0.action == .missionPurged }))
+    }
+
+    @Test(.needsRepoFiles) func aStoreErrorThatIsNotAPauseIsSaidHonestly() async throws {
+        let (rig, ready) = try await downloaded()
+        try rig.store.store.write { database in
+            try database.execute(sql: """
+                CREATE TRIGGER refuse_files BEFORE INSERT ON pack_file BEGIN SELECT RAISE(ABORT, 'full'); END
+                """)
+        }
+
+        #expect(throws: PackRefusal.storeFailed) { try run(ready, into: rig.store) }
+        #expect(FileManager.default.fileExists(atPath: ready.staging.folder.path()))
+        #expect(try rowCount(rig.store, "mission_pack") == 0)
+    }
 }

@@ -128,6 +128,17 @@ final class MissionListModelTests {
         #expect(row(reopened, Self.roads)?.status == .ready(updated: Self.now))
     }
 
+    @Test(.needsRepoFiles) func aStoreThatCannotSaveIsSaidAsSuchNeverAsLocked() async throws {
+        // #94: every store error used to show as "locked", so a real failure waited for an unlock for ever.
+        try store.store.rawExecuteForTests("""
+            CREATE TRIGGER refuse_files BEFORE INSERT ON pack_file BEGIN SELECT RAISE(ABORT, 'full'); END
+            """)
+
+        let list = try await downloaded()
+
+        #expect(row(list, Self.roads)?.status == .failed(.storage))
+    }
+
     @Test(.needsRepoFiles) func aPackCheckedWhileTheAppWasLockedIsAddedAfterUnlock() async throws {
         let list = try model()
         await list.refresh()
