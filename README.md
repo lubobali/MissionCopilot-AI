@@ -25,6 +25,19 @@ Agile, SAFe style, by one developer working with AI coding agents (so iterations
 Every story is built test-first on its own branch and merged by a pull request that closes its
 issue, with CI green.
 
+### How CI runs (#127)
+- **iOS** ([ios.yml](.github/workflows/ios.yml)): the app job (SwiftLint, the Staging and Release
+  server check, build, then the 612 tests on a simulator) and the lab job (spikes 14 to 16) run side by
+  side. The labs run on every push to main, every Monday, on demand, and on any pull request that
+  touches them ([scripts/ios_ci_paths.py](scripts/ios_ci_paths.py), our own `git diff`); one
+  "iOS result" check passes only when every needed job did. Measured: a pull request waits about
+  13 minutes (it was 22). The floor is the simulator's first boot on a fresh runner, about 6 minutes.
+- **Everything else** ([ci.yml](.github/workflows/ci.yml), [security.yml](.github/workflows/security.yml)):
+  the same hooks as a local commit, a dependency audit, CodeQL and OpenSSF Scorecard.
+- **Safety:** every action pinned by its full commit SHA, least privilege (no write permission), tool
+  downloads checked by SHA-256, no caches for builds or packages (measured: they would save about a
+  minute and could be poisoned), workflows linted by zizmor.
+
 ## What it does
 Built so far (each part test-first, the store and the pack proven on an iPhone 13 Pro Max):
 - **Connect a phone**: a one-time code, a signing key born in the phone's Secure Enclave, a manager approves it.
