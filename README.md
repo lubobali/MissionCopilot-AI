@@ -31,6 +31,16 @@ issue, with CI green.
 ## Architecture
 **One-page summary: [docs/architecture-summary.md](docs/architecture-summary.md).** See [docs/architecture.md](docs/architecture.md): system context, containers, trust boundaries and the offline line. [docs/data-classification.md](docs/data-classification.md): labels, lifecycle and the data map. [docs/domain-model.md](docs/domain-model.md): the shared objects and their rules. Decisions in [docs/adr/](docs/adr/).
 
+### Where it runs
+```mermaid
+flowchart LR
+    phone(["iPhone app<br/>(works offline)"]) -- "HTTPS, TLS 1.2+,<br/>signed requests" --> nginx["nginx on a<br/>shared server"]
+    nginx -- "127.0.0.1 only" --> api["MissionCopilot API<br/>(container)"]
+    api -- "internal network,<br/>no internet" --> db[("Postgres<br/>one database per organization")]
+    db -. "nightly, encrypted" .-> backup[("Backups<br/>private bucket")]
+```
+Staging and prod are two separate copies of the right side. Details: [ADR 0013](docs/adr/0013-hosting-on-a-shared-server.md), [deploy/RUNBOOK.md](deploy/RUNBOOK.md).
+
 ## Security
 How field data is protected on the phone (three encryption layers, per-mission crypto-shred, honest limits):
 **[docs/security.md](docs/security.md)**. Proven on a real iPhone in [spike #16](docs/spikes/03-encryption.md),

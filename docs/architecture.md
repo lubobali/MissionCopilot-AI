@@ -111,5 +111,24 @@ flowchart TB
 | Network ↔ backend | Sync batches and dashboard requests | Authentication, tenant from the token, rate limits, versioned contract (#45) |
 | Backend ↔ organization database | One organization's data | Separate database per organization, row-level security per mission team |
 | Backend ↔ cloud AI | Data labelled public only | Label check before any call; Official Use Only never leaves |
+| Shared server ↔ backend | Nothing: other apps share only the kernel, Docker and the host's nginx | Own containers, networks, uids, database, secrets (0600), backups; loopback only behind nginx (ADR 0013, threat model B10) |
 
 Details of keys and storage: ADR 0008. Threat model per boundary, with status and tests: [threat-model.md](threat-model.md).
+
+## 4. Where it runs (#103)
+
+```mermaid
+flowchart LR
+    phone(["iPhone app<br/>(works offline)"]) -- "HTTPS, TLS 1.2+,<br/>signed requests" --> nginx["host nginx<br/>(shared server)"]
+    nginx -- "127.0.0.1 only" --> api["Sync API<br/>(container, uid 10120)"]
+    api -- "internal network,<br/>no internet" --> db[("Postgres, uid 10121<br/>one database per organization")]
+    db -. "nightly, encrypted;<br/>restored weekly as a test" .-> backup[("Backups<br/>private bucket")]
+```
+
+- **Two environments, same shape:** staging (`mc-staging.lubot.ai`) and prod (`mc.lubot.ai`), each a
+  separate Compose project with its own networks, database, secrets, signing key and backups. The
+  Staging build of the app talks only to staging, the Release build only to prod (#104).
+- **One image for both**, built and scanned in CI and deployed by digest; staging runs a digest first,
+  prod gets the same one.
+- **Why a shared server, and what it costs:** [ADR 0013](adr/0013-hosting-on-a-shared-server.md).
+  How to deploy, roll back and restore: [deploy/RUNBOOK.md](../deploy/RUNBOOK.md).

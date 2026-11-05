@@ -53,6 +53,11 @@ def problems(rows: list[Row], root: Path) -> list[str]:
     return found
 
 
+def _is_repo_path(text: str) -> bool:
+    """`deploy/RUNBOOK.md` is a file in the repo; `/v1/health` is a route, `X-App-Build` a name."""
+    return "/" in text and not text.startswith("/")
+
+
 def check_claim(
     row_id: str,
     status: str,
@@ -64,7 +69,8 @@ def check_claim(
     planned name a phase or issue, and a status that needs a reason (accepted) gives one."""
     if status not in {"built", "spike", "planned"} | reasoned:
         return [f"{row_id}: unknown status '{status}'"]
-    has_file = any((root / path).exists() for path in PATH.findall(where))
+    named = PATH.findall(where)
+    has_file = any((root / path).exists() for path in named)
     phases = [int(number) for number in PHASE.findall(where)]
     open_phase = any(number > LAST_FINISHED_PHASE for number in phases)
     has_phase = open_phase or bool(ISSUE.search(where))
@@ -72,6 +78,9 @@ def check_claim(
         return [f"{row_id}: built, but no existing file is named (got: {where})"]
     if status == "spike" and not has_file:
         return [f"{row_id}: spike, but its proof file does not exist (got: {where})"]
+    missing = [path for path in named if _is_repo_path(path) and not (root / path).exists()]
+    if missing:  # every named file, not just one: a renamed test must not hide behind another
+        return [f"{row_id}: names a file that does not exist: {', '.join(missing)}"]
     if status in {"spike", "planned"} and phases and not has_phase:
         finished = f"Phase {max(phases)} is finished"
         return [f"{row_id}: {status}, but {finished}; name a later phase or an issue"]
