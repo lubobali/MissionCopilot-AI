@@ -9,6 +9,8 @@ struct BrandMedallion: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.stillMarks) private var stillMarks
     @ScaledMetric(relativeTo: .largeTitle) private var unit: CGFloat = 1
+    /// 1 on the home screen; smaller where it is only a header (the mission workspace, #125).
+    var size: CGFloat = 1
     @State private var flight: CGFloat = 1  // 0 at the logo, 1 at rest; onAppear always sets it first
     @State private var glow = false
 
@@ -21,12 +23,16 @@ struct BrandMedallion: View {
                                end: CGPoint(x: 196, y: 42))
 
     var body: some View {
-        let scale = min(unit, Self.largest)  // grows with the text, up to a point: it is decoration
+        let scale = min(unit, Self.largest) * size  // grows with the text, up to a point: it is decoration
         ZStack {
             trail(scale: scale)
-            LogoMark(height: 44, inset: 8)
+            // The marks take the medallion's own scale, never their own text-size growth (#125): a small or
+            // capped medallion would otherwise be overrun by a full-size logo.
+            LogoMark(height: 44 * scale, inset: 8 * scale)
+                .environment(\.dynamicTypeSize, .large)
                 .position(x: Self.logoCentre.x * scale, y: Self.logoCentre.y * scale)
-            AirplaneMark(size: 56)
+            AirplaneMark(size: 56 * scale)
+                .environment(\.dynamicTypeSize, .large)
                 .modifier(FlightPose(time: flight, arc: Self.arc, scale: scale))
         }
         .frame(width: Self.size.width * scale, height: Self.size.height * scale)

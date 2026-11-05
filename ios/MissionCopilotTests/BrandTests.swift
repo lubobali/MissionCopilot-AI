@@ -95,6 +95,24 @@ struct BrandTests {
         #expect(white.count < 4, "the logo's tile reaches into the trail")
     }
 
+    @MainActor
+    @Test(arguments: [DynamicTypeSize.large, .accessibility5])
+    func aSmallMedallionKeepsItsMarksInsideAtEveryTextSize(size: DynamicTypeSize) throws {
+        // The workspace's header (#125): the logo and the plane shrink with the medallion, never spill.
+        let small: CGFloat = 0.6
+        let image = try Self.render(BrandMedallion(size: small).environment(\.dynamicTypeSize, size),
+                                    scheme: .light, width: 382)
+        let scale = CGFloat(image.width) / BrandMedallion.size.width
+        let column = Int((BrandMedallion.logoCentre.x + 34) * scale)
+        let white = (0..<image.height).filter { Pixel.rgb(image, column: column, row: $0) == RGB(hex: 0xFFFFFF) }
+
+        #expect(scale <= small * BrandMedallion.largest + 0.01)
+        #expect(white.count < 4, "the logo's tile reaches into the trail")
+        // The tile's white is still there, at its own place.
+        let tile = Int((BrandMedallion.logoCentre.x - 26) * scale)
+        #expect(Pixel.rgb(image, column: tile, row: image.height / 2) == RGB(hex: 0xFFFFFF))
+    }
+
     /// The view at 1x, offered `width` points like the home screen's column.
     @MainActor
     private static func render(_ view: some View, scheme: ColorScheme, width: CGFloat) throws -> CGImage {

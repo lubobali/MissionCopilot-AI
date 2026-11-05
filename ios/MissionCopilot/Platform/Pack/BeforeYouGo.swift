@@ -17,6 +17,7 @@ struct BeforeYouGo: Equatable, Sendable {
         let state: State
         let detail: String
         let needsConnection: Bool  // do it while still online
+        var installs: SpeechLanguage?  // the line's button installs this language's speech files
         var id: String { title }
     }
 
@@ -93,7 +94,7 @@ struct BeforeYouGo: Equatable, Sendable {
             return Line(title: title, state: .ready, detail: "On this iPhone", needsConnection: false)
         case .canInstall:
             return Line(title: title, state: .toDo, detail: "Not on this iPhone. Install it while online.",
-                        needsConnection: true)
+                        needsConnection: true, installs: language)
         case .installing:
             return Line(title: title, state: .working, detail: "Installing", needsConnection: false)
         case .notSupported:

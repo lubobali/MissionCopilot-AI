@@ -97,6 +97,13 @@ struct BeforeYouGoTests {
         #expect(line.detail == "This iPhone cannot turn French speech into text. You can type notes instead.")
     }
 
+    @Test func onlyASpeechLineThatCanBeInstalledOffersInstallingItsLanguage() {
+        let lines = check(speech: [.english: .installed, .french: .canInstall]).lines
+
+        #expect(lines[3].installs == .french)
+        #expect(lines.filter { $0.installs != nil }.count == 1)
+    }
+
     @Test func installingSpeechIsGettingReady() {
         #expect(check(speech: [.english: .installing]).lines[2].state == .working)
     }
