@@ -87,12 +87,18 @@ struct BrandTests {
 
         #expect(image.width <= 382)
         #expect(CGFloat(image.width) > BrandMedallion.size.width, "it still grows with the text")
+        // The logo and the plane grow with the medallion, never past it: just right of the logo's tile
+        // (where the trail starts) is glass, not the tile's white.
+        let scale = CGFloat(image.width) / BrandMedallion.size.width
+        let column = Int((BrandMedallion.logoCentre.x + 34) * scale)
+        let white = (0..<image.height).filter { Pixel.rgb(image, column: column, row: $0) == RGB(hex: 0xFFFFFF) }
+        #expect(white.count < 4, "the logo's tile reaches into the trail")
     }
 
     /// The view at 1x, offered `width` points like the home screen's column.
     @MainActor
     private static func render(_ view: some View, scheme: ColorScheme, width: CGFloat) throws -> CGImage {
-        let renderer = ImageRenderer(content: view.environment(\.colorScheme, scheme))
+        let renderer = ImageRenderer(content: view.environment(\.colorScheme, scheme).environment(\.stillMarks, true))
         renderer.proposedSize = ProposedViewSize(width: width, height: nil)
         renderer.scale = 1
         return try #require(renderer.cgImage)

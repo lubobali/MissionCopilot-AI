@@ -7,6 +7,7 @@ import SwiftUI
 /// With Reduce Motion it is drawn at rest, nothing moves. Decoration: VoiceOver skips it.
 struct BrandMedallion: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.stillMarks) private var stillMarks
     @ScaledMetric(relativeTo: .largeTitle) private var unit: CGFloat = 1
     @State private var flight: CGFloat = 1  // 0 at the logo, 1 at rest; onAppear always sets it first
     @State private var glow = false
@@ -30,12 +31,15 @@ struct BrandMedallion: View {
         }
         .frame(width: Self.size.width * scale, height: Self.size.height * scale)
         .glassEffect(.regular.tint(Color(.accent).opacity(0.12)), in: .capsule)
-        .overlay { if !reduceMotion { Reflection(scale: scale) } }
+        .overlay { if !still { Reflection(scale: scale) } }
         .contentShape(.capsule)
         .onTapGesture(perform: fly)
         .onAppear(perform: fly)
         .accessibilityHidden(true)
     }
+
+    /// Nothing moves: the person asked for less motion, or a screenshot wants the medallion at rest.
+    private var still: Bool { reduceMotion || stillMarks }
 
     private func trail(scale: CGFloat) -> some View {
         let path = Self.arc.path.applying(CGAffineTransform(scaleX: scale, y: scale))
@@ -52,7 +56,7 @@ struct BrandMedallion: View {
     }
 
     private func fly() {
-        guard !reduceMotion else { flight = 1; glow = false; return }
+        guard !still else { flight = 1; glow = false; return }
         flight = 0
         glow = false
         withAnimation(.timingCurve(0.3, 0, 0.2, 1, duration: 1.6)) { flight = 1 }
@@ -110,4 +114,9 @@ private struct Reflection: View {
         .blendMode(.plusLighter)
         .allowsHitTesting(false)
     }
+}
+
+extension EnvironmentValues {
+    /// Draws the brand marks at rest, with no motion (screenshots and tests, #123).
+    @Entry var stillMarks = false
 }

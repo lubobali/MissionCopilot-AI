@@ -70,7 +70,8 @@ Every commit runs the same checks as CI through prek hooks.
 
 ## License
 Code: MIT (see LICENSE).
-Logo: the app icon and logo (the L and the key, in `ios/MissionCopilot/Assets.xcassets`) belong to
-Lubo Bali and are **not** covered by the MIT license. Please do not reuse them; a fork needs its own icon.
+Logo: the logo (the L and the key, in `ios/MissionCopilot/Assets.xcassets`) and the app icon that shows it
+belong to Lubo Bali and are **not** covered by the MIT license. Please do not reuse them; a fork needs its own
+icon. The airplane mark is our own drawing and is MIT, like the code.
 AI models are not stored in this repo. Each model keeps its own license, listed in the
 architecture decision records.

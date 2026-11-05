@@ -98,7 +98,8 @@ struct ScreenshotTests {
         let renderer = ImageRenderer(content: view  // a view taller than the phone is cut at the bottom
             .frame(width: Self.phone.width, height: Self.phone.height, alignment: .top)
             .environment(\.colorScheme, look.scheme)
-            .environment(\.dynamicTypeSize, look.size))
+            .environment(\.dynamicTypeSize, look.size)
+            .environment(\.stillMarks, true))  // the medallion at rest: no reflection caught mid-pass
         renderer.scale = 2
         let image = try #require(renderer.cgImage)
 

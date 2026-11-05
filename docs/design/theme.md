@@ -54,9 +54,9 @@ surface color are in the test too.
 
 ## Screens
 
-Light, dark and the largest text size. Lock screen and cover are drawn by
-`ios/MissionCopilotTests/ScreenshotTests.swift` (the system Face ID sheet hides them on a live screen);
-the home screens are Simulator screenshots of the Debug build.
+Light, dark and the largest text size, all drawn by `ios/MissionCopilotTests/ScreenshotTests.swift` (the
+system Face ID sheet hides a live lock screen). The home pictures show the top of the home screen: the
+brand medallion at rest (the tests turn its motion off) above the app's name.
 
 | Lock, light | Lock, dark | Lock, largest text | Cover, dark |
 |---|---|---|---|
@@ -81,9 +81,29 @@ pixel inside the first card is the surface color, and fail on a picture that is 
 largest text sizes the cards grow and wrap instead of cutting words, and the summary puts each label
 above its value.
 
-## The logo
+## The logo, the airplane and the icon (#123)
 
-The L and the key belong to Lubo Bali and are **not** covered by the MIT license (README). The app icon
-(logo on white, 72% of the square, no transparency), the logo images and the launch tile are built from
-the source file by `scripts/make_brand_assets.py`, which also reads the launch background from
-`Palette.swift` so the two cannot drift.
+The L and the key belong to Lubo Bali and are **not** covered by the MIT license (README). The airplane is
+our own drawing (`scripts/airplane_mark.py`, under MIT): one mirror-symmetric outline, turned to fly up and
+to the right. It is not Apple's SF Symbol, because Apple's license does not allow its symbols, or anything
+like them, in app icons or logos. The asset catalog keeps the airplane as a template vector, so the theme
+colors it and it stays sharp at every text size.
+
+**Home screen: the brand medallion.** The logo and the airplane at 60 pt on one piece of Liquid Glass.
+When it appears, a glowing trail draws itself from the logo and the plane flies a takeoff curve to its
+place (`FlightArc`, tested); then the trail glows softly and a pill-shaped reflection crosses the glass,
+left to right, in a loop. Tapping it flies again. With Reduce Motion nothing moves. It grows with the text
+up to 1.5 times, so it never gets wider than the screen. VoiceOver skips it: the title below names the app.
+Its look was tuned on the iPhone with Lubo (size, the reflection's shape and speed).
+
+**App icon.** Split on the diagonal: the logo on the white top-left half, our white airplane on the navy
+bottom-right half (the theme's text color, read from `Palette.swift`). Each mark sits in the largest
+circle that fits its half, less 40 px, so it never touches the diagonal, an edge, or the corners iOS
+rounds off. Checked on the iPhone on the Home Screen and in iOS's dark and tinted looks, which iOS makes
+from the icon by itself. The first icon (the logo alone on white) stays in the script as the fallback.
+
+![The app icon at 1024, 180, 120, 87, 58 and 40 px](img/app-icon-sizes.png)
+
+The icon, the logo images, the airplane and the launch tile are built from the source file by
+`scripts/make_brand_assets.py` (`--preview` draws the sizes above), which also reads the launch background
+from `Palette.swift` so the two cannot drift.
