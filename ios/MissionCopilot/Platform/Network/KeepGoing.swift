@@ -92,11 +92,14 @@ struct ContinuedProcessingRunway: BackgroundRunway {
     }
 
     /// iOS 27 reports every reason a request is refused only through the asynchronous call (the one that throws
-    /// at once is deprecated there); iOS 26 has only that one.
+    /// at once is deprecated there); iOS 26 has only that one. The iOS 27 call exists only in the iOS 27 SDK
+    /// (Xcode 27, Swift 6.4): CI's Xcode 26 builds the iOS 26 path alone (#94).
     @MainActor private static func submit(_ request: BGContinuedProcessingTaskRequest) async -> Bool {
+        #if compiler(>=6.4)
         if #available(iOS 27.0, *) {
             return (try? await BGTaskScheduler.shared.submitTaskRequest(request)) != nil
         }
+        #endif
         return (try? BGTaskScheduler.shared.submit(request)) != nil
     }
 }
