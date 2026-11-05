@@ -10,6 +10,13 @@ struct LogoMark: View {
     @ScaledMetric(relativeTo: .largeTitle) private var height: CGFloat = 96
     @ScaledMetric(relativeTo: .largeTitle) private var inset: CGFloat = 14
 
+    /// `height` and `inset` in points at the default text size; both grow with Dynamic Type.
+    init(label: String? = nil, height: CGFloat = 96, inset: CGFloat = 14) {
+        self.label = label
+        _height = ScaledMetric(wrappedValue: height, relativeTo: .largeTitle)
+        _inset = ScaledMetric(wrappedValue: inset, relativeTo: .largeTitle)
+    }
+
     var body: some View {
         Image(Self.imageName)
             .resizable()

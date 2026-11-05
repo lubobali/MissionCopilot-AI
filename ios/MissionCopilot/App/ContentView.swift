@@ -55,8 +55,8 @@ struct ContentView: View {
 struct HomeTitle: View {
     var body: some View {
         VStack(spacing: 12) {
-            BrandLockup()
-                .padding(.bottom, 4)
+            BrandMedallion()
+                .padding(.bottom, 8)
             Text("Mission Copilot")
                 .font(.title.bold())
             Text("Offline AI for field missions")

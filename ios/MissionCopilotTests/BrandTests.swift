@@ -58,7 +58,7 @@ struct BrandTests {
         #expect(height(.accessibility3) > height(.large))
     }
 
-    // MARK: The lockup on the home screen (#123)
+    // MARK: The medallion on the home screen (#123)
 
     @Test func ourAirplaneShipsAsATemplateSoTheThemeColorsIt() throws {
         let airplane = try #require(UIImage(named: AirplaneMark.imageName))
@@ -68,29 +68,25 @@ struct BrandTests {
 
     @MainActor
     @Test(arguments: [(ColorScheme.light, ColorMode.light), (.dark, .dark)])
-    func theLockupIsTheLogoTileALineAndTheAirplane(scheme: ColorScheme, mode: ColorMode) throws {
-        let image = try Self.render(BrandLockup(), scheme: scheme, width: 382)
-        let middle = image.height / 2
+    func theMedallionAtRestShowsTheLogoTileThenThePlane(scheme: ColorScheme, mode: ColorMode) throws {
+        let image = try Self.render(BrandMedallion(), scheme: scheme, width: 382)
 
-        #expect(image.width > image.height, "side by side at the normal text size")
-        #expect(Pixel.rgb(image, column: 3, row: middle) == RGB(hex: 0xFFFFFF), "the logo's white tile first")
-        let row = (0..<image.width).map { Pixel.rgb(image, column: $0, row: middle) }
-        let line = try #require(row.firstIndex(of: Palette.rgb(.decoration, mode)), "a line in the theme's color")
-        let airplane = (0..<image.width).flatMap { column in
-            (0..<image.height).map { Pixel.rgb(image, column: column, row: $0) }
-                .contains(Palette.rgb(.accent, mode)) ? [column] : []
-        }
-        #expect(try #require(airplane.min()) > line, "the airplane after the line, in the accent color")
+        #expect(image.width == Int(BrandMedallion.size.width) && image.height == Int(BrandMedallion.size.height))
+        // The logo's white tile on the left (its left edge, half way down).
+        let tileLeft = Int(BrandMedallion.logoCentre.x) - 26
+        #expect(Pixel.rgb(image, column: tileLeft, row: image.height / 2) == RGB(hex: 0xFFFFFF))
+        // At rest the plane sits at the end of the takeoff curve, in the accent color.
+        let rest = BrandMedallion.arc.end
+        #expect(Pixel.rgb(image, column: Int(rest.x), row: Int(rest.y)) == Palette.rgb(.accent, mode))
     }
 
     @MainActor
-    @Test func atTheLargestTextTheLockupStacksInsteadOfClipping() throws {
-        let width = 382
-        let image = try Self.render(BrandLockup().environment(\.dynamicTypeSize, .accessibility5),
-                                    scheme: .light, width: CGFloat(width))
+    @Test func atTheLargestTextTheMedallionStillFitsTheScreen() throws {
+        let image = try Self.render(BrandMedallion().environment(\.dynamicTypeSize, .accessibility5),
+                                    scheme: .light, width: 382)
 
-        #expect(image.width <= width, "never wider than the screen")
-        #expect(image.height > image.width, "logo above, airplane below")
+        #expect(image.width <= 382)
+        #expect(CGFloat(image.width) > BrandMedallion.size.width, "it still grows with the text")
     }
 
     /// The view at 1x, offered `width` points like the home screen's column.

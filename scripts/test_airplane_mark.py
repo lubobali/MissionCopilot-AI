@@ -91,7 +91,7 @@ APP_SOURCES = Path(__file__).resolve().parents[1] / "ios" / "MissionCopilot"
 def test_the_home_screen_shows_the_lockup_not_apples_airplane():
     home = (APP_SOURCES / "App" / "ContentView.swift").read_text(encoding="utf-8")
 
-    assert "BrandLockup()" in home
+    assert "BrandMedallion()" in home
     # No SF Symbol airplane anywhere in the app: our mark stands for the app (#123).
     for swift in APP_SOURCES.rglob("*.swift"):
         assert not re.search(r'systemName:\s*"airplane', swift.read_text(encoding="utf-8")), swift
