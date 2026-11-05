@@ -115,11 +115,10 @@ struct MissionCard: View {
                 .buttonStyle(.fieldPrimary)
                 .accessibilityHint(row.title)
         }
-        if let pack = row.pack {
-            NavigationLink("Pack details") { PackSummaryView(title: row.title, pack: pack, words: words) }
-                .buttonStyle(.fieldSecondary)
-                .accessibilityHint(row.title)
-        }
+        // The workspace has Before you go and the pack's details (#125).
+        NavigationLink("Open mission", value: MissionLink(id: row.id))
+            .buttonStyle(.fieldSecondary)
+            .accessibilityHint(row.title)
     }
 }
 

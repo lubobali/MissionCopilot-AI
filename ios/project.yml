@@ -45,8 +45,21 @@ targets:
     dependencies:
       - package: GRDB
         product: GRDB
+    # The on-device model ships inside the app (#125; Lubo, Nov 5). Only its signed files and the
+    # signature are copied, for Staging and Release; Debug and a Mac without the model ship none, and the
+    # app says so. The app checks the signature before it trusts the model (threat model T46).
+    postBuildScripts:
+      - name: Bundle the signed AI model
+        basedOnDependencyAnalysis: false
+        script: |
+          /usr/bin/python3 "$SRCROOT/../scripts/bundle_model.py" "$CONFIGURATION" \
+            "$SRCROOT/../models/mlx/LFM2.5-1.2B-Instruct-4bit" \
+            "$SRCROOT/../docs/models/LFM2.5-1.2B-Instruct-4bit.sig" \
+            "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Models"
     settings:
       base:
+        # The model bundler reads ../models and ../docs, outside the project: not possible sandboxed.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         PRODUCT_BUNDLE_IDENTIFIER: com.lubobali.missioncopilot
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Mission Copilot

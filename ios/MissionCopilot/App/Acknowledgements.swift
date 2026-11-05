@@ -2,11 +2,12 @@ import Foundation
 import SwiftUI
 
 /// The open-source libraries inside the app and their license texts, shipped as files (#68).
-/// SQLCipher's license asks for its text in the app; GRDB's MIT license asks for its notice.
+/// SQLCipher's license asks for its text in the app; GRDB's MIT license asks for its notice. The on-device
+/// model's LFM Open License v1.0 asks for its text with every copy, and the model ships inside the app (#125).
 struct Acknowledgement: Equatable, Identifiable {
     struct Missing: Error, Equatable { let name: String }
 
-    static let libraries = ["GRDB", "SQLCipher"]
+    static let libraries = ["GRDB", "SQLCipher", "LFM2.5"]
 
     let name: String
     let text: String

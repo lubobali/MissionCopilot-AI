@@ -75,6 +75,19 @@ struct ScreenshotTests {
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "pack")
     }
 
+    /// #125: the mission workspace with one thing to do before you go (French speech to install).
+    @Test(arguments: Look.allCases)
+    func theMissionWorkspaceIsOnTheThemeBackground(look: Look) throws {
+        let row = Self.sampleRows[0]
+        let readiness = BeforeYouGo(pack: row.status, facts: row.pack, model: .verified(files: 9),
+                                    speech: [.english: .installed, .french: .canInstall],
+                                    freeBytes: 12_000_000_000, words: MissionWordsTests.words)
+        try check(MissionWorkspace(row: row, check: readiness, installing: nil, problem: nil,
+                                   words: MissionWordsTests.words)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "workspace")
+    }
+
     /// Fictional Kandor missions in the states a person meets most.
     static let sampleRows: [MissionRow] = {
         let nov3 = MissionWordsTests.nov3, nov10 = MissionWordsTests.nov10

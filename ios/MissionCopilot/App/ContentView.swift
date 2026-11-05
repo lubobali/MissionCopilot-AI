@@ -19,8 +19,10 @@ struct ContentView: View {
                         .multilineTextAlignment(.center)
                         .padding(.top, 8)
                 }
-                if let hub {
-                    NavigationLink("Missions") { MissionListScreen(hub: hub) }
+                if hub != nil {
+                    // Opened by a value, like the mission inside it: SwiftUI shows value pages under pages
+                    // opened by a closure, so mixing them hid the workspace under this list (#125).
+                    NavigationLink("Missions", value: HomeLink.missions)
                         .buttonStyle(.fieldPrimary)
                         .padding(.top, 24)
                 }
@@ -41,8 +43,18 @@ struct ContentView: View {
             .toolbar {
                 Button("Lock", systemImage: "lock", action: onLock)
             }
+            // Every page opened by a value is declared here, at the stack's root (scripts/test_navigation.py).
+            .navigationDestination(for: HomeLink.self) { _ in
+                if let hub { MissionListScreen(hub: hub) }
+            }
+            .navigationDestination(for: MissionLink.self) { link in
+                if let model = hub?.model { MissionWorkspaceScreen(model: model, id: link.id) }
+            }
         }
     }
+
+    /// The home screen's pages that are opened by a value.
+    enum HomeLink: Hashable { case missions }
 
     /// The home screen's notice: what the lease check destroyed, then what a shred order destroyed (#94).
     static func notice(lease: String?, shred: String?) -> String? {
