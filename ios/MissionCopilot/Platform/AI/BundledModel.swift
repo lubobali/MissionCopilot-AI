@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import os
 
 /// The on-device model that ships inside the app (#125; Lubo, Nov 5: ready on install, never a separate
 /// download). scripts/bundle_model.py copies exactly the signed files and their OpenSSF Model Signing
@@ -9,6 +10,9 @@ import Foundation
 enum BundledModel {
     static let name = "LFM2.5-1.2B-Instruct-4bit"
     static let folder = "Models"
+    /// One line per check: the result and how long it took (no file contents), for the iPhone proof.
+    static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.lubobali.missioncopilot",
+                               category: "model")
 
     enum State: Equatable, Sendable {
         case verified(files: Int)
@@ -33,13 +37,18 @@ enum BundledModel {
         }
         let signature = model.deletingLastPathComponent().appendingPathComponent("\(name).sig")
         guard let bundle = try? Data(contentsOf: signature) else { return .refused(.unsigned) }
+        let start = ContinuousClock.now
+        let state: State
         do {
-            return .verified(files: try ModelSignature.verify(modelFolder: model, bundle: bundle,
-                                                              publicKey: publicKey).count)
+            state = .verified(files: try ModelSignature.verify(modelFolder: model, bundle: bundle,
+                                                               publicKey: publicKey).count)
         } catch let failure as ModelSignature.Failure {
-            return .refused(.signature(failure))
+            state = .refused(.signature(failure))
         } catch {
-            return .refused(.signature(.malformedBundle))
+            state = .refused(.signature(.malformedBundle))
         }
+        let took = ContinuousClock.now - start
+        logger.notice("check \(String(describing: state), privacy: .public) in \(took, privacy: .public)")
+        return state
     }
 }

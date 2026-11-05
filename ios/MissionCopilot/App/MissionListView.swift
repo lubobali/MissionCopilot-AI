@@ -26,9 +26,6 @@ struct MissionListScreen: View {
             }
         }
         .navigationTitle("Missions")
-        .navigationDestination(for: MissionLink.self) { link in
-            if let model = hub.model { MissionWorkspaceScreen(model: model, id: link.id) }
-        }
         .task {
             switch hub.open() {
             case .success(let model): await model.refresh()
