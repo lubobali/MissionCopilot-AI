@@ -50,6 +50,20 @@ def test_built_must_point_at_a_file_that_exists(repo):
     assert found == ["T01: built, but no existing file is named (got: `tests/missing.py`)"]
 
 
+def test_every_named_repo_file_must_exist_not_just_one(repo):
+    where = "`tests/test_real.py`, `tests/renamed.py`, `docs/gone.md`"
+    found = check(f"| T01 | T | x | y | built | {where} |\n", repo)
+
+    assert found == ["T01: names a file that does not exist: tests/renamed.py, docs/gone.md"]
+
+
+@pytest.mark.parametrize(
+    "where", ["`/v1/health`, `tests/test_real.py`", "`X-App-Build`, `tests/test_real.py`"]
+)
+def test_routes_and_names_in_backticks_are_not_files(repo, where):
+    assert check(f"| T01 | T | x | y | built | {where} |\n", repo) == []
+
+
 def test_spike_needs_its_proof_and_the_phase_that_rebuilds_it(repo):
     assert check("| T01 | I | x | y | spike | `tests/test_real.py` |\n", repo) == [
         "T01: spike, but no phase or issue rebuilds it in the app"

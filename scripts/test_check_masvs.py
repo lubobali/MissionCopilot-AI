@@ -68,6 +68,15 @@ def test_built_needs_a_file_that_exists(tmp_path):
     assert check(table(bad), tmp_path)[0].startswith("MASVS-CODE-4: built, but no existing file")
 
 
+def test_a_second_file_that_does_not_exist_is_reported(tmp_path):
+    (tmp_path / "real.py").write_text("", encoding="utf-8")
+    row = "| MASVS-CODE-4 | " + OFFICIAL["MASVS-CODE-4"] + " | built | `real.py`, `docs/gone.md` |"
+
+    assert check(table({"MASVS-CODE-4": row}), tmp_path) == [
+        "MASVS-CODE-4: names a file that does not exist: docs/gone.md"
+    ]
+
+
 @pytest.mark.parametrize("status", ["not applicable", "accepted"])
 def test_not_applicable_and_accepted_need_a_reason(status):
     text = OFFICIAL["MASVS-PLATFORM-2"]
