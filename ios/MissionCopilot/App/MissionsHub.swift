@@ -78,7 +78,7 @@ extension Connection {
                                          schema: schema, freeSpace: space)
             return .success(MissionListModel(world: world, missions: missions) { [weak hub] body in
                 let result = ShredOrderAction.handle(body, records: records, missions: missions(),
-                                                     keys: config.pinnedKeys, now: Date())
+                                                     keys: config.pinnedKeys, now: Connection.serverNow())
                 if case .destroyed = result { hub?.forget() }
             })
         }, watch: { network.start($0) })

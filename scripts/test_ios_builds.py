@@ -194,3 +194,17 @@ def test_staging_and_release_never_pin_the_same_key():
     release = set(resolve("Release.xcconfig", None)["MC_SERVER_KEYS"].split())
 
     assert not staging & release
+
+
+def test_every_shred_order_is_judged_by_the_servers_time():
+    # #94: with now: Date() a phone whose clock is wrong refuses its genuine shred order.
+    app = ROOT / "ios" / "MissionCopilot" / "App"
+    calls = [
+        call
+        for path in app.glob("*.swift")
+        for call in re.findall(
+            r"ShredOrderAction\.handle\(.*?now:[^\n]*", path.read_text("utf-8"), re.S
+        )
+    ]
+
+    assert calls and all("now: Connection.serverNow()" in call for call in calls)

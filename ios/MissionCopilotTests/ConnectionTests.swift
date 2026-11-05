@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import Testing
 @testable import MissionCopilot
@@ -11,6 +12,21 @@ import Testing
 
         #expect(Connection.counter(for: "device-1") === first)
         #expect(Connection.counter(for: "device-2") !== first)
+    }
+
+    /// #94, found on the iPhone: a revoked phone whose clock was 10 minutes wrong refused its genuine shred
+    /// order as "not recent" and kept its missions. The order's age is now checked with the server's time.
+    @Test(.needsRepoFiles) func aShredOrderIsJudgedByTheServersTimeNotThePhonesClock() throws {
+        let fixture = ShredOrderTests.fixture
+        let key = try P256.Signing.PublicKey(derRepresentation: fixture.serverPublicKeyDER)
+        let now = Date()  // the phone's clock: far from when the order was issued
+        Connection.clock.measure(sent: now, received: now, server: fixture.issuedAt + 3)
+        defer { Connection.clock.measure(sent: Date(), received: Date(), server: Int(Date().timeIntervalSince1970)) }
+
+        #expect(ShredOrderCheck.check(fixture.body, deviceId: fixture.deviceId, keys: [key], now: now)
+                == .refused(.notRecent))
+        #expect(ShredOrderCheck.check(fixture.body, deviceId: fixture.deviceId, keys: [key],
+                                      now: Connection.serverNow()) == .valid(issuedAt: fixture.issuedAt))
     }
 
     /// #104: every client the app makes signs with the one measured server clock.
