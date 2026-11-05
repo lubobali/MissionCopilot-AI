@@ -201,7 +201,8 @@ actor PackDownloader {
 enum PackLog {
     static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.lubobali.missioncopilot",
                                category: "pack")
-    static let system: @Sendable (String) -> Void = { line in logger.info("\(line, privacy: .public)") }
+    // Notice, not info: Console shows notice lines with no setting changed, so a run is easy to watch.
+    static let system: @Sendable (String) -> Void = { line in logger.notice("\(line, privacy: .public)") }
 
     static func text(_ outcome: PackOutcome) -> String {
         switch outcome {
