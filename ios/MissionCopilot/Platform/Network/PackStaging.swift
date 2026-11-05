@@ -5,7 +5,9 @@ import Foundation
 /// locks, and a Complete file cannot be written then. They hold signed pack content for minutes only and
 /// are removed once the pack is in the encrypted store (threat model T51). Every file is named by its
 /// SHA-256, so a name from a manifest can never reach outside the folder: "<sha>.part" while it arrives,
-/// "<sha>" once it is exactly what its manifest entry says.
+/// "<sha>" once it is exactly what its manifest entry says. Paths for FileManager are written out unencoded:
+/// the app's folder is "Application Support", and "Application%20Support" names a folder that does not
+/// exist (found on the iPhone, #94).
 struct PackStaging: Sendable {
     static let protection = FileProtectionType.completeUntilFirstUserAuthentication
 
@@ -23,12 +25,15 @@ struct PackStaging: Sendable {
         self.folder = folder
     }
 
+    /// A path for FileManager, unencoded (see above).
+    static func path(_ url: URL) -> String { url.path(percentEncoded: false) }
+
     private func partURL(_ file: PackFileEntry) -> URL { folder.appending(path: "\(file.sha256).part") }
     private func readyURL(_ file: PackFileEntry) -> URL { folder.appending(path: file.sha256) }
 
     func partialSize(of file: PackFileEntry) throws -> Int {
-        guard FileManager.default.fileExists(atPath: partURL(file).path()) else { return 0 }
-        let size = try FileManager.default.attributesOfItem(atPath: partURL(file).path())[.size] as? Int
+        guard FileManager.default.fileExists(atPath: Self.path(partURL(file))) else { return 0 }
+        let size = try FileManager.default.attributesOfItem(atPath: Self.path(partURL(file)))[.size] as? Int
         return size ?? 0
     }
 
@@ -36,8 +41,8 @@ struct PackStaging: Sendable {
 
     func append(_ data: Data, to file: PackFileEntry) throws {
         let url = partURL(file)
-        if !FileManager.default.fileExists(atPath: url.path()) {
-            guard FileManager.default.createFile(atPath: url.path(), contents: nil,
+        if !FileManager.default.fileExists(atPath: Self.path(url)) {
+            guard FileManager.default.createFile(atPath: Self.path(url), contents: nil,
                                                  attributes: [.protectionKey: Self.protection])
             else { throw CocoaError(.fileWriteUnknown) }
         }
@@ -69,12 +74,12 @@ struct PackStaging: Sendable {
     func ready(_ file: PackFileEntry) throws -> Data { try Data(contentsOf: readyURL(file)) }
 
     func restart(_ file: PackFileEntry) throws {
-        if FileManager.default.fileExists(atPath: partURL(file).path()) {
+        if FileManager.default.fileExists(atPath: Self.path(partURL(file))) {
             try FileManager.default.removeItem(at: partURL(file))
         }
     }
 
     func clear() throws {
-        if FileManager.default.fileExists(atPath: folder.path()) { try FileManager.default.removeItem(at: folder) }
+        if FileManager.default.fileExists(atPath: Self.path(folder)) { try FileManager.default.removeItem(at: folder) }
     }
 }

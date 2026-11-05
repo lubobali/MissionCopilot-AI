@@ -76,10 +76,14 @@ struct ContinuedProcessingRunway: BackgroundRunway {
         -> BackgroundLease? {
         guard let identifier = Self.newIdentifier() else { return nil }
         let lease = ContinuedLease(identifier: identifier, expire: expire)
-        let registered = BGTaskScheduler.shared.register(forTaskWithIdentifier: identifier, using: nil) { task in
+        // The system runs this on a background queue (using: nil), so it must not inherit this function's main
+        // actor: Swift 6 checks that at run time and stopped the app on the iPhone (#94). The lease is locked.
+        let launch: @Sendable (BGTask) -> Void = { task in
             guard let task = task as? BGContinuedProcessingTask else { return task.setTaskCompleted(success: false) }
             lease.attach(task)
         }
+        let registered = BGTaskScheduler.shared.register(forTaskWithIdentifier: identifier, using: nil,
+                                                         launchHandler: launch)
         guard registered else { return nil }
         let request = BGContinuedProcessingTaskRequest(identifier: identifier, title: title, subtitle: subtitle)
         request.strategy = .fail

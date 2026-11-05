@@ -10,9 +10,16 @@ import Testing
 struct PackStagingTests {
     static let mission = "6f1d2c3a-0000-4000-8000-000000000001"
 
+    /// Under a folder named like the iPhone's (#94): "Application Support" has a space, and a path written
+    /// percent-encoded ("Application%20Support") names a folder that does not exist, so nothing was saved.
     private func staging() throws -> PackStaging {
         let base = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            .appendingPathComponent("Application Support", isDirectory: true)
         return try PackStaging(base: base, mission: Self.mission)
+    }
+
+    @Test func theFolderNameHasASpaceLikeTheIPhones() throws {
+        #expect(try staging().folder.path(percentEncoded: false).contains("Application Support/"))
     }
 
     private func entry(_ data: Data) -> PackFileEntry {

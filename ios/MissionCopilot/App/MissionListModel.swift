@@ -225,7 +225,8 @@ struct MissionListWorld: Sendable {
     private func resumeStopped() {
         for mission in list?.missions ?? [] where running[mission.id] == nil && mission.pack != nil {
             let paused = if case .paused(let pause) = activity[mission.id], pause != .locked { true } else { false }
-            if paused || FileManager.default.fileExists(atPath: folder(mission.id).path()) { download(mission.id) }
+            let halfDone = FileManager.default.fileExists(atPath: PackStaging.path(folder(mission.id)))
+            if paused || halfDone { download(mission.id) }
         }
     }
 

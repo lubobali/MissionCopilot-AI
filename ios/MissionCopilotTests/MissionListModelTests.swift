@@ -15,14 +15,17 @@ final class MissionListModelTests {
 
     let server = FakePackServer()
     let store: MissionStore
+    // Named like the iPhone's folder (#94): a space, which a percent-encoded path gets wrong.
     let base = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        .appendingPathComponent("Application Support", isDirectory: true)
     let service = "missioncopilot.tests.list.\(UUID().uuidString)"
     let gate = Gate()  // closed while the app is locked: no store
     var seen: [[MissionRow]] = []
     var shredOrders: [Data] = []
 
     init() throws {
-        store = MissionStore(store: try EncryptedStore.open(at: base.appendingPathExtension("sqlite"),
+        store = MissionStore(store: try EncryptedStore.open(at: FileManager.default.temporaryDirectory
+                                                                .appendingPathComponent("\(UUID().uuidString).sqlite"),
                                                             key: DataKey.random()), vault: SoftwareKeyVault())
     }
 
