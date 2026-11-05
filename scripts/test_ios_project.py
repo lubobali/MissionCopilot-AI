@@ -66,9 +66,8 @@ def test_the_workflow_uses_the_picker():
 
 
 def test_ci_signs_the_app_tests_ad_hoc_so_the_keychain_works():
-    workflow = (ROOT / ".github" / "workflows" / "ios.yml").read_text(encoding="utf-8")
-    step = workflow[workflow.index("Test on an iPhone simulator") :]
-    step = step[: step.index("- name:")]
+    # The app is signed when it is built for testing (#127 split the build from the test run).
+    step = _step_text("Build the app for testing")
 
     assert "CODE_SIGN_IDENTITY=-" in step
     assert "CODE_SIGNING_ALLOWED=NO" not in step
@@ -202,28 +201,35 @@ def test_the_app_uses_no_other_required_reason_api_than_it_declares():
     assert "volumeAvailableCapacity" in code  # the one that is declared is really used
 
 
-def _app_test_step() -> str:
+def _step_text(name: str) -> str:
     workflow = (ROOT / ".github" / "workflows" / "ios.yml").read_text(encoding="utf-8")
-    step = workflow[workflow.index("Test on an iPhone simulator") :]
-    return step[: step.index("- name:")]
+    step = workflow[workflow.index(f"- name: {name}") :]
+    return step[: step.index("- name:", 1)]
 
 
 def test_the_app_is_built_once_then_tested_without_building_so_each_is_timed():
-    # #127 step 6.2.0.1: build and test time measured apart before any caching is tried.
-    step = _app_test_step()
+    # #127 step 6.2.0.1: build and test time measured apart. The build is generic (arm64), so it
+    # needs no simulator and runs while one boots; the tests then run on the booted one.
+    build, test = _step_text("Build the app for testing"), _step_text("Test on an iPhone simulator")
 
-    build, test = "xcodebuild build-for-testing", "xcodebuild test-without-building"
-    assert step.index(build) < step.index(test)
-    assert "xcodebuild test \\" not in step  # the old build-and-test in one call is gone
-    assert "-showBuildTimingSummary" in step
+    assert "xcodebuild build-for-testing" in build and "-showBuildTimingSummary" in build
+    assert '-destination "generic/platform=iOS Simulator"' in build and "ARCHS=arm64" in build
+    assert "xcodebuild test-without-building" in test and "build-for-testing" not in test
+    assert '-destination "id=${UDID}"' in test
 
 
-def test_build_and_test_use_the_same_build_folder_and_the_same_signing():
-    step = _app_test_step()
-    middle = step.index("xcodebuild test-without-building")
-    build, test = step[step.index("xcodebuild build-for-testing") : middle], step[middle:]
+def test_build_and_test_use_the_same_build_folder():
+    for name in ("Build the app for testing", "Test on an iPhone simulator"):
+        assert '-derivedDataPath "$RUNNER_TEMP/dd"' in _step_text(name)
 
-    for part in (build, test):
-        assert '-derivedDataPath "$RUNNER_TEMP/dd"' in part
-        assert '-destination "id=${udid}"' in part
-    assert "CODE_SIGN_IDENTITY=-" in build
+
+def test_the_build_skips_the_code_index_ci_never_reads():
+    assert "COMPILER_INDEX_STORE_ENABLE=NO" in _step_text("Build the app for testing")
+
+
+def test_no_step_skips_xcodes_trust_checks_for_macros_or_plugins():
+    # They would save nothing here and silently accept a macro or plugin a dependency adds (#127).
+    workflow = (ROOT / ".github" / "workflows" / "ios.yml").read_text(encoding="utf-8")
+
+    assert "-skipMacroValidation" not in workflow
+    assert "-skipPackagePluginValidation" not in workflow

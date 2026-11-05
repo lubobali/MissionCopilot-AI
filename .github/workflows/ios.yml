@@ -81,17 +81,6 @@ jobs:
         with:
           persist-credentials: false
 
-      # A fresh runner's simulator takes about 6 minutes to boot the first time (measured, #127):
-      # start it now, in the background, so it boots while lint and the build run.
-      - name: Boot the simulator now, while the job goes on
-        run: |
-          set -euo pipefail
-          # The runner's simulator list changes over time: pick an iPhone on the newest iOS runtime.
-          udid=$(xcrun simctl list devices available -j | python3 scripts/newest_iphone.py)
-          echo "Simulator: $udid"
-          echo "UDID=$udid" >> "$GITHUB_ENV"
-          (xcrun simctl boot "$udid" > /dev/null 2>&1 &)
-
       # Cache the downloaded zips by version. They are SHA-256 verified on every run,
       # whether they came from the cache or from GitHub, so a bad cache cannot slip through.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -140,32 +129,57 @@ jobs:
               | python3 "$GITHUB_WORKSPACE/scripts/check_ios_build_settings.py" "$config"
           done
 
+      # A fresh runner's simulator takes about 6 minutes to boot the first time (measured, #127). It
+      # starts here, after lint and the light checks (booting at the start slowed them from about 50 s to
+      # about 5 minutes on the 3-core runner), so it overlaps the build.
+      - name: Boot the simulator now, while the job goes on
+        run: |
+          set -euo pipefail
+          # The runner's simulator list changes over time: pick an iPhone on the newest iOS runtime.
+          # The pick starts Apple's simulator service (about 2 minutes on a fresh runner), so it runs
+          # in the background with the boot; the next step reads the id from the file.
+          nohup bash -c 'udid=$(xcrun simctl list devices available -j | python3 "$GITHUB_WORKSPACE/scripts/newest_iphone.py") && echo "$udid" > "$RUNNER_TEMP/udid" && xcrun simctl boot "$udid"' > "$RUNNER_TEMP/boot.log" 2>&1 &
+
+      # Built once for a generic simulator (arm64 only: the runner is Apple silicon), so it needs no
+      # device and runs while the simulator boots; build and test time are measured apart (#127).
+      # Ad-hoc signed, no team or certificate: an unsigned test app gets no Keychain (-34018),
+      # and the encrypted store's tests need one (#68).
+      - name: Build the app for testing
+        working-directory: ios
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          xcodebuild build-for-testing \
+            -project MissionCopilot.xcodeproj \
+            -scheme MissionCopilot \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            -showBuildTimingSummary \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES COMPILER_INDEX_STORE_ENABLE=NO \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=
+          echo "::notice title=App build::$((SECONDS - start)) s"
+
       - name: Wait for the simulator
-        run: xcrun simctl bootstatus "$UDID" -b
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 300); do [ -s "$RUNNER_TEMP/udid" ] && break; sleep 1; done
+          cat "$RUNNER_TEMP/boot.log" || true
+          udid=$(cat "$RUNNER_TEMP/udid")  # no id after 5 minutes: the pick failed, so this step fails
+          echo "Simulator: $udid"
+          echo "UDID=$udid" >> "$GITHUB_ENV"
+          xcrun simctl bootstatus "$udid" -b  # boots it too, if the background boot did not
 
       - name: Test on an iPhone simulator
         working-directory: ios
         run: |
           set -euo pipefail
-          udid="$UDID"
-          # Built once, then tested without building, so build and test time are measured apart (#127).
-          # Ad-hoc signed, no team or certificate: an unsigned test app gets no Keychain (-34018),
-          # and the encrypted store's tests need one (#68).
           start=$SECONDS
-          xcodebuild build-for-testing \
-            -project MissionCopilot.xcodeproj \
-            -scheme MissionCopilot \
-            -destination "id=${udid}" \
-            -derivedDataPath "$RUNNER_TEMP/dd" \
-            -showBuildTimingSummary \
-            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=
-          built=$SECONDS
           xcodebuild test-without-building \
             -project MissionCopilot.xcodeproj \
             -scheme MissionCopilot \
-            -destination "id=${udid}" \
+            -destination "id=${UDID}" \
             -derivedDataPath "$RUNNER_TEMP/dd"
-          echo "::notice title=App build and test::build $((built - start)) s, tests $((SECONDS - built)) s"
+          echo "::notice title=App tests::$((SECONDS - start)) s"
 
   # The labs' own tests (spikes 14 to 16), beside the app, when the rule says so.
   labs:
@@ -189,10 +203,10 @@ jobs:
       - name: Boot the simulator now, while the job goes on
         run: |
           set -euo pipefail
-          udid=$(xcrun simctl list devices available -j | python3 scripts/newest_iphone.py)
-          echo "Simulator: $udid"
-          echo "UDID=$udid" >> "$GITHUB_ENV"
-          (xcrun simctl boot "$udid" > /dev/null 2>&1 &)
+          # The runner's simulator list changes over time: pick an iPhone on the newest iOS runtime.
+          # The pick starts Apple's simulator service (about 2 minutes on a fresh runner), so it runs
+          # in the background with the boot; the next step reads the id from the file.
+          nohup bash -c 'udid=$(xcrun simctl list devices available -j | python3 "$GITHUB_WORKSPACE/scripts/newest_iphone.py") && echo "$udid" > "$RUNNER_TEMP/udid" && xcrun simctl boot "$udid"' > "$RUNNER_TEMP/boot.log" 2>&1 &
 
       # The Encryption lab's host app is generated by XcodeGen: the same pinned, SHA-256 checked zip.
       - name: Install XcodeGen (pinned, SHA-256 verified)
@@ -209,7 +223,14 @@ jobs:
         run: sudo xcode-select -s "$XCODE_APP"
 
       - name: Wait for the simulator
-        run: xcrun simctl bootstatus "$UDID" -b
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 300); do [ -s "$RUNNER_TEMP/udid" ] && break; sleep 1; done
+          cat "$RUNNER_TEMP/boot.log" || true
+          udid=$(cat "$RUNNER_TEMP/udid")  # no id after 5 minutes: the pick failed, so this step fails
+          echo "Simulator: $udid"
+          echo "UDID=$udid" >> "$GITHUB_ENV"
+          xcrun simctl bootstatus "$udid" -b  # boots it too, if the background boot did not
 
       - name: Encryption lab tests (spike 16, SQLCipher + Keychain)
         run: ios/AILab/EncryptionLab/test.sh "id=${UDID}"

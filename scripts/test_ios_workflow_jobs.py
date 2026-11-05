@@ -83,17 +83,45 @@ def test_the_full_safety_net_runs_weekly_and_on_demand():
     assert "workflow_dispatch" in ON
 
 
+BOOT = "Boot the simulator now, while the job goes on"
+SETTINGS = "Staging and Release talk only to their own server (#104)"
+
+
+def _boot_runs_in_the_background(job: str) -> None:
+    run = _step(job, BOOT)["run"]
+    # Picking the simulator starts Apple's simulator service (about 2 minutes on a fresh runner),
+    # so the pick and the boot both go to the background; the id reaches later steps by a file.
+    assert "nohup" in run and run.rstrip().endswith("&")
+    assert 'xcrun simctl boot "$udid"' in run
+
+
+def test_the_app_job_boots_after_its_light_checks_so_they_run_on_free_cores():
+    # Measured (#127): booting at the start slowed lint, the tool check and the settings check from
+    # about 50 s to about 5 minutes on the 3-core runner. Now the boot overlaps the build only.
+    names = _names("ios")
+    boot, build = names.index(BOOT), names.index("Build the app for testing")
+    wait, test = names.index("Wait for the simulator"), names.index("Test on an iPhone simulator")
+    assert names.index(SETTINGS) < boot < build < wait < test  # the build runs while it boots
+    _boot_runs_in_the_background("ios")
+
+
+def test_the_labs_job_boots_first_it_has_nothing_else_to_slow_down():
+    names = _names("labs")
+    assert names.index(BOOT) == 1  # right after checkout
+    assert (
+        names.index(BOOT)
+        < names.index("Wait for the simulator")
+        < names.index("Encryption lab tests (spike 16, SQLCipher + Keychain)")
+    )
+    _boot_runs_in_the_background("labs")
+
+
 @pytest.mark.parametrize("job", ["ios", "labs"])
-def test_each_mac_job_boots_its_simulator_first_and_waits_for_it_only_before_testing(job):
-    names = _names(job)
-    boot = names.index("Boot the simulator now, while the job goes on")
-    assert boot == 1  # right after checkout
-    # In its own step the id is the step's $udid: $GITHUB_ENV reaches only the later steps.
-    assert '(xcrun simctl boot "$udid" > /dev/null 2>&1 &)' in _step(job, names[boot])["run"]
-    first_test = next(i for i, n in enumerate(names) if "test" in n.lower() and i > boot)
-    wait = names.index("Wait for the simulator")
-    assert boot < wait < first_test
-    assert 'xcrun simctl bootstatus "$UDID" -b' in _step(job, "Wait for the simulator")["run"]
+def test_tests_start_only_once_the_simulator_has_booted(job):
+    run = _step(job, "Wait for the simulator")["run"]
+
+    assert 'xcrun simctl bootstatus "$udid" -b' in run
+    assert 'echo "UDID=$udid" >> "$GITHUB_ENV"' in run
 
 
 @pytest.mark.parametrize("job", ["ios", "labs"])
@@ -101,4 +129,3 @@ def test_the_simulator_is_picked_once_and_used_everywhere(job):
     run = "\n".join(step.get("run", "") for step in JOBS[job]["steps"])
 
     assert run.count("scripts/newest_iphone.py") == 1
-    assert 'echo "UDID=$udid" >> "$GITHUB_ENV"' in run
