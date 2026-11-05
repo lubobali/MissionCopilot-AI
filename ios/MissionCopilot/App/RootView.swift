@@ -5,6 +5,7 @@ import SwiftUI
 struct RootView: View {
     let session: AppSession
     @State private var hub: MissionsHub
+    @Environment(\.scenePhase) private var scenePhase
 
     init(session: AppSession) {
         self.session = session
@@ -28,6 +29,11 @@ struct RootView: View {
         .tint(Color(.accent))  // toolbars and alerts too, not only screen content
         .onChange(of: session.state.isLocked) { _, locked in
             if !locked { Task { await hub.unlocked() } }
+        }
+        // Back in front within the app lock's grace time there is no unlock, yet a download paused while
+        // the phone was locked must go on (found on the iPhone, #94): the same refresh as an unlock.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active, !session.state.isLocked { Task { await hub.unlocked() } }
         }
     }
 }
