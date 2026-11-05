@@ -104,21 +104,24 @@ def test_an_empty_model_is_a_problem(repo):
     assert problems([], repo) == ["no threat rows found"]
 
 
+@pytest.mark.parametrize("phase", [4, 5])
 @pytest.mark.parametrize("status", ["spike", "planned"])
-def test_a_finished_phase_alone_is_no_plan(repo, status):
-    # Phases up to LAST_FINISHED_PHASE are done: "rebuild Phase 4" now means the row drifted.
-    found = check(f"| T01 | I | x | y | {status} | `tests/test_real.py`, rebuild Phase 4 |\n", repo)
+def test_a_finished_phase_alone_is_no_plan(repo, status, phase):
+    # Phases up to LAST_FINISHED_PHASE are done: "rebuild Phase 5" now means the row drifted.
+    row = f"| T01 | I | x | y | {status} | `tests/test_real.py`, rebuild Phase {phase} |\n"
 
-    assert found == [f"T01: {status}, but Phase 4 is finished; name a later phase or an issue"]
+    assert check(row, repo) == [
+        f"T01: {status}, but Phase {phase} is finished; name a later phase or an issue"
+    ]
 
 
-@pytest.mark.parametrize("where", ["Phase 4 and Phase 8", "Phase 4, #60", "Phase 5"])
+@pytest.mark.parametrize("where", ["Phase 4 and Phase 8", "Phase 4, #60", "Phase 6"])
 def test_an_open_phase_or_an_issue_is_still_a_plan(repo, where):
     assert check(f"| T01 | I | x | y | spike | `tests/test_real.py`, {where} |\n", repo) == []
 
 
 def test_every_phase_up_to_the_last_finished_one_counts_as_finished(repo):
-    assert LAST_FINISHED_PHASE == 4
+    assert LAST_FINISHED_PHASE == 5
     found = check("| T01 | E | x | y | planned | Phase 0 |\n", repo)
 
     assert found == ["T01: planned, but Phase 0 is finished; name a later phase or an issue"]

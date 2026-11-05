@@ -7,7 +7,7 @@ Small, offline AI for evidence-first field supervision. It runs on the iPhone in
 keeps sensitive notes on the phone, links every fact to its evidence, and only shares a report
 after a human approves it. **An untraceable claim cannot be approved.**
 
-> Status: in development (Iteration 2 · Feasibility spikes). Architecture complete. Portfolio project. Synthetic data only.
+> Status: in development. Iterations 0 to 5 done (Nov 5 2026): the encrypted store and the mission pack are built and proven on a real iPhone; field flows (Iteration 6) are next. Portfolio project. Synthetic data only.
 
 ## How this project is run
 
@@ -26,7 +26,15 @@ Every story is built test-first on its own branch and merged by a pull request t
 issue, with CI green.
 
 ## What it does
-(filled in as features ship)
+Built so far (each part test-first, the store and the pack proven on an iPhone 13 Pro Max):
+- **Connect a phone**: a one-time code, a signing key born in the phone's Secure Enclave, a manager approves it.
+- **Download a mission pack**: signed by the organization's server, every file checked; it survives a cut
+  signal, the phone locking and a server restart, and an update fetches only the files that changed
+  ([pack proof](docs/pack-proof.md)).
+- **Keep it on the phone, encrypted**: one key per mission, a 14-day lease, a hash-chained audit log, an app
+  lock; it works in airplane mode ([store proof](docs/store-proof.md)).
+- **Destroy it on order**: a revoked phone gets a signed shred order and the missions are destroyed.
+- Next: the field work itself (document scan, red flags, voice debrief, the checklist), then the report.
 
 ## Architecture
 **One-page summary: [docs/architecture-summary.md](docs/architecture-summary.md).** See [docs/architecture.md](docs/architecture.md): system context, containers, trust boundaries and the offline line. [docs/data-classification.md](docs/data-classification.md): labels, lifecycle and the data map. [docs/domain-model.md](docs/domain-model.md): the shared objects and their rules. Decisions in [docs/adr/](docs/adr/).

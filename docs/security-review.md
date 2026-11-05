@@ -10,7 +10,7 @@ code or test behind it, and most can be checked with one command from the reposi
 | Min | Read | What it shows | Check it yourself |
 |---|---|---|---|
 | 1 | [security.md](security.md) | How data is protected on the phone and the server, and what is **not** protected | |
-| 2 | [threat-model.md](threat-model.md) | 67 threats and privacy risks, each built, spike, planned or accepted, with its proof | `python3 scripts/check_threat_model.py` |
+| 2 | [threat-model.md](threat-model.md) | Every threat and privacy risk (78 on Nov 5), each built, spike, planned or accepted, with its proof | `python3 scripts/check_threat_model.py` |
 | 1 | [masvs.md](masvs.md) | All 24 OWASP MASVS v2.1 controls with their official wording and status | `python3 scripts/check_masvs.py` |
 | 1 | [data-handling.md](data-handling.md) | Every data item: where it lives, how long, encryption, who sees it, how it ends | `python3 scripts/check_data_handling.py` |
 | 1 | [ADR 0012](adr/0012-lost-seized-or-coerced-phone.md) | A lost, seized or forced phone: expiring keys, signed shred order, no hidden wipe, staff card | `uv run --directory backend pytest tests/unit/test_shred_order.py` |
@@ -32,6 +32,10 @@ Backend controls, each with its test: [backend/README.md](../backend/README.md).
   crypto-shred, signed and sealed evidence, facts that trace back to it. The phone found two bugs the
   simulator hid, both fixed. Check the phone's signed chain with the server's own code:
   `uv run --directory backend pytest tests/unit/test_evidence_v2.py`.
+- **Built and proven on the iPhone against the real staging server** ([pack proof](pack-proof.md)):
+  connecting with a one-time code and a chip key, signed mission packs checked file by file, a download that
+  survives a cut signal, the phone lock and a server restart, a shred order judged by the server's time, a
+  phone that connects again after its shred. The phone found 11 bugs the simulator hid, all fixed.
 - **Proven on the iPhone in lab code, rebuilt in the app in Phase 6:** document checks and the
   prompt-injection results. Raw results are in [spikes/results](spikes/results).
 
@@ -40,7 +44,8 @@ Backend controls, each with its test: [backend/README.md](../backend/README.md).
 - **No protection on a compromised phone** (jailbreak, malware) and no App Attest: those need a paid Apple
   team and device management, which a real deployment would add.
 - **A forced unlock shows the active missions.** Least data and expiring keys limit what that is.
-- **The phone proof is one phone,** one iOS version, a Debug build and a lock of about two minutes.
+- **The phone proofs are one phone,** one iOS version, Debug and Staging builds, a lock of about two minutes
+  and a background pause of about nine.
 - **The prompt-injection set is small and ours:** 30 attacks, one model, nobody adapting to the checks.
 - **Much is still spike or planned:** see the status columns; nothing is claimed without its proof.
 
