@@ -15,6 +15,9 @@ struct MissionListScreen: View {
                     .multilineTextAlignment(.center)
                     .padding(24)
                     .fieldScreen()
+            } else {
+                // Never empty (#94): an empty screen has no size, so its .task never runs and it stays blank.
+                Loading(text: "Loading missions")
             }
         }
         .navigationTitle("Missions")
