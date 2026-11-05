@@ -90,7 +90,7 @@ Each was fixed test first and mutation checked, on branch `story/94-iphone-proof
 ## Seen, not fixed (small, written down)
 - **The manifest is asked again on every list refresh**, even when the pack is complete: 7 times in 84 s
   after step d, each one a `pack_downloaded` audit row on the server. No file is fetched, so it costs little
-  data, but it fills the audit log. Better: ask only when the list says a newer version exists.
+  data, but it fills the audit log. Better: ask only when the list says a newer version exists (#121).
 - In step e a second run started in the middle of the file (a refresh while one was going). No piece was
   repeated.
 - Console's live view showed some log lines three times; the archived log has each line once.

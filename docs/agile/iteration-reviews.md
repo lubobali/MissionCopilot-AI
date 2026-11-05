@@ -172,3 +172,57 @@ ended by iOS (#85), plus the open items from Iteration 3 (#60, #63 to #66).
 
 **Next:** Iteration 5 · Mission pack: the backend prepares a mission, the phone downloads it and works
 offline.
+
+## Iteration 5 · Mission pack (done Nov 5 2026)
+**Done:** the backend prepares a signed mission pack, the phone downloads it, keeps it encrypted and works
+offline, all on a real server and proven on the real iPhone. Twelve stories, 22 pull requests (#96 to #120)
+plus this review, CI green on every merge.
+
+| Story | Result |
+|---|---|
+| #87 Field Navy theme | One theme file (light, dark, increased contrast, 4.5:1 checked), Dynamic Type only, the logo as app icon and on the lock and launch screens; guards against raw colors and fixed sizes |
+| #88 One database per organization | Postgres, one database and two roles per organization; one organization's login cannot reach another's database; a shared directory holds ids only |
+| #89 Signed mission pack | P-256 over the exact manifest bytes, every file by SHA-256 and size, a never-older version rule, limits in the contract |
+| #90 Signed requests and shred orders | The phone signs every request with its chip key and a request counter; a revoked phone gets a signed shred order |
+| #60 Shred order on the phone | Verified against the pinned key, then the missions destroyed and the shred recorded |
+| #91 Download that survives a bad signal | 1 MiB pieces with resume, pauses for no connection, a busy server and the phone lock, never fails for them |
+| #92 Ready for offline | The pack checked again and sealed into the encrypted store in one transaction; the mission list and pack screens |
+| #93 Site checklist | The KoBo / XLSForm format, a contract with limits, English and French, an .xlsx converter on the server |
+| #103, #104 The real server | Staging and production on a shared server (ADR 0013): containers by digest, backups with a tested restore, TLS 1.2+; Debug, Staging and Release builds each talk only to their own server |
+| #94 iPhone proof | 10 of 10 steps on the iPhone against staging: Wi-Fi, mobile data, IPv6 only, airplane mode, the lock, a server restart, a wrong clock, an old app, a revoke ([pack proof](../pack-proof.md)) |
+| #95 This review | T32 to built, Phase 5 finished in the guard, the security docs and README brought up to date |
+
+**Measured:**
+- Tests: 1,903 (backend 864, scripts 340, main app 564, encryption lab 50, document lab 62, speech lab 23),
+  up from 669.
+- Threat model: 46 built, 5 spike, 15 planned, 5 accepted (was 27, 6, 22, 5), plus 7 privacy risks. MASVS:
+  12 built, 2 spike, 3 planned, 5 accepted, 2 not applicable (was 10, 2, 5, 5, 2). Self-assessed, **not
+  independently audited**.
+- Mutation checks: 744 counted in the stories' pull requests, all caught or shown to be equivalent; #92 and
+  the earlier #94 fixes were checked rule by rule without a count. OpenSSF Scorecard 6.9 (was 6.6).
+
+**Learned:**
+- **The real phone found 11 bugs the simulator and the local end to end hid.** Among them: a crash because
+  the system calls the background task's handler off the main actor; file paths broken by the space in
+  "Application Support"; a wrong clock that made the phone refuse its own genuine shred order (security);
+  a shredded phone that could never connect again. Each was fixed test first ([pack proof](../pack-proof.md)).
+- **A store rule that looked safe blocked a normal case.** One shred per mission ever meant a mission sent
+  again after a shred could never be destroyed again. The fix needed design first: mission lives (ADR 0008).
+- **CI only runs when there is a pull request.** An iOS 27-only call built on the Mac and broke on CI's
+  Xcode 26, found a day late because the branch had no PR yet.
+- **A mutation run can lie through Python's cache.** A mutant restored within the same second and the same
+  size left a stale compiled file, and the next test run used the mutant. Mutation runs now turn the cache off.
+- **Statuses drift outside the guarded files too.** The README still said Iteration 2 and the review page
+  counted 67 threats; both fixed here.
+
+**Changed in the plan:**
+- The backend moved to a real shared server in this iteration (#103, ADR 0013) instead of staying local, so
+  the phone proof ran against staging, not a laptop.
+- A pull request is opened as soon as a story branch is pushed, so CI's Xcode builds every push.
+- QR code enrollment (#119) added before the demo, in Phase 8; the fictional country Kandor stays until Phase 10.
+
+**Open** (each is an issue): the manifest asked on every list refresh (#121), a store proof in a Release
+build (#84), a lock test over hours (#85), plus the open items from Iteration 3 (#63 to #66) and speech (#39).
+
+**Next:** Iteration 6 · Field flows: document scan, red flags, the voice debrief and the checklist, all
+offline on the iPhone.
