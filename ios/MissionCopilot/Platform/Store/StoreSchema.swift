@@ -183,6 +183,52 @@ enum StoreSchema {
                 BEGIN SELECT RAISE(ABORT, 'append-only: shred events cannot be deleted'); END;
                 """)
         }
+        // The site walk (#129): checklist answers and agreed-action checks, sealed with the mission key,
+        // changeable until the walk is finished; then the database refuses any change. Like every
+        // append-only row they go only with their whole mission (a purge after a shred), so a mission's
+        // next life (#94) starts with a fresh walk.
+        migrator.registerMigration("v11-site-walk") { database in
+            try database.execute(sql: """
+                CREATE TABLE site_answer (
+                    mission_id TEXT NOT NULL REFERENCES mission(id) ON DELETE CASCADE,
+                    form_id TEXT NOT NULL, question TEXT NOT NULL,
+                    sealed_value BLOB NOT NULL, answered_at REAL NOT NULL,
+                    PRIMARY KEY (mission_id, form_id, question));
+                CREATE TABLE action_check (
+                    mission_id TEXT NOT NULL REFERENCES mission(id) ON DELETE CASCADE,
+                    action_key TEXT NOT NULL CHECK (length(action_key) = 64),
+                    seen TEXT NOT NULL CHECK (seen IN ('done', 'inProgress', 'notStarted', 'couldNotCheck')),
+                    sealed_note BLOB, checked_at REAL NOT NULL,
+                    PRIMARY KEY (mission_id, action_key));
+                CREATE TABLE site_walk_finished (
+                    mission_id TEXT NOT NULL REFERENCES mission(id) ON DELETE CASCADE,
+                    form_id TEXT NOT NULL, form_version TEXT NOT NULL, finished_at REAL NOT NULL,
+                    PRIMARY KEY (mission_id, form_id));
+                """)
+            let answerDone = "SELECT 1 FROM site_walk_finished f WHERE f.mission_id = %@.mission_id "
+                + "AND f.form_id = %@.form_id"
+            let checkDone = "SELECT 1 FROM site_walk_finished f WHERE f.mission_id = %@.mission_id"
+            let stillThere = "EXISTS (SELECT 1 FROM mission WHERE id = OLD.mission_id)"
+            for (table, done) in [("site_answer", answerDone), ("action_check", checkDone)] {
+                let new = done.replacingOccurrences(of: "%@", with: "NEW")
+                let old = done.replacingOccurrences(of: "%@", with: "OLD")
+                try database.execute(sql: """
+                    CREATE TRIGGER \(table)_locked_insert BEFORE INSERT ON \(table) WHEN EXISTS (\(new))
+                    BEGIN SELECT RAISE(ABORT, 'site walk finished: \(table) rows cannot change'); END;
+                    CREATE TRIGGER \(table)_locked_update BEFORE UPDATE ON \(table) WHEN EXISTS (\(old))
+                    BEGIN SELECT RAISE(ABORT, 'site walk finished: \(table) rows cannot change'); END;
+                    CREATE TRIGGER \(table)_locked_delete BEFORE DELETE ON \(table)
+                    WHEN \(stillThere) AND EXISTS (\(old))
+                    BEGIN SELECT RAISE(ABORT, 'site walk finished: \(table) rows cannot change'); END;
+                    """)
+            }
+            try database.execute(sql: """
+                CREATE TRIGGER site_walk_finished_no_update BEFORE UPDATE ON site_walk_finished
+                BEGIN SELECT RAISE(ABORT, 'append-only: a finished walk cannot be changed'); END;
+                CREATE TRIGGER site_walk_finished_no_delete BEFORE DELETE ON site_walk_finished WHEN \(stillThere)
+                BEGIN SELECT RAISE(ABORT, 'append-only: a finished walk goes only with its mission'); END;
+                """)
+        }
         return migrator
     }
 }

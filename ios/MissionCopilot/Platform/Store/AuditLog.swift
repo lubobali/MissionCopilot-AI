@@ -7,6 +7,8 @@ struct AuditEvent: Sendable, Equatable {
     enum Action: String, Codable, Sendable {
         case missionCreated, evidenceAdded, factAdded, sentenceAdded, leaseRenewed, missionShredded, missionPurged
         case packImported  // #92: the target is the version ("v3"), never any content
+        // #129: the target is the question's name, the action's key, or the form and its version; never a value
+        case siteAnswered, actionChecked, siteWalkFinished
     }
 
     let seq: Int
