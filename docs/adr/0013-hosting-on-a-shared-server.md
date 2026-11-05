@@ -1,6 +1,6 @@
 # ADR 0013: Hosting on a shared server
 
-- Status: accepted (Iteration 5, story #103 "the backend on a real server"; staging live, prod after the phone's end to end)
+- Status: accepted (Iteration 5, story #103 "the backend on a real server"; staging and prod live, each proven end to end with enroll, approve and revoke)
 - Date: 2026-11-05
 
 ## Context
