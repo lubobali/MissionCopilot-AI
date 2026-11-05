@@ -45,6 +45,7 @@ struct MissionWords: Sendable {
         case .slowDown(let seconds): "Too many requests for now. It goes on by itself in \(Self.wait(seconds))."
         case .busy(let seconds): "The server is busy or restarting. It goes on by itself in \(Self.wait(seconds))."
         case .locked: "Downloaded. It is added when you unlock the app."
+        case .phoneLocked: "Paused while the iPhone is locked. It goes on when you open the app again."
         }
     }
 

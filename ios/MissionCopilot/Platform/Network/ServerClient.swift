@@ -32,7 +32,8 @@ struct URLSessionTransport: Transport {
 /// Debug build allows it (the local server); only paths under /v1/.
 struct ServerClient: Sendable {
     enum Kind: Equatable, Sendable {
-        case success, refused, notFound, shredOrder, rangeOutside, slowDown, busy, appTooOld, offline, failed, notSent
+        case success, refused, notFound, shredOrder, rangeOutside, slowDown, busy, appTooOld, offline, phoneLocked
+        case failed, notSent
     }
 
     enum Outcome: Equatable, Sendable {
@@ -45,6 +46,7 @@ struct ServerClient: Sendable {
         case busy(Int?)  // 502, 503, 504: restarting or overloaded; seconds to wait, if the server said (#104)
         case appTooOld(Int?)  // 403 app_too_old: update the app; the server's minimum build, if it said (#104)
         case offline  // no signal or the server cannot be reached
+        case phoneLocked  // locked: the chip key and request counter cannot be used; nothing was sent (#94)
         case failed(Int)  // any other answer, or a broken one (0)
         case notSent  // refused before sending: an address or path the phone never uses
 
@@ -59,6 +61,7 @@ struct ServerClient: Sendable {
             case .busy: .busy
             case .appTooOld: .appTooOld
             case .offline: .offline
+            case .phoneLocked: .phoneLocked
             case .failed: .failed
             case .notSent: .notSent
             }
@@ -114,7 +117,7 @@ struct ServerClient: Sendable {
                 request.setValue(value, forHTTPHeaderField: name)  // after the extras: these always win
             }
         } catch {
-            return .notSent
+            return Self.isPhoneLocked(error) ? .phoneLocked : .notSent
         }
         return await Self.outcome(now: now()) { try await transport.send(request) }
     }
@@ -126,6 +129,14 @@ struct ServerClient: Sendable {
         let signature = try signer.sign(try DeviceSigning.requestMessage(request))
         return ["X-Device-Id": deviceId, "X-Device-Seq": String(seq), "X-Device-Time": String(time),
                 "X-Device-Signature": signature.base64EncodedString()]
+    }
+
+    /// The Keychain's answer while the phone is locked: an item kept "when unlocked" (the chip key, the request
+    /// counter) cannot be read, and the chip will not sign.
+    static func isPhoneLocked(_ error: Error) -> Bool {
+        if let failure = error as? KeychainFailure { return failure.status == errSecInteractionNotAllowed }
+        let found = error as NSError
+        return found.domain == NSOSStatusErrorDomain && found.code == Int(errSecInteractionNotAllowed)
     }
 
     /// GET /v1/health, plain: not signed, so no request number is used. True when the server's time came.

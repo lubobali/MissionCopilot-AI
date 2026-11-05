@@ -28,9 +28,13 @@ struct MissionStore: Sendable {
 
     /// The rows of a new mission, inside a write that may do more (a pack import, #92).
     func insert(_ mission: NewMission, now: Date, in database: Database) throws {
-        try database.execute(sql: "INSERT INTO mission VALUES (?, ?, ?, ?, ?)", arguments: [
+        // The next life: 1 for a new mission, one more than its last shredded life after a shred (#94).
+        try database.execute(sql: """
+            INSERT INTO mission (id, title, classification, encapsulated_key, wrapped_key, life)
+            VALUES (?, ?, ?, ?, ?, (SELECT coalesce(max(life), 0) + 1 FROM shred_event WHERE mission_id = ?))
+            """, arguments: [
             mission.id, mission.title, mission.classification.rawValue, mission.wrapped.encapsulatedKey,
-            mission.wrapped.ciphertext
+            mission.wrapped.ciphertext, mission.id
         ])
         try database.execute(sql: "INSERT INTO mission_lease VALUES (?, ?, ?)",
                              arguments: [mission.id, now.timeIntervalSince1970, KeyLease.defaultDays])

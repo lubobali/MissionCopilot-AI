@@ -7,6 +7,7 @@ enum MissionPause: Equatable, Sendable {
     case slowDown(Int)  // the server asked to wait: goes on by itself after these seconds (#104)
     case busy(Int)  // the server is restarting or overloaded: goes on by itself after these seconds (#104)
     case locked  // downloaded and checked, waiting for the store: goes on after unlock
+    case phoneLocked  // the phone was locked mid download: goes on when the app is opened again (#94)
 }
 
 /// A download running or stopped for one mission.

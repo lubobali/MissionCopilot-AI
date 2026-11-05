@@ -14,6 +14,7 @@ enum PackPause: Equatable, Sendable {
     case offline
     case slowDown(Int)  // 429: seconds
     case busy(Int?)  // the server is restarting or overloaded; seconds, if it said (#104)
+    case phoneLocked  // the phone was locked: the next piece could not be signed; goes on when the app opens (#94)
     case interrupted  // the system wanted the time back, or the user stopped it
 }
 

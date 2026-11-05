@@ -112,7 +112,8 @@ struct StagingE2ETests {
         let records = DeviceRecordStore(service: service, user: "officer-7")
         try records.save(DeviceRecord(deviceId: deviceId, approved: true))
 
-        #expect(ShredOrderAction.handle(order, records: records, missions: missions, keys: config.pinnedKeys,
+        #expect(ShredOrderAction.handle(order, phone: .init(records: records,
+                                        forgetKey: {}), missions: missions, keys: config.pinnedKeys,
                                         now: Date()) == .destroyed(list.missions.count))
         #expect(records.load() == nil)
         try note("done", "shred order checked and acted on: \(list.missions.count) missions destroyed", in: staging.out)

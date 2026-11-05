@@ -68,7 +68,12 @@ flowchart TB
    (ADR 0006).
 7. **Crypto-shred.** When the server confirms receipt, a retention clock starts (default 30 days,
    set per organization). At the end, the wrapped MK is deleted, which makes that mission's data
-   unreadable at once; the files are then removed.
+   unreadable at once; the files are then removed. A shred is recorded per **life** of a mission
+   (append-only, never changed or deleted). If the organization later sends the same mission again
+   (the phone was connected again), the shredded life's unreadable rows are removed and the mission
+   starts its next life under a **fresh** key; the old key is never brought back, the shred record
+   stays, the next shred destroys the new life, and the "never an older pack" rule still holds
+   because the last accepted version is kept outside the mission's rows (#94).
 8. **App lock.** The app asks for Face ID or the passcode when opened and locks after inactivity.
    Details, with key expiry and what happens to a lost, seized or coerced phone: ADR 0012.
 
@@ -101,6 +106,11 @@ flowchart TB
   found before the organization is known (phones, enrollment codes, the security audit log) lives in
   one shared **directory** database that holds ids, never mission data. Rule 3 (per-organization keys
   for data at rest and backups) is not built yet: it comes with deployment hardening (Iteration 9).
+
+- **Found on the iPhone (#94):** the first design allowed one shred record per mission for ever, so
+  a phone shredded and then connected again could never take its mission back. Schema v10 adds the
+  mission's life and an append-only shred event per life; old records became life 1. A store error
+  that is not "phone locked" is now said as "could not save", never shown as locked.
 
 ## Revisit when
 - An organization needs managers to read raw evidence without trusting the server (then consider

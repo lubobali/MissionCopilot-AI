@@ -52,6 +52,24 @@ struct EncryptedStoreTests {
 
         #expect(try reopened.appliedMigrations()
             == ["v1-store-info", "v2-missions", "v3-leases-and-shreds", "v4-evidence", "v5-facts", "v6-sentences",
-                "v7-append-only", "v8-audit", "v9-pack-files"])
+                "v7-append-only", "v8-audit", "v9-pack-files", "v10-mission-lives"])
+    }
+
+    @Test func aShredFromBeforeMissionLivesStaysAShredAfterTheUpgrade() throws {
+        // #94: a phone shredded on build 2 keeps its record, now as the mission's first life.
+        let file = path()
+        let key = try DataKey.random()
+        let old = try EncryptedStore.open(at: file, key: key, upTo: "v9-pack-files")
+        try old.rawExecuteForTests("""
+            INSERT INTO mission VALUES ('kandor-roads', 'Roads', 'official_use_only', x'00', x'00');
+            INSERT INTO mission VALUES ('kandor-ports', 'Ports', 'official_use_only', x'00', x'00');
+            INSERT INTO shred_record VALUES ('kandor-roads', 'shredOrder', 1000);
+            """)
+
+        let missions = MissionStore(store: try EncryptedStore.open(at: file, key: key), vault: SoftwareKeyVault())
+
+        #expect(try missions.shredRecords().map(\.mission) == ["kandor-roads"])
+        #expect(try missions.isShredded("kandor-roads"))
+        #expect(try missions.isShredded("kandor-ports") == false)
     }
 }

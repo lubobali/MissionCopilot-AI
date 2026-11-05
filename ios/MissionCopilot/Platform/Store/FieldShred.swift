@@ -74,24 +74,53 @@ extension MissionStore {
 
     func shredRecords() throws -> [ShredRecord] {
         try store.read { database in
-            try Row.fetchAll(database, sql: "SELECT mission_id, reason, at FROM shred_record ORDER BY mission_id")
+            try Row.fetchAll(database, sql: "SELECT mission_id, reason, at FROM shred_event ORDER BY mission_id, life")
         }.map { row in
             guard let reason = ShredRecord.Reason(rawValue: row["reason"]) else { throw ShredRecord.UnknownReason() }
             return ShredRecord(mission: row["mission_id"], reason: reason, time: Date(timeIntervalSince1970: row["at"]))
         }
     }
 
+    /// True when the mission's current life was shredded: its key is gone and only unreadable rows are left.
+    func isShredded(_ mission: String) throws -> Bool {
+        try store.read { database in
+            try Bool.fetchOne(database, sql: """
+                SELECT EXISTS (SELECT 1 FROM mission m JOIN shred_event s ON s.mission_id = m.id AND s.life = m.life
+                               WHERE m.id = ?)
+                """, arguments: [mission]) ?? false
+        }
+    }
+
+    /// A shredded mission's next life (#94: a phone connected again after a shred could never take its
+    /// mission back). The key is destroyed again (already gone; ADR 0008 rule 7, key first) and the
+    /// unreadable rows of the shredded life are removed with an audit event; its shred event stays, and the
+    /// next import creates the mission's next life under a fresh key, which the next shred destroys again.
+    func reprovision(_ mission: String, at now: Date) throws {
+        try? shred(mission: mission)
+        try store.write { database in
+            try database.execute(sql: "DELETE FROM mission WHERE id = ?", arguments: [mission])
+            try EncryptedStore.appendAudit(AuditEntry(action: .missionPurged, actor: actor, mission: mission,
+                                                      target: "reprovisioned", time: now), in: database)
+        }
+    }
+
+    /// Missions whose current life has not been shredded.
     private func liveMissionIDs() throws -> [String] {
-        let done = Set(try shredRecords().map(\.mission))
-        return try missionIDs().filter { !done.contains($0) }
+        try store.read { database in
+            try String.fetchAll(database, sql: """
+                SELECT id FROM mission m WHERE NOT EXISTS
+                    (SELECT 1 FROM shred_event s WHERE s.mission_id = m.id AND s.life = m.life) ORDER BY id
+                """)
+        }
     }
 
     /// Key first, then the record: a crash in between leaves an unreadable mission, never a readable one.
     private func shred(_ mission: String, reason: ShredRecord.Reason, at now: Date) throws -> ShredRecord {
         try shred(mission: mission)
         try store.write { database in
-            try database.execute(sql: "INSERT INTO shred_record VALUES (?, ?, ?)",
-                                 arguments: [mission, reason.rawValue, now.timeIntervalSince1970])
+            try database.execute(sql: """
+                INSERT INTO shred_event VALUES (?, (SELECT life FROM mission WHERE id = ?), ?, ?)
+                """, arguments: [mission, mission, reason.rawValue, now.timeIntervalSince1970])
             try EncryptedStore.appendAudit(AuditEntry(action: .missionShredded, actor: actor, mission: mission,
                                                       target: reason.rawValue, time: now), in: database)
         }

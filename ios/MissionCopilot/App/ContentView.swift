@@ -17,7 +17,7 @@ struct ContentView: View {
                     .font(.title.bold())
                 Text("Offline AI for field missions")
                     .foregroundStyle(Color(.secondaryText))
-                if let notice {
+                if let notice = Self.notice(lease: notice, shred: hub?.shredNotice) {
                     Text(notice)
                         .font(.footnote)
                         .multilineTextAlignment(.center)
@@ -46,5 +46,11 @@ struct ContentView: View {
                 Button("Lock", systemImage: "lock", action: onLock)
             }
         }
+    }
+
+    /// The home screen's notice: what the lease check destroyed, then what a shred order destroyed (#94).
+    static func notice(lease: String?, shred: String?) -> String? {
+        let parts = [lease, shred].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 }

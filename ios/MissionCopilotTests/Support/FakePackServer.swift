@@ -23,6 +23,10 @@ final class FakePackServer: Transport, @unchecked Sendable {
     var busyAt: Set<Int> = []  // these file requests (1-based) answer 503, once each (#104)
     var busyFrom: Int?  // every file request from this one on answers 503
     var busyRetryAfter: String?  // the Retry-After header on those 503 answers
+    var nextPack: NextPack?  // a newer version, served instead (#94)
+
+    /// A newer pack version: its manifest, its signature and the files it adds or changes (by SHA-256).
+    struct NextPack { let manifest: Data, signature: Data, files: [String: Data] }
     var missionList: (status: Int, body: Data)?  // GET /v1/missions; nil: roads with the fixture's pack, bridges none
     private(set) var requests: [URLRequest] = []
     private(set) var fileRequests = 0
@@ -79,6 +83,7 @@ final class FakePackServer: Transport, @unchecked Sendable {
         }
         if path.hasSuffix("/pack/manifest") {
             if let (status, body) = manifestStatus { return Answer(status, [:], body) }
+            if let nextPack { return Answer(200, ["ETag": "\"m2\""], nextPack.manifest) }
             return Answer(200, ["ETag": "\"m\""], Self.file("manifest.json"))
         }
         if path.hasSuffix("/pack/signature") {
@@ -90,6 +95,7 @@ final class FakePackServer: Transport, @unchecked Sendable {
                 let other = #"{"keyId":"\#(keyId)","algorithm":"ecdsa-p256-sha256","signature":"MEUCIQD/"}"#
                 return Answer(200, [:], Data(other.utf8))
             }
+            if let nextPack { return Answer(200, [:], nextPack.signature) }
             return Answer(200, [:], Self.file("signature.json"))
         }
         guard let sha = path.split(separator: "/").last.map(String.init) else { return Answer(404, [:], Data()) }
@@ -107,7 +113,7 @@ final class FakePackServer: Transport, @unchecked Sendable {
             dropOnce = nil
             throw URLError(.networkConnectionLost)
         }
-        var data = Self.file("files/\(sha)")
+        var data = nextPack?.files[sha] ?? Self.file("files/\(sha)")
         if let times = corrupt[sha], times > 0 {
             corrupt[sha] = times - 1
             data[0] ^= 0x01

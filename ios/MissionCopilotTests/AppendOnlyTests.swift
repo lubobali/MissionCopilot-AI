@@ -17,6 +17,8 @@ struct AppendOnlyTests {
         try store.create(mission: "old", title: "old")
         _ = try store.shredAll(reason: .officer, at: Date(), policy: FieldPolicy())
         try store.create(mission: "kandor-roads-2", title: "second")
+        // A record from before mission lives (#94): the old table is no longer written, but stays protected.
+        try store.store.rawExecuteForTests("INSERT INTO shred_record VALUES ('old', 'officer', 1000)")
         return store
     }
 
@@ -35,13 +37,15 @@ struct AppendOnlyTests {
         "UPDATE fact_source SET region = 'elsewhere'",
         "UPDATE sentence SET section = 'changed'",
         "UPDATE sentence_fact SET position = 9",
-        "UPDATE shred_record SET reason = 'officer'"
+        "UPDATE shred_record SET reason = 'officer'",
+        "UPDATE shred_event SET reason = 'officer'"
     ])
     func noRecordCanBeChanged(sql: String) throws {
         #expect(refused(try store(), sql))
     }
 
-    @Test(arguments: ["evidence", "fact", "fact_source", "sentence", "sentence_fact", "shred_record"])
+    @Test(arguments: ["evidence", "fact", "fact_source", "sentence", "sentence_fact", "shred_record",
+                     "shred_event"])
     func noRecordCanBeDeletedOnItsOwn(table: String) throws {
         #expect(refused(try store(), "DELETE FROM \(table)"))
     }

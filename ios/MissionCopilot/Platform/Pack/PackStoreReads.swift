@@ -27,6 +27,16 @@ extension MissionStore {
                 .map(ChecklistSummary.init))
     }
 
+    /// The bytes of the stored file with this SHA-256 (any path), or nil: a newer pack takes an unchanged
+    /// file from here instead of fetching it again (#94). The caller checks it against its manifest entry.
+    func packFile(sha256: String, in mission: String) throws -> Data? {
+        let path = try store.read { database in
+            try String.fetchOne(database, sql: "SELECT path FROM pack_file WHERE mission_id = ? AND sha256 = ?",
+                                arguments: [mission, sha256])
+        }
+        return try path.map { try packFile($0, in: mission) }
+    }
+
     /// One file of the mission's pack, exactly as signed.
     func packFile(_ path: String, in mission: String) throws -> Data {
         let sealed = try store.read { database in

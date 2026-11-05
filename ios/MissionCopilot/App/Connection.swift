@@ -6,8 +6,13 @@ import SwiftUI
 /// (#104), so the phone's clock is measured once and every request is signed with the server's time.
 @MainActor enum Connection {
     static let counterService = "com.lubobali.missioncopilot.requests"
-    static let clock = ServerClock()
+    nonisolated static let clock = ServerClock()
     private static var counters: [String: RequestCounter] = [:]
+
+    /// Now by the server's clock (the phone's corrected by the measured difference, #104). A shred order's
+    /// age is judged with it (#94): a phone whose own clock is wrong, by mistake or on purpose, must not
+    /// refuse a genuine order as old and keep its missions.
+    nonisolated static func serverNow() -> Date { Date(timeIntervalSince1970: TimeInterval(clock.time(Date()))) }
 
     /// Every client of the organization's server: its counter and the shared clock always attached.
     static func client(_ config: ServerConfig, deviceId: String, signer: EvidenceSigner) -> ServerClient {
@@ -33,9 +38,11 @@ import SwiftUI
             enroller: enroller, records: records,
             client: { deviceId in client(config, deviceId: deviceId, signer: signer) },
             onShredOrder: { body in
-                ShredOrderAction.handle(body, records: records, missions: missions(), keys: config.pinnedKeys,
-                                        now: Date())
-            })
+                let phone = ShredOrderAction.Phone(records: records, forgetKey: { try? signer.deleteKey() })
+                return ShredOrderAction.handle(body, phone: phone, missions: missions(), keys: config.pinnedKeys,
+                                               now: Connection.serverNow())
+            },
+            freshKey: { try? signer.deleteKey() })
     }
 
     /// What a build without a usable server says.
@@ -67,6 +74,9 @@ struct ConnectionScreen: View {
                     .multilineTextAlignment(.center)
                     .padding(24)
                     .fieldScreen()
+            } else {
+                // Never empty (#94): an empty screen has no size, so its .task never runs and it stays blank.
+                Loading(text: "Getting ready to connect")
             }
         }
         .task {
@@ -76,5 +86,17 @@ struct ConnectionScreen: View {
                 problem = error
             }
         }
+    }
+}
+
+/// What a screen shows while it gets ready: a short line on the theme background, never an empty screen.
+struct Loading: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .foregroundStyle(Color(.secondaryText))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .fieldScreen()
     }
 }

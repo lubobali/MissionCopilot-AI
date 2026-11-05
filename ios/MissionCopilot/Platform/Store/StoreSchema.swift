@@ -164,6 +164,25 @@ enum StoreSchema {
                     PRIMARY KEY (mission_id, path));
                 """)
         }
+        // Mission lives (#94, found on the iPhone): shred_record allows one shred per mission ever, so a
+        // phone connected again after a shred could never take its mission back, and reusing the mission
+        // would make its next shred fail. A mission now has lives: each life is shredded at most once, the
+        // events stay append-only, and a new life starts under a fresh key. Old records become life 1;
+        // shred_record is kept as it was (append-only) and no longer written.
+        migrator.registerMigration("v10-mission-lives") { database in
+            try database.execute(sql: """
+                ALTER TABLE mission ADD COLUMN life INTEGER NOT NULL DEFAULT 1 CHECK (life >= 1);
+                CREATE TABLE shred_event (
+                    mission_id TEXT NOT NULL, life INTEGER NOT NULL CHECK (life >= 1),
+                    reason TEXT NOT NULL, at REAL NOT NULL,
+                    PRIMARY KEY (mission_id, life));
+                INSERT INTO shred_event SELECT mission_id, 1, reason, at FROM shred_record;
+                CREATE TRIGGER shred_event_no_update BEFORE UPDATE ON shred_event
+                BEGIN SELECT RAISE(ABORT, 'append-only: shred events cannot be changed'); END;
+                CREATE TRIGGER shred_event_no_delete BEFORE DELETE ON shred_event
+                BEGIN SELECT RAISE(ABORT, 'append-only: shred events cannot be deleted'); END;
+                """)
+        }
         return migrator
     }
 }

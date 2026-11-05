@@ -22,7 +22,8 @@ struct StoredPack: Sendable, Equatable {
 /// contract's schema; then one transaction creates the mission on its first pack, applies the version rule
 /// again (another import may have come first), replaces the older pack, seals every file with the mission
 /// key, records the accepted version and appends an audit event. Only after that commits is the download
-/// folder deleted. A paused store (the phone locked) refuses and keeps the folder for the next try.
+/// folder deleted. A paused store (the phone locked) refuses and keeps the folder for the next try; any
+/// other store error is its own refusal.
 enum PackImport {
     static func run(_ ready: PackReady, title: String, into store: MissionStore, schema: PackSchema,
                     now: Date = Date()) throws(PackRefusal) -> StoredPack {
@@ -35,6 +36,13 @@ enum PackImport {
         }
         let project = try PackSections.check(files, schema: schema)
         do {
+            if try store.isShredded(pack.missionId) {
+                // The version rule first, so a refused pack changes nothing (#94).
+                if let last = try store.lastAcceptedPack(for: pack.missionId), pack.version < last.version {
+                    throw PackRefusal.older
+                }
+                try store.reprovision(pack.missionId, at: now)
+            }
             let key = try missionKey(for: pack.missionId, title: title, in: store, now: now)
             try store.store.write { database in
                 if try !exists(pack.missionId, in: database), let wrapped = key.newWrapped {
@@ -47,8 +55,10 @@ enum PackImport {
             }
         } catch let refusal as PackRefusal {
             throw refusal
+        } catch EncryptedStore.Failure.suspended {
+            throw .storeUnavailable  // paused while locked: the folder waits for the next try
         } catch {
-            throw .storeUnavailable
+            throw .storeFailed  // any other store error is shown, never taken for a locked phone (#94)
         }
         try? ready.staging.clear()  // a folder left behind is swept when the mission list opens (#92)
         return StoredPack(packId: pack.packId, version: pack.version, manifestSHA256: PackAcceptance.hash(

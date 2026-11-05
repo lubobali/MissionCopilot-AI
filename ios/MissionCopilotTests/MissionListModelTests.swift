@@ -15,26 +15,31 @@ final class MissionListModelTests {
 
     let server = FakePackServer()
     let store: MissionStore
+    // Named like the iPhone's folder (#94): a space, which a percent-encoded path gets wrong.
     let base = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        .appendingPathComponent("Application Support", isDirectory: true)
     let service = "missioncopilot.tests.list.\(UUID().uuidString)"
     let gate = Gate()  // closed while the app is locked: no store
     var seen: [[MissionRow]] = []
     var shredOrders: [Data] = []
 
     init() throws {
-        store = MissionStore(store: try EncryptedStore.open(at: base.appendingPathExtension("sqlite"),
+        store = MissionStore(store: try EncryptedStore.open(at: FileManager.default.temporaryDirectory
+                                                                .appendingPathComponent("\(UUID().uuidString).sqlite"),
                                                             key: DataKey.random()), vault: SoftwareKeyVault())
     }
 
     func model(now: Date = now, wait: @escaping @Sendable (Int) async -> Void = { _ in },
-               jitter: @escaping @Sendable (Int) -> Int = { $0 }) throws -> MissionListModel {
+               jitter: @escaping @Sendable (Int) -> Int = { $0 },
+               signer: EvidenceSigner = SoftwareEvidenceSigner(),
+               also: P256.Signing.PublicKey? = nil) throws -> MissionListModel {
         let client = ServerClient(base: URL(string: "https://kandor-works.example.org")!,
-                                  deviceId: "6f1d2c3a-1111-4000-8000-000000000007", signer: SoftwareEvidenceSigner(),
+                                  deviceId: "6f1d2c3a-1111-4000-8000-000000000007", signer: signer,
                                   counter: RequestCounter(items: KeychainItems(service: service), account: "phone"),
                                   transport: server)
         let key = PackVerifierTests.fixtureKey
         let pinned: @Sendable (String) -> P256.Signing.PublicKey? = { id in
-            ServerConfig.keyId(key.derRepresentation) == id ? key : nil
+            [key, also].compactMap { $0 }.first { ServerConfig.keyId($0.derRepresentation) == id }
         }
         let world = MissionListWorld(client: client, keys: pinned,
                                      stagingBase: base, schema: try PackSectionsTests.schema(), runways: [],
@@ -95,16 +100,15 @@ final class MissionListModelTests {
 
     // Stopped, and going on by itself
 
-    @Test(.needsRepoFiles) func aLostSignalPausesAndTheDownloadGoesOnWhenTheConnectionReturns() async throws {
-        let list = try model()
+    @Test(.needsRepoFiles) func aLostSignalPausesAndTheDownloadGoesOnByItself() async throws {
+        let list = try model()  // waits are instant here: the offline pause tries again at once (#94)
         await list.refresh()
         server.dropOnce = 6
 
         list.download(Self.roads)
         await list.downloadsEnded()
-        #expect(row(list, Self.roads)?.status == .paused(.offline))
-        list.connectionChanged(online: true)
-        await list.downloadsEnded()
+
+        #expect(seen.contains { $0.first { $0.id == Self.roads }?.status == .paused(.offline) })
 
         #expect(row(list, Self.roads)?.status == .ready(updated: Self.now))
         #expect(server.bytesSent == PackDownloaderTests.packBytes)  // not one byte twice
@@ -122,6 +126,17 @@ final class MissionListModelTests {
         await reopened.downloadsEnded()
 
         #expect(row(reopened, Self.roads)?.status == .ready(updated: Self.now))
+    }
+
+    @Test(.needsRepoFiles) func aStoreThatCannotSaveIsSaidAsSuchNeverAsLocked() async throws {
+        // #94: every store error used to show as "locked", so a real failure waited for an unlock for ever.
+        try store.store.rawExecuteForTests("""
+            CREATE TRIGGER refuse_files BEFORE INSERT ON pack_file BEGIN SELECT RAISE(ABORT, 'full'); END
+            """)
+
+        let list = try await downloaded()
+
+        #expect(row(list, Self.roads)?.status == .failed(.storage))
     }
 
     @Test(.needsRepoFiles) func aPackCheckedWhileTheAppWasLockedIsAddedAfterUnlock() async throws {

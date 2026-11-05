@@ -78,9 +78,10 @@ struct KeepGoingTests {
         #expect(runway.lease.seen == ["end false"])
     }
 
-    @Test func theRealContinuedProcessingTaskRefusesCleanlyOnTheSimulator() {
+    @Test func theRealContinuedProcessingTaskRefusesCleanlyOnTheSimulator() async {
         #if targetEnvironment(simulator)
-        #expect(ContinuedProcessingRunway().begin(title: "t", subtitle: "s") {} == nil)
+        let lease = await ContinuedProcessingRunway().begin(title: "t", subtitle: "s") {}
+        #expect(lease == nil)
         #endif
     }
 

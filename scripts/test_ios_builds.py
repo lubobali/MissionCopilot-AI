@@ -194,3 +194,24 @@ def test_staging_and_release_never_pin_the_same_key():
     release = set(resolve("Release.xcconfig", None)["MC_SERVER_KEYS"].split())
 
     assert not staging & release
+
+
+def test_every_shred_order_is_judged_by_the_servers_time():
+    # #94: with now: Date() a phone whose clock is wrong refuses its genuine shred order.
+    app = ROOT / "ios" / "MissionCopilot" / "App"
+    calls = [
+        call
+        for path in app.glob("*.swift")
+        for call in re.findall(
+            r"ShredOrderAction\.handle\(.*?now:[^\n]*", path.read_text("utf-8"), re.S
+        )
+    ]
+
+    assert calls and all("now: Connection.serverNow()" in call for call in calls)
+
+
+def test_a_destroyed_list_keeps_the_shred_notice():
+    # #94: the hub forgot the list without saying why, so the screen stayed on "Loading missions".
+    hub = (ROOT / "ios/MissionCopilot/App/MissionsHub.swift").read_text("utf-8")
+
+    assert "if case .destroyed(let count) = result { hub?.forget(destroyed: count) }" in hub

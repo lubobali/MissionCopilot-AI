@@ -140,6 +140,35 @@ struct MissionListRetryTests {
         #expect(rig.row(model, roads)?.status == .ready(updated: MissionListModelTests.now))
     }
 
+    /// #94: on the iPhone, when airplane mode went off the app tried at once, the network was not ready, the
+    /// try ended offline, and nothing tried again until a tap. An offline pause now tries again by itself.
+    @Test(.needsRepoFiles) func aLostConnectionIsTriedAgainByItselfWithoutAnyNetworkChange() async throws {
+        let server = rig.server
+        let model = try await list(onWait: { server.offline = false })  // the network is back after the wait
+        server.offline = true
+
+        model.download(roads)
+        await model.downloadsEnded()
+
+        #expect(waited.all == [5])
+        #expect(rig.row(model, roads)?.status == .ready(updated: MissionListModelTests.now))
+    }
+
+    @Test(.needsRepoFiles) func aConnectionThatStaysAwayIsTriedFiveTimesThenWaitsForTheNetwork() async throws {
+        let model = try await list()
+        rig.server.offline = true
+
+        model.download(roads)
+        await model.downloadsEnded()
+
+        #expect(waited.all == [5, 10, 20, 40, 80])
+        #expect(rig.row(model, roads)?.status == .paused(.offline))  // never "failed": it goes on later
+        rig.server.offline = false
+        model.connectionChanged(online: true)
+        await model.downloadsEnded()
+        #expect(rig.row(model, roads)?.status == .ready(updated: MissionListModelTests.now))
+    }
+
     @Test(.needsRepoFiles) func slowDownWaitsTheServersTimeThenGoesOn() async throws {
         let server = rig.server
         let model = try await list(onWait: { server.manifestStatus = nil })  // the server is fine again

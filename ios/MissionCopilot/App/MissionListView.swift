@@ -10,11 +10,19 @@ struct MissionListScreen: View {
             if let model = hub.model {
                 MissionListView(rows: model.rows, message: model.message, onDownload: model.download)
                     .refreshable { await model.refresh() }
+            } else if let notice = hub.shredNotice {
+                Text(notice)
+                    .multilineTextAlignment(.center)
+                    .padding(24)
+                    .fieldScreen()
             } else if let problem {
                 Text(MissionsHub.text(problem))
                     .multilineTextAlignment(.center)
                     .padding(24)
                     .fieldScreen()
+            } else {
+                // Never empty (#94): an empty screen has no size, so its .task never runs and it stays blank.
+                Loading(text: "Loading missions")
             }
         }
         .navigationTitle("Missions")
