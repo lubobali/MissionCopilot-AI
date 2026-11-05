@@ -120,8 +120,21 @@ def test_the_labs_job_boots_first_it_has_nothing_else_to_slow_down():
 def test_tests_start_only_once_the_simulator_has_booted(job):
     run = _step(job, "Wait for the simulator")["run"]
 
-    assert 'xcrun simctl bootstatus "$udid" -b' in run
     assert 'echo "UDID=$udid" >> "$GITHUB_ENV"' in run
+    assert 'xcrun simctl bootstatus "$udid"' in run
+
+
+@pytest.mark.parametrize("job", ["ios", "labs"])
+def test_the_wait_never_boots_a_simulator_the_background_is_still_booting(job):
+    # Found on the first run (#127): the wait's own boot (bootstatus -b) raced the background boot
+    # and failed with "Unable to boot device in current state: Booted". The background writes the
+    # boot's exit code when it is done; the wait boots only if that boot failed.
+    assert 'echo $? > "$RUNNER_TEMP/boot.exit"' in _step(job, BOOT)["run"]
+    wait = _step(job, "Wait for the simulator")["run"]
+    assert '[ -s "$RUNNER_TEMP/boot.exit" ]' in wait
+    before_done, after_done = wait.split('[ -s "$RUNNER_TEMP/boot.exit" ]', 1)
+    assert "bootstatus" not in before_done  # nothing touches the simulator before the boot is done
+    assert 'if [ "$(cat "$RUNNER_TEMP/boot.exit")" = 0 ]; then' in after_done
 
 
 @pytest.mark.parametrize("job", ["ios", "labs"])
