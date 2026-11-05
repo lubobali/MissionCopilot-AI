@@ -10,6 +10,7 @@ import re
 import sys
 from pathlib import Path
 
+from airplane_mark import write_airplane
 from PIL import Image, ImageDraw
 
 ICON_SIZE = 1024
@@ -103,6 +104,7 @@ def write_assets(logo: Image.Image, catalog: Path = CATALOG) -> None:
             _save(make(logo, scale), folder / name)
             images.append({"filename": name, "idiom": "universal", "scale": f"{scale}x"})
         _contents(folder / "Contents.json", images=images)
+    write_airplane(catalog)
     _contents(catalog / "Contents.json")
 
 
@@ -112,7 +114,7 @@ def main() -> int:
         return 2
     write_assets(Image.open(sys.argv[1]))
     write_launch_color(PALETTE.read_text(encoding="utf-8"))
-    print(f"OK: icon and logo written to {CATALOG}")
+    print(f"OK: icon, logo and airplane written to {CATALOG}")
     return 0
 
 

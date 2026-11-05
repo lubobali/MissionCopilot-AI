@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from airplane_mark import svg
 from make_brand_assets import (
     ICON_SIZE,
     LOGO_POINTS,
@@ -126,3 +127,9 @@ def test_the_catalog_has_the_launch_logo_too(tmp_path):
         ]
     ]
     assert names == ["LaunchLogo@2x.png", "LaunchLogo@3x.png"]
+
+
+def test_the_catalog_has_our_airplane_too(tmp_path):
+    write_assets(_logo(), tmp_path)
+
+    assert (tmp_path / "Airplane.imageset" / "Airplane.svg").read_text() == svg()
