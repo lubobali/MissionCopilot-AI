@@ -208,3 +208,10 @@ def test_every_shred_order_is_judged_by_the_servers_time():
     ]
 
     assert calls and all("now: Connection.serverNow()" in call for call in calls)
+
+
+def test_a_destroyed_list_keeps_the_shred_notice():
+    # #94: the hub forgot the list without saying why, so the screen stayed on "Loading missions".
+    hub = (ROOT / "ios/MissionCopilot/App/MissionsHub.swift").read_text("utf-8")
+
+    assert "if case .destroyed(let count) = result { hub?.forget(destroyed: count) }" in hub

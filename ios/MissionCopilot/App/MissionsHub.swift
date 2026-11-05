@@ -12,6 +12,9 @@ import Observation
     }
 
     private(set) var model: MissionListModel?
+    /// After a shred order destroyed the list (#94): said on the missions and home screens, in place of a
+    /// list that will not come back, until this phone is connected again and a new list opens.
+    private(set) var shredNotice: String?
     private let make: @MainActor (MissionsHub) -> Result<MissionListModel, Problem>
     private let watch: (@escaping @MainActor (Bool) -> Void) -> Void
     private var watching = false
@@ -30,6 +33,7 @@ import Observation
         let made = make(self)
         if case .success(let fresh) = made {
             model = fresh
+            shredNotice = nil
             startWatching()
         }
         return made
@@ -38,7 +42,17 @@ import Observation
     /// After unlock: a pack that finished while the store was closed goes in, stopped downloads go on.
     func unlocked() async { await model?.refresh() }
 
-    func forget() { model = nil }
+    /// - Parameter destroyed: how many missions a shred order destroyed, said until a new list opens.
+    func forget(destroyed: Int? = nil) {
+        model = nil
+        if let destroyed { shredNotice = Self.shredText(destroyed) }
+    }
+
+    nonisolated static func shredText(_ count: Int) -> String {
+        let missions = count == 1 ? "1 mission was" : "\(count) missions were"
+        return "Your organization disconnected this iPhone, so its \(missions) destroyed. "
+            + "Ask your admin before connecting again."
+    }
 
     private func startWatching() {
         guard !watching else { return }
@@ -80,7 +94,7 @@ extension Connection {
                 let phone = ShredOrderAction.Phone(records: records, forgetKey: { try? signer.deleteKey() })
                 let result = ShredOrderAction.handle(body, phone: phone, missions: missions(),
                                                      keys: config.pinnedKeys, now: Connection.serverNow())
-                if case .destroyed = result { hub?.forget() }
+                if case .destroyed(let count) = result { hub?.forget(destroyed: count) }
             })
         }, watch: { network.start($0) })
     }

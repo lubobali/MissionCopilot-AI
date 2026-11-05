@@ -48,6 +48,47 @@ struct MissionsHubTests {
         #expect(made == 2)
     }
 
+    // After a shred order (#94, found on the iPhone: the missions screen stayed on "Loading missions")
+
+    @Test func aShredOrderIsSaidUntilANewListOpens() throws {
+        var answers: [Result<MissionListModel, MissionsHub.Problem>] = [.success(try rig.model()),
+                                                                         .failure(.notConnected),
+                                                                         .success(try rig.model())]
+        let hub = MissionsHub(make: { _ in answers.removeFirst() }, watch: { _ in })
+        _ = hub.open()
+
+        hub.forget(destroyed: 2)
+
+        #expect(hub.model == nil)
+        #expect(hub.shredNotice == "Your organization disconnected this iPhone, so its 2 missions were destroyed. "
+            + "Ask your admin before connecting again.")
+        _ = hub.open()  // still not connected: the notice stays
+        #expect(hub.shredNotice != nil)
+        _ = hub.open()  // connected again, a new list
+        #expect(hub.shredNotice == nil)
+    }
+
+    @Test func oneDestroyedMissionIsSaidInTheSingular() {
+        #expect(MissionsHub.shredText(1) == "Your organization disconnected this iPhone, so its 1 mission was "
+            + "destroyed. Ask your admin before connecting again.")
+    }
+
+    @Test func theHomeScreenSaysTheShredOrderToo() {
+        #expect(ContentView.notice(lease: nil, shred: nil) == nil)
+        #expect(ContentView.notice(lease: nil, shred: "B.") == "B.")
+        #expect(ContentView.notice(lease: "A.", shred: "B.") == "A. B.")
+    }
+
+    @Test func forgettingWithoutAShredSaysNothing() throws {
+        let model = try rig.model()
+        let hub = MissionsHub(make: { _ in .success(model) }, watch: { _ in })
+        _ = hub.open()
+
+        hub.forget()
+
+        #expect(hub.shredNotice == nil)
+    }
+
     @Test(.needsRepoFiles) func theConnectionComingBackReachesTheList() async throws {
         var changed: (@MainActor (Bool) -> Void)?
         let model = try rig.model()
