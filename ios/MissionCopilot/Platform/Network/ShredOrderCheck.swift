@@ -48,14 +48,24 @@ private struct ShredOrderFields: Decodable { let deviceId: String, scope: String
 enum ShredOrderAction {
     enum Result: Equatable, Sendable { case destroyed(Int), ignored(ShredOrderCheck.Refusal) }
 
-    static func handle(_ body: Data, records: DeviceRecordStore, missions: MissionStore?,
+    /// This phone's identity: its enrollment record and the way to delete its chip key. Both go in a shred
+    /// (#94): the server never takes a key it already knows, a revoked one included, so a shredded phone
+    /// that kept its key could never connect again.
+    struct Phone {
+        let records: DeviceRecordStore
+        let forgetKey: () -> Void
+    }
+
+    static func handle(_ body: Data, phone: Phone, missions: MissionStore?,
                        keys: [P256.Signing.PublicKey], now: Date) -> Result {
+        let records = phone.records
         let deviceId = records.load()?.deviceId ?? ""
         if case .refused(let why) = ShredOrderCheck.check(body, deviceId: deviceId, keys: keys, now: now) {
             return .ignored(why)
         }
         let destroyed = (try? missions?.shredAll(reason: .shredOrder, at: now, policy: FieldPolicy()))?.count ?? 0
         try? records.items.delete(records.user)
+        phone.forgetKey()
         return .destroyed(destroyed)
     }
 }

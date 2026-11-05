@@ -77,7 +77,8 @@ extension Connection {
             let world = MissionListWorld(client: client, keys: { config.key(for: $0) }, stagingBase: base,
                                          schema: schema, freeSpace: space)
             return .success(MissionListModel(world: world, missions: missions) { [weak hub] body in
-                let result = ShredOrderAction.handle(body, records: records, missions: missions(),
+                let phone = ShredOrderAction.Phone(records: records, forgetKey: { try? signer.deleteKey() })
+                let result = ShredOrderAction.handle(body, phone: phone, missions: missions(),
                                                      keys: config.pinnedKeys, now: Connection.serverNow())
                 if case .destroyed = result { hub?.forget() }
             })

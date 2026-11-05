@@ -82,6 +82,22 @@ import UIKit
         #expect(transport.sent.count == 1)
     }
 
+    /// #94, found on the iPhone: a phone shredded before it deleted its chip key kept presenting the revoked
+    /// key, which the server never takes again ("That code did not work"), even with a good code. Every new
+    /// connection now starts from a fresh chip key; a phone already connected keeps its own.
+    @Test func connectingStartsFromAFreshChipKey() async {
+        var fresh = 0
+        let transport = FakeTransport(status: 201, body: Self.enrolled)
+        let model = EnrollmentModel(enroller: enroller(transport),
+                                    records: DeviceRecordStore(service: service, user: "officer-7"),
+                                    client: { _ in fatalError("not used") }, freshKey: { fresh += 1 })
+
+        await model.enroll(code: Self.code)
+
+        #expect(fresh == 1)
+        #expect(model.state == .waitingForApproval)
+    }
+
     @Test func aBrokenAnswerIsAFailureNotAnEnrollment() async {
         let transport = FakeTransport(status: 201, body: Data("not json".utf8))
 

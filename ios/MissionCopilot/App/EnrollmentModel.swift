@@ -14,23 +14,30 @@ import Observation
     private let records: DeviceRecordStore
     private let client: (String) -> ServerClient
     private let onShredOrder: (Data) -> ShredOrderAction.Result
+    private let freshKey: () -> Void
 
     static let revoked =
         "This iPhone was revoked, so its missions were destroyed. Ask your admin before connecting again."
 
-    /// - Parameter onShredOrder: checks a shred order and acts on it only if it passes (ShredOrderAction).
+    /// - Parameters:
+    ///   - onShredOrder: checks a shred order and acts on it only if it passes (ShredOrderAction).
+    ///   - freshKey: deletes a chip key left from before (#94), so a new connection makes its own: the
+    ///     server never takes a key it already knows, a revoked one included.
     init(enroller: Enroller, records: DeviceRecordStore, client: @escaping (String) -> ServerClient,
-         onShredOrder: @escaping (Data) -> ShredOrderAction.Result = { _ in .ignored(.notAnOrder) }) {
+         onShredOrder: @escaping (Data) -> ShredOrderAction.Result = { _ in .ignored(.notAnOrder) },
+         freshKey: @escaping () -> Void = {}) {
         self.enroller = enroller
         self.records = records
         self.client = client
         self.onShredOrder = onShredOrder
+        self.freshKey = freshKey
         state = Self.state(of: records.load())
     }
 
     func enroll(code: String) async {
         busy = true
         defer { busy = false }
+        if records.load() == nil { freshKey() }
         let result = await enroller.enroll(code: code)
         guard case .enrolled(let deviceId) = result else {
             message = Self.text(result)

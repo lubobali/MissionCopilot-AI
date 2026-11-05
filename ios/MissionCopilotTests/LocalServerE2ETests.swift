@@ -79,7 +79,8 @@ struct LocalServerE2ETests {
         let records = DeviceRecordStore(service: service, user: "officer-7")
         try records.save(DeviceRecord(deviceId: deviceId, approved: true))
 
-        #expect(ShredOrderAction.handle(order, records: records, missions: missions, keys: config.pinnedKeys,
+        #expect(ShredOrderAction.handle(order, phone: .init(records: records,
+                                        forgetKey: {}), missions: missions, keys: config.pinnedKeys,
                                         now: Date()) == .destroyed(2))
         #expect(records.load() == nil)
     }

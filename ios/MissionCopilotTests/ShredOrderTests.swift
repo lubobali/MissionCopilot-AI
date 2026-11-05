@@ -133,11 +133,16 @@ struct ShredOrderTests {
         let store = try missions(["kandor-roads", "kandor-bridges"])
         let records = try records()
 
-        let result = ShredOrderAction.handle(ShredOrderTests.fixture.body, records: records, missions: store,
+        var forgotten = false
+        let phone = ShredOrderAction.Phone(records: records, forgetKey: { forgotten = true })
+        let result = ShredOrderAction.handle(ShredOrderTests.fixture.body, phone: phone, missions: store,
                                              keys: [ShredOrderTests.serverKey],
                                              now: ShredOrderTests.at(ShredOrderTests.fixture.issuedAt + 3))
 
         #expect(result == .destroyed(2))
+        // #94, found on the iPhone: a shredded phone kept its chip key, the server refuses a key it knows
+        // (revoked included), so the phone could never connect again. The revoked identity goes too.
+        #expect(forgotten)
         #expect((try? store.notes(in: "kandor-roads")) == nil && (try? store.notes(in: "kandor-bridges")) == nil)
         #expect(try store.shredRecords().map(\.reason) == [.shredOrder, .shredOrder])
         #expect(records.load() == nil)
@@ -147,11 +152,14 @@ struct ShredOrderTests {
         let store = try missions(["kandor-roads"])
         let records = try records()
 
-        let result = ShredOrderAction.handle(ShredOrderTests.fixture.body, records: records, missions: store,
+        var forgotten = false
+        let phone = ShredOrderAction.Phone(records: records, forgetKey: { forgotten = true })
+        let result = ShredOrderAction.handle(ShredOrderTests.fixture.body, phone: phone, missions: store,
                                              keys: [P256.Signing.PrivateKey().publicKey],
                                              now: ShredOrderTests.at(ShredOrderTests.fixture.issuedAt))
 
         #expect(result == .ignored(.badSignature))
+        #expect(!forgotten)
         #expect(try store.notes(in: "kandor-roads").isEmpty == false)
         #expect(try store.shredRecords().isEmpty)
         #expect(records.load() != nil)
@@ -160,8 +168,9 @@ struct ShredOrderTests {
     @Test(.needsRepoFiles) func aPhoneThatIsNotEnrolledIgnoresEveryOrder() throws {
         let store = try missions(["kandor-roads"])
 
-        let result = ShredOrderAction.handle(ShredOrderTests.fixture.body,
-                                             records: DeviceRecordStore(service: service, user: "nobody"),
+        let nobody = ShredOrderAction.Phone(records: DeviceRecordStore(service: service, user: "nobody"),
+                                            forgetKey: {})
+        let result = ShredOrderAction.handle(ShredOrderTests.fixture.body, phone: nobody,
                                              missions: store, keys: [ShredOrderTests.serverKey],
                                              now: ShredOrderTests.at(ShredOrderTests.fixture.issuedAt))
 
@@ -172,7 +181,8 @@ struct ShredOrderTests {
     @Test(.needsRepoFiles) func anOrderWhileTheStoreIsClosedStillForgetsTheEnrollmentAndSaysSo() throws {
         let records = try records()
 
-        let result = ShredOrderAction.handle(ShredOrderTests.fixture.body, records: records, missions: nil,
+        let result = ShredOrderAction.handle(ShredOrderTests.fixture.body, phone: .init(records: records,
+                                        forgetKey: {}), missions: nil,
                                              keys: [ShredOrderTests.serverKey],
                                              now: ShredOrderTests.at(ShredOrderTests.fixture.issuedAt))
 
