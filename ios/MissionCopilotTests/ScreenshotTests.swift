@@ -27,6 +27,13 @@ struct ScreenshotTests {
         try check(LockScreen(session: session), look: look, name: "lock")
     }
 
+    /// #123: the logo, a line and our airplane above the app's name.
+    @Test(arguments: Look.allCases)
+    func theHomeTitleIsOnTheThemeBackground(look: Look) throws {
+        try check(HomeTitle().padding(24).frame(maxHeight: .infinity, alignment: .top).fieldScreen(),
+                  look: look, name: "home")
+    }
+
     @Test(arguments: Look.allCases)
     func thePrivacyCoverIsOnTheThemeBackground(look: Look) throws {
         try check(PrivacyCover(), look: look, name: "cover")
@@ -91,7 +98,8 @@ struct ScreenshotTests {
         let renderer = ImageRenderer(content: view  // a view taller than the phone is cut at the bottom
             .frame(width: Self.phone.width, height: Self.phone.height, alignment: .top)
             .environment(\.colorScheme, look.scheme)
-            .environment(\.dynamicTypeSize, look.size))
+            .environment(\.dynamicTypeSize, look.size)
+            .environment(\.stillMarks, true))  // the medallion at rest: no reflection caught mid-pass
         renderer.scale = 2
         let image = try #require(renderer.cgImage)
 

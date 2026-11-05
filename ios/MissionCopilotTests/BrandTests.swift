@@ -57,4 +57,50 @@ struct BrandTests {
         #expect(height(.large) >= 96)
         #expect(height(.accessibility3) > height(.large))
     }
+
+    // MARK: The medallion on the home screen (#123)
+
+    @Test func ourAirplaneShipsAsATemplateSoTheThemeColorsIt() throws {
+        let airplane = try #require(UIImage(named: AirplaneMark.imageName))
+
+        #expect(airplane.renderingMode == .alwaysTemplate)
+    }
+
+    @MainActor
+    @Test(arguments: [(ColorScheme.light, ColorMode.light), (.dark, .dark)])
+    func theMedallionAtRestShowsTheLogoTileThenThePlane(scheme: ColorScheme, mode: ColorMode) throws {
+        let image = try Self.render(BrandMedallion(), scheme: scheme, width: 382)
+
+        #expect(image.width == Int(BrandMedallion.size.width) && image.height == Int(BrandMedallion.size.height))
+        // The logo's white tile on the left (its left edge, half way down).
+        let tileLeft = Int(BrandMedallion.logoCentre.x) - 26
+        #expect(Pixel.rgb(image, column: tileLeft, row: image.height / 2) == RGB(hex: 0xFFFFFF))
+        // At rest the plane sits at the end of the takeoff curve, in the accent color.
+        let rest = BrandMedallion.arc.end
+        #expect(Pixel.rgb(image, column: Int(rest.x), row: Int(rest.y)) == Palette.rgb(.accent, mode))
+    }
+
+    @MainActor
+    @Test func atTheLargestTextTheMedallionStillFitsTheScreen() throws {
+        let image = try Self.render(BrandMedallion().environment(\.dynamicTypeSize, .accessibility5),
+                                    scheme: .light, width: 382)
+
+        #expect(image.width <= 382)
+        #expect(CGFloat(image.width) > BrandMedallion.size.width, "it still grows with the text")
+        // The logo and the plane grow with the medallion, never past it: just right of the logo's tile
+        // (where the trail starts) is glass, not the tile's white.
+        let scale = CGFloat(image.width) / BrandMedallion.size.width
+        let column = Int((BrandMedallion.logoCentre.x + 34) * scale)
+        let white = (0..<image.height).filter { Pixel.rgb(image, column: column, row: $0) == RGB(hex: 0xFFFFFF) }
+        #expect(white.count < 4, "the logo's tile reaches into the trail")
+    }
+
+    /// The view at 1x, offered `width` points like the home screen's column.
+    @MainActor
+    private static func render(_ view: some View, scheme: ColorScheme, width: CGFloat) throws -> CGImage {
+        let renderer = ImageRenderer(content: view.environment(\.colorScheme, scheme).environment(\.stillMarks, true))
+        renderer.proposedSize = ProposedViewSize(width: width, height: nil)
+        renderer.scale = 1
+        return try #require(renderer.cgImage)
+    }
 }

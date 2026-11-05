@@ -1,15 +1,18 @@
 """Build the app icon and the logo images from the developer's logo file (#87).
 
 Usage: uv run --directory backend python ../scripts/make_brand_assets.py <logo.png>
+       [--preview <out.png>]
 Writes into ios/MissionCopilot/Assets.xcassets. The logo is not under the code license (README).
 New PNGs are saved without the source file's metadata.
 """
 
 import json
+import math
 import re
 import sys
 from pathlib import Path
 
+from airplane_mark import render, write_airplane
 from PIL import Image, ImageDraw
 
 ICON_SIZE = 1024
@@ -20,9 +23,14 @@ APP = Path(__file__).resolve().parents[1] / "ios" / "MissionCopilot"
 CATALOG = APP / "Assets.xcassets"
 PALETTE = APP / "Platform" / "Theme" / "Palette.swift"
 BACKGROUND = re.compile(r"case \.background: Row\(light: 0x([0-9A-F]{6}), dark: 0x([0-9A-F]{6})")
+TEXT = re.compile(r"case \.text: Row\(light: 0x([0-9A-F]{6})")
+ICON_GAP = 40  # clear pixels each mark keeps from the diagonal and from the edges (#123)
+# App Store, Home Screen, Spotlight, Settings, notifications: where the icon is seen
+PREVIEW_SIZES = (1024, 180, 120, 87, 58, 40)
 
 
-def make_icon(logo: Image.Image) -> Image.Image:
+def make_logo_icon(logo: Image.Image) -> Image.Image:
+    """The first icon (#87): the logo alone on white. Kept as the fallback (#123, L.4)."""
     logo = logo.convert("RGBA")
     # Scale up or down so the longest side is exactly the fill (thumbnail would only shrink).
     ratio = ICON_SIZE * ICON_FILL / max(logo.size)
@@ -31,6 +39,59 @@ def make_icon(logo: Image.Image) -> Image.Image:
     icon = Image.new("RGB", (ICON_SIZE, ICON_SIZE), (255, 255, 255))
     icon.paste(logo, ((ICON_SIZE - logo.width) // 2, (ICON_SIZE - logo.height) // 2), logo)
     return icon
+
+
+def make_icon(logo: Image.Image, navy: tuple[int, int, int]) -> Image.Image:
+    """The app icon (#123): split on the diagonal from top right to bottom left, the logo on the
+    white top-left half and our airplane, white, on the navy bottom-right half. Each mark sits in
+    the largest circle that fits its half, less ICON_GAP, so it never touches the diagonal, an edge,
+    or the corners iOS rounds off."""
+    icon = Image.new("RGB", (ICON_SIZE, ICON_SIZE), (255, 255, 255))
+    ImageDraw.Draw(icon).polygon(
+        [(ICON_SIZE, 0), (ICON_SIZE, ICON_SIZE), (0, ICON_SIZE)], fill=navy
+    )
+    radius = ICON_SIZE * (2 - math.sqrt(2)) / 2  # the circle inside each right triangle
+    room = radius - ICON_GAP
+    logo = logo.convert("RGBA")
+    ratio = 2 * room / math.hypot(*logo.size)  # the logo's box fits inside the circle
+    logo = logo.resize(
+        (round(logo.width * ratio), round(logo.height * ratio)), Image.Resampling.LANCZOS
+    )
+    icon.paste(logo, (round(radius - logo.width / 2), round(radius - logo.height / 2)), logo)
+    side = round(room * math.sqrt(2))  # the airplane's square fits inside the other circle
+    plane = render(side, (255, 255, 255))
+    corner = round(ICON_SIZE - radius - side / 2)
+    icon.paste(plane, (corner, corner), plane)
+    return icon
+
+
+def make_preview(icon: Image.Image) -> Image.Image:
+    """The icon at each size it is seen, with iOS's rounded corners, on a mid gray (Lubo's look)."""
+    gap = 24
+    sheet = Image.new(
+        "RGB",
+        (sum(PREVIEW_SIZES) + gap * (len(PREVIEW_SIZES) + 1), 1024 + 2 * gap),
+        (128, 128, 128),
+    )
+    left = gap
+    for size in PREVIEW_SIZES:
+        small = icon.resize((size, size), Image.Resampling.LANCZOS)
+        mask = Image.new("L", (size, size), 0)
+        ImageDraw.Draw(mask).rounded_rectangle(
+            (0, 0, size - 1, size - 1), radius=round(size * 0.2237), fill=255
+        )
+        sheet.paste(small, (left, gap + (1024 - size) // 2), mask)
+        left += size + gap
+    return sheet
+
+
+def navy_color(palette_swift: str) -> tuple[int, int, int]:
+    """The icon's navy: the theme's light text color, read from the palette so it cannot drift."""
+    match = TEXT.search(palette_swift)
+    if not match:
+        raise ValueError("no text row in Palette.swift")
+    value = match.group(1)
+    return (int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16))
 
 
 def make_logo(logo: Image.Image, scale: int) -> Image.Image:
@@ -92,7 +153,8 @@ def write_launch_color(palette_swift: str, catalog: Path = CATALOG) -> None:
 
 def write_assets(logo: Image.Image, catalog: Path = CATALOG) -> None:
     icon_set = catalog / "AppIcon.appiconset"
-    _save(make_icon(logo), icon_set / "AppIcon.png")
+    navy = navy_color(PALETTE.read_text(encoding="utf-8"))
+    _save(make_icon(logo, navy), icon_set / "AppIcon.png")
     icon = {"filename": "AppIcon.png", "idiom": "universal", "platform": "ios", "size": "1024x1024"}
     _contents(icon_set / "Contents.json", images=[icon])
     for set_name, make in (("Logo", make_logo), ("LaunchLogo", make_tile)):
@@ -103,16 +165,22 @@ def write_assets(logo: Image.Image, catalog: Path = CATALOG) -> None:
             _save(make(logo, scale), folder / name)
             images.append({"filename": name, "idiom": "universal", "scale": f"{scale}x"})
         _contents(folder / "Contents.json", images=images)
+    write_airplane(catalog)
     _contents(catalog / "Contents.json")
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
+    args = sys.argv[1:]
+    if len(args) not in (1, 3) or (len(args) == 3 and args[1] != "--preview"):
         print(__doc__)
         return 2
-    write_assets(Image.open(sys.argv[1]))
+    logo = Image.open(args[0])
+    write_assets(logo)
     write_launch_color(PALETTE.read_text(encoding="utf-8"))
-    print(f"OK: icon and logo written to {CATALOG}")
+    if len(args) == 3:  # the sheet is for looking at, never committed
+        navy = navy_color(PALETTE.read_text(encoding="utf-8"))
+        make_preview(make_icon(logo, navy)).save(args[2])
+    print(f"OK: icon, logo and airplane written to {CATALOG}")
     return 0
 
 
