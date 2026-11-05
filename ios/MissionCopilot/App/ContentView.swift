@@ -12,11 +12,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
-                HeroIcon(systemName: "airplane.circle")
-                Text("Mission Copilot")
-                    .font(.title.bold())
-                Text("Offline AI for field missions")
-                    .foregroundStyle(Color(.secondaryText))
+                HomeTitle()
                 if let notice = Self.notice(lease: notice, shred: hub?.shredNotice) {
                     Text(notice)
                         .font(.footnote)
@@ -52,5 +48,20 @@ struct ContentView: View {
     static func notice(lease: String?, shred: String?) -> String? {
         let parts = [lease, shred].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+}
+
+/// The top of the home screen: the developer's logo joined to our airplane (#123), then the app's name.
+struct HomeTitle: View {
+    var body: some View {
+        VStack(spacing: 12) {
+            BrandLockup()
+                .padding(.bottom, 4)
+            Text("Mission Copilot")
+                .font(.title.bold())
+            Text("Offline AI for field missions")
+                .foregroundStyle(Color(.secondaryText))
+        }
+        .multilineTextAlignment(.center)
     }
 }

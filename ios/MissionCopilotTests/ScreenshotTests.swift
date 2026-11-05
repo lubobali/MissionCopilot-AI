@@ -27,6 +27,13 @@ struct ScreenshotTests {
         try check(LockScreen(session: session), look: look, name: "lock")
     }
 
+    /// #123: the logo, a line and our airplane above the app's name.
+    @Test(arguments: Look.allCases)
+    func theHomeTitleIsOnTheThemeBackground(look: Look) throws {
+        try check(HomeTitle().padding(24).frame(maxHeight: .infinity, alignment: .top).fieldScreen(),
+                  look: look, name: "home")
+    }
+
     @Test(arguments: Look.allCases)
     func thePrivacyCoverIsOnTheThemeBackground(look: Look) throws {
         try check(PrivacyCover(), look: look, name: "cover")

@@ -1,6 +1,7 @@
 import json
 import math
 import re
+from pathlib import Path
 
 import pytest
 from airplane_mark import (
@@ -82,3 +83,15 @@ def test_the_catalog_keeps_it_as_a_tintable_vector(tmp_path):
         "template-rendering-intent": "template",
     }
     assert (folder / "Airplane.svg").read_text() == svg()
+
+
+APP_SOURCES = Path(__file__).resolve().parents[1] / "ios" / "MissionCopilot"
+
+
+def test_the_home_screen_shows_the_lockup_not_apples_airplane():
+    home = (APP_SOURCES / "App" / "ContentView.swift").read_text(encoding="utf-8")
+
+    assert "BrandLockup()" in home
+    # No SF Symbol airplane anywhere in the app: our mark stands for the app (#123).
+    for swift in APP_SOURCES.rglob("*.swift"):
+        assert not re.search(r'systemName:\s*"airplane', swift.read_text(encoding="utf-8")), swift

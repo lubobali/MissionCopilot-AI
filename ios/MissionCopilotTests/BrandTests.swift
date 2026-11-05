@@ -57,4 +57,48 @@ struct BrandTests {
         #expect(height(.large) >= 96)
         #expect(height(.accessibility3) > height(.large))
     }
+
+    // MARK: The lockup on the home screen (#123)
+
+    @Test func ourAirplaneShipsAsATemplateSoTheThemeColorsIt() throws {
+        let airplane = try #require(UIImage(named: AirplaneMark.imageName))
+
+        #expect(airplane.renderingMode == .alwaysTemplate)
+    }
+
+    @MainActor
+    @Test(arguments: [(ColorScheme.light, ColorMode.light), (.dark, .dark)])
+    func theLockupIsTheLogoTileALineAndTheAirplane(scheme: ColorScheme, mode: ColorMode) throws {
+        let image = try Self.render(BrandLockup(), scheme: scheme, width: 382)
+        let middle = image.height / 2
+
+        #expect(image.width > image.height, "side by side at the normal text size")
+        #expect(Pixel.rgb(image, column: 3, row: middle) == RGB(hex: 0xFFFFFF), "the logo's white tile first")
+        let row = (0..<image.width).map { Pixel.rgb(image, column: $0, row: middle) }
+        let line = try #require(row.firstIndex(of: Palette.rgb(.decoration, mode)), "a line in the theme's color")
+        let airplane = (0..<image.width).flatMap { column in
+            (0..<image.height).map { Pixel.rgb(image, column: column, row: $0) }
+                .contains(Palette.rgb(.accent, mode)) ? [column] : []
+        }
+        #expect(try #require(airplane.min()) > line, "the airplane after the line, in the accent color")
+    }
+
+    @MainActor
+    @Test func atTheLargestTextTheLockupStacksInsteadOfClipping() throws {
+        let width = 382
+        let image = try Self.render(BrandLockup().environment(\.dynamicTypeSize, .accessibility5),
+                                    scheme: .light, width: CGFloat(width))
+
+        #expect(image.width <= width, "never wider than the screen")
+        #expect(image.height > image.width, "logo above, airplane below")
+    }
+
+    /// The view at 1x, offered `width` points like the home screen's column.
+    @MainActor
+    private static func render(_ view: some View, scheme: ColorScheme, width: CGFloat) throws -> CGImage {
+        let renderer = ImageRenderer(content: view.environment(\.colorScheme, scheme))
+        renderer.proposedSize = ProposedViewSize(width: width, height: nil)
+        renderer.scale = 1
+        return try #require(renderer.cgImage)
+    }
 }
