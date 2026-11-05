@@ -83,58 +83,30 @@ def test_the_full_safety_net_runs_weekly_and_on_demand():
     assert "workflow_dispatch" in ON
 
 
-BOOT = "Boot the simulator now, while the job goes on"
+BOOT = "Boot the simulator"
 SETTINGS = "Staging and Release talk only to their own server (#104)"
 
 
-def _boot_runs_in_the_background(job: str) -> None:
-    run = _step(job, BOOT)["run"]
-    # Picking the simulator starts Apple's simulator service (about 2 minutes on a fresh runner),
-    # so the pick and the boot both go to the background; the id reaches later steps by a file.
-    assert "nohup" in run and run.rstrip().endswith("&")
-    assert 'xcrun simctl boot "$udid"' in run
-
-
-def test_the_app_job_boots_after_its_light_checks_so_they_run_on_free_cores():
-    # Measured (#127): booting at the start slowed lint, the tool check and the settings check from
-    # about 50 s to about 5 minutes on the 3-core runner. Now the boot overlaps the build only.
+def test_the_app_job_boots_after_the_build_never_beside_it():
+    # Measured twice (#127): on the 3-core runner a simulator's first boot beside other work slowed
+    # both (lint and checks about 50 s to 5 min; build 113 s to about 290 s), so it runs on its own.
     names = _names("ios")
-    boot, build = names.index(BOOT), names.index("Build the app for testing")
-    wait, test = names.index("Wait for the simulator"), names.index("Test on an iPhone simulator")
-    assert names.index(SETTINGS) < boot < build < wait < test  # the build runs while it boots
-    _boot_runs_in_the_background("ios")
+    build, boot = names.index("Build the app for testing"), names.index(BOOT)
+    assert names.index(SETTINGS) < build < boot < names.index("Test on an iPhone simulator")
 
 
-def test_the_labs_job_boots_first_it_has_nothing_else_to_slow_down():
+def test_the_labs_job_boots_before_its_tests():
     names = _names("labs")
-    assert names.index(BOOT) == 1  # right after checkout
-    assert (
-        names.index(BOOT)
-        < names.index("Wait for the simulator")
-        < names.index("Encryption lab tests (spike 16, SQLCipher + Keychain)")
-    )
-    _boot_runs_in_the_background("labs")
+    assert names.index(BOOT) < names.index("Encryption lab tests (spike 16, SQLCipher + Keychain)")
 
 
 @pytest.mark.parametrize("job", ["ios", "labs"])
-def test_tests_start_only_once_the_simulator_has_booted(job):
-    run = _step(job, "Wait for the simulator")["run"]
+def test_the_boot_step_picks_boots_and_waits_in_one_place(job):
+    run = _step(job, BOOT)["run"]
 
+    assert "nohup" not in run and not run.rstrip().endswith("&")  # nothing in the background
+    assert 'xcrun simctl bootstatus "$udid" -b' in run  # boots it and waits until it is ready
     assert 'echo "UDID=$udid" >> "$GITHUB_ENV"' in run
-    assert 'xcrun simctl bootstatus "$udid"' in run
-
-
-@pytest.mark.parametrize("job", ["ios", "labs"])
-def test_the_wait_never_boots_a_simulator_the_background_is_still_booting(job):
-    # Found on the first run (#127): the wait's own boot (bootstatus -b) raced the background boot
-    # and failed with "Unable to boot device in current state: Booted". The background writes the
-    # boot's exit code when it is done; the wait boots only if that boot failed.
-    assert 'echo $? > "$RUNNER_TEMP/boot.exit"' in _step(job, BOOT)["run"]
-    wait = _step(job, "Wait for the simulator")["run"]
-    assert '[ -s "$RUNNER_TEMP/boot.exit" ]' in wait
-    before_done, after_done = wait.split('[ -s "$RUNNER_TEMP/boot.exit" ]', 1)
-    assert "bootstatus" not in before_done  # nothing touches the simulator before the boot is done
-    assert 'if [ "$(cat "$RUNNER_TEMP/boot.exit")" = 0 ]; then' in after_done
 
 
 @pytest.mark.parametrize("job", ["ios", "labs"])
