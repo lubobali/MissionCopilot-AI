@@ -32,7 +32,13 @@ settings.
 - **License:** LFM2.5 ships under its own license, which may require a commercial agreement for large
   organizations; Qwen3 is Apache 2.0. A large organization adopting this should check the terms and can
   switch to the backup with no design change.
-- Model files are not stored in the repo; the app downloads them.
+- Model files are not stored in the repo (633 MB is too big for git). **They ship inside the app** (Lubo,
+  Nov 5 2026, #125): ready on install, never a separate download. The build copies exactly the files the
+  signature lists, plus the signature (`scripts/bundle_model.py`), into the Staging and Release builds,
+  which makes the app about 640 MB; Debug builds ship none (the Lab imports one through Finder) and a Mac
+  without the model builds anyway. The app checks the copy against the pinned key before it trusts it
+  (`BundledModel`, threat T46), and the license text, with the notice that this is the 4-bit MLX
+  conversion, is on the Licenses screen, as the LFM Open License v1.0 asks (Section 4).
 
 ## Engine decision (spike #12, Oct 30 2026)
 Both engines ran LFM2.5 1.2B inside our own app on the iPhone 13 Pro Max in airplane mode, 12 runs each,

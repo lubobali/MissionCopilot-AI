@@ -66,6 +66,16 @@ brand medallion at rest (the tests turn its motion off) above the app's name.
 |---|---|---|
 | ![Home, light](img/home-light.png) | ![Home, dark](img/home-dark.png) | ![Home, largest text](img/home-largest-text.png) |
 
+| Workspace, light | Workspace, dark | Workspace, largest text |
+|---|---|---|
+| ![Mission workspace, light](img/workspace-light.png) | ![Mission workspace, dark](img/workspace-dark.png) | ![Mission workspace, largest text](img/workspace-largest-text.png) |
+
+The mission workspace (#125) opens from "Open mission" on a card: a small, still medallion, the mission and
+its pack, and **Before you go** on glass. Each line is an icon and words (Ready, Getting ready, To do, Not
+available), never color alone; a speech language that is missing has its Install button, and what needs a
+connection says so. The small medallion is an exact copy of the home one: its marks take its own scale, so
+nothing spills out at any text size.
+
 | Missions, light | Missions, dark | Missions, largest text |
 |---|---|---|
 | ![Mission list, light](img/missions-light.png) | ![Mission list, dark](img/missions-dark.png) | ![Mission list, largest text](img/missions-largest-text.png) |

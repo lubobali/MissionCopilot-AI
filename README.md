@@ -31,6 +31,9 @@ Built so far (each part test-first, the store and the pack proven on an iPhone 1
 - **Download a mission pack**: signed by the organization's server, every file checked; it survives a cut
   signal, the phone locking and a server restart, and an update fetches only the files that changed
   ([pack proof](docs/pack-proof.md)).
+- **Before you go**: open a mission and the phone checks itself for the field: the pack, the AI model
+  (inside the app, checked against its signature), the speech languages the mission needs, free space;
+  what is missing says what to do while still online.
 - **Keep it on the phone, encrypted**: one key per mission, a 14-day lease, a hash-chained audit log, an app
   lock; it works in airplane mode ([store proof](docs/store-proof.md)).
 - **Destroy it on order**: a revoked phone gets a signed shred order and the missions are destroyed.

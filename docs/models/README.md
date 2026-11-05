@@ -20,6 +20,13 @@ python3 scripts/sign_model.py verify <model folder> docs/models/model-signing.pu
 This runs the official tool, pinned. A changed byte answers "Hash mismatch"; an extra file answers
 "Extra files found".
 
+## Inside the app (#125)
+The model ships inside the Staging and Release builds: `scripts/bundle_model.py` copies exactly the 9 signed
+files and this bundle into the app (a Hub download also holds its own `.cache`, which the check would refuse
+as extra files). The app checks them against the pinned key before it trusts them; on the iPhone the mission
+workspace's "Before you go" shows "AI assistant: Ready, on this iPhone, checked". The license text is on the
+app's Licenses screen.
+
 ## On the iPhone
 Measured on an iPhone 13 Pro Max in airplane mode ([results](../spikes/results/model-signature-iphone13promax.json)):
 all 9 files verified in **0.59 s** on the first run and **0.37 s** on the next two, with no change in free memory.

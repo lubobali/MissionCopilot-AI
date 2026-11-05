@@ -41,4 +41,5 @@ encrypted (restic). See [ADR 0013](adr/0013-hosting-on-a-shared-server.md) for w
 | Backups (every database, the roles, the server's secrets) | Each environment's own restic repository in a private bucket | 7 daily, 5 weekly, 6 monthly snapshots (about 6 months) | restic (AES-256, its own password) and the bucket's own encryption | Whoever holds the restic password: the server's root, and one copy off the server | The backup bucket's provider | restic forgets and prunes older snapshots; the bucket keeps only a file's last version |
 
 **Not on this sheet because they are not data about anyone:** the on-device model (public, signed, see
-[docs/models](models/README.md)) and the fictional demo dataset.
+[docs/models](models/README.md); it ships inside the app, read-only, and is checked before it is trusted)
+and the fictional demo dataset.
