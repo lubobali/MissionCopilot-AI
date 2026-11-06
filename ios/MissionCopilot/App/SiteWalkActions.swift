@@ -7,6 +7,8 @@ struct AgreedActionsSection: View {
     let words: SiteWalkWords
     let locked: Bool
     var onCheck: (ActionSeen, String?, String) -> Void = { _, _, _ in }
+    var onPhoto: (SiteWalkModel.PhotoTarget) -> Void = { _ in }
+    var thumbnail: (Int) -> UIImage? = { _ in nil }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -25,9 +27,10 @@ struct AgreedActionsSection: View {
             ForEach(walk.actions.actions, id: \.key) { action in
                 ActionCard(action: action, check: walk.checks[action.key], words: words, locked: locked,
                            overdue: action.isOverdue(on: Date(), seen: walk.checks[action.key]?.seen,
-                                                     timeZone: words.timeZone)) { seen, note in
-                    onCheck(seen, note, action.key)
-                }
+                                                     timeZone: words.timeZone),
+                           onCheck: { seen, note in onCheck(seen, note, action.key) },
+                           onPhoto: { onPhoto(.action(action.key)) },
+                           thumbnail: walk.checks[action.key]?.photo.flatMap(thumbnail))
             }
         }
     }
@@ -41,6 +44,8 @@ struct ActionCard: View {
     let locked: Bool
     let overdue: Bool
     var onCheck: (ActionSeen, String?) -> Void = { _, _ in }
+    var onPhoto: () -> Void = {}
+    var thumbnail: UIImage?
     @State private var note = ""
     @FocusState private var writing: Bool
 
@@ -89,6 +94,11 @@ struct ActionCard: View {
                     // Saved when the officer leaves the note, never on every letter (one audit event).
                     if !isWriting, let seen = check?.seen, note != (check?.note ?? "") { onCheck(seen, note) }
                 }
+            if let check {
+                PhotoSlot(seq: check.photo, thumbnail: thumbnail, empty: words.text(.addPhoto), words: words,
+                          onTake: onPhoto)
+                    .disabled(locked)
+            }
             if check == nil, !locked {
                 Text(words.text(.pickFirst))
                     .font(.footnote)

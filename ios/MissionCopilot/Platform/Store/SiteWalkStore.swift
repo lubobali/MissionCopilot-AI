@@ -6,10 +6,12 @@ enum ActionSeen: String, CaseIterable, Sendable {
     case done, inProgress, notStarted, couldNotCheck
 }
 
-/// One agreed action's check: what was seen, and an optional note (sealed in the store).
+/// One agreed action's check: what was seen, an optional note (sealed in the store) and an optional photo
+/// (the seq of its evidence in the mission's chain).
 struct ActionCheck: Equatable, Sendable {
     let seen: ActionSeen
     let note: String?
+    var photo: Int?
 }
 
 /// A finished site walk: the form's version and when it was finished.
@@ -24,6 +26,7 @@ struct FinishedWalk: Equatable, Sendable {
 /// audit log names the question, the action's key or the form, never a value or a note.
 extension MissionStore {
     struct WalkFinished: Error, Equatable { let mission: String }
+    struct NoSuchPhoto: Error, Equatable { let seq: Int }
 
     /// Saves an answer, replacing the question's last one; an empty answer clears it.
     func saveAnswer(_ value: String, to question: String, form: String, mission: String,
@@ -63,16 +66,20 @@ extension MissionStore {
     }
 
     /// Saves what was seen of an agreed action (keyed by the SHA-256 of its text), replacing the last check.
-    func saveCheck(_ seen: ActionSeen, note: String?, action: String, mission: String, now: Date = Date()) throws {
+    func saveCheck(_ seen: ActionSeen, note: String?, photo: Int? = nil, action: String, mission: String,
+                   now: Date = Date()) throws {
         if try isAnyWalkFinished(mission: mission) { throw WalkFinished(mission: mission) }
+        if let photo, try !hasEvidence(photo, in: mission) { throw NoSuchPhoto(seq: photo) }
         let key = try missionKey(for: mission)
         let sealed = try note.flatMap { $0.isEmpty ? nil : try MissionData.seal(Data($0.utf8), with: key) }
         try store.write { database in
             try database.execute(sql: """
-                INSERT INTO action_check VALUES (?, ?, ?, ?, ?)
+                INSERT INTO action_check (mission_id, action_key, seen, sealed_note, checked_at, photo_seq)
+                VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT (mission_id, action_key)
-                DO UPDATE SET seen = excluded.seen, sealed_note = excluded.sealed_note, checked_at = excluded.checked_at
-                """, arguments: [mission, action, seen.rawValue, sealed, now.timeIntervalSince1970])
+                DO UPDATE SET seen = excluded.seen, sealed_note = excluded.sealed_note,
+                    checked_at = excluded.checked_at, photo_seq = excluded.photo_seq
+                """, arguments: [mission, action, seen.rawValue, sealed, now.timeIntervalSince1970, photo])
             try EncryptedStore.appendAudit(AuditEntry(action: .actionChecked, actor: actor, mission: mission,
                                                       target: action, time: now), in: database)
         }
@@ -82,7 +89,7 @@ extension MissionStore {
         let key = try missionKey(for: mission)
         let rows = try store.read { database in
             try Row.fetchAll(database, sql: """
-                SELECT action_key, seen, sealed_note FROM action_check WHERE mission_id = ?
+                SELECT action_key, seen, sealed_note, photo_seq FROM action_check WHERE mission_id = ?
                 """, arguments: [mission])
         }
         var checks: [String: ActionCheck] = [:]
@@ -90,7 +97,7 @@ extension MissionStore {
             guard let seen = ActionSeen(rawValue: row["seen"]) else { continue }
             let note = try (row["sealed_note"] as Data?).map { String(bytes: try MissionData.open($0, with: key),
                                                                        encoding: .utf8) } ?? nil
-            checks[row["action_key"]] = ActionCheck(seen: seen, note: note)
+            checks[row["action_key"]] = ActionCheck(seen: seen, note: note, photo: row["photo_seq"])
         }
         return checks
     }
@@ -120,6 +127,13 @@ extension MissionStore {
 
     private func refuseIfFinished(form: String, mission: String) throws {
         if try finishedWalk(form: form, mission: mission) != nil { throw WalkFinished(mission: mission) }
+    }
+
+    private func hasEvidence(_ seq: Int, in mission: String) throws -> Bool {
+        try store.read { database in
+            try Bool.fetchOne(database, sql: "SELECT EXISTS (SELECT 1 FROM evidence WHERE mission_id = ? AND seq = ?)",
+                              arguments: [mission, seq]) ?? false
+        }
     }
 
     private func isAnyWalkFinished(mission: String) throws -> Bool {

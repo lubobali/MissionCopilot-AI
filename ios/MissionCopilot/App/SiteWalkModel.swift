@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import UIKit
 
 /// A mission's site walk on screen (#129): the rules of `SiteWalk`, saved as they change. Every answer
 /// and check goes to the encrypted store at once, so a walk opened again (the app closed, the phone
@@ -10,32 +11,40 @@ final class SiteWalkModel {
     private(set) var walk: SiteWalk
     private(set) var finished: FinishedWalk?
     /// A save that did not happen, in words.
-    private(set) var problem: String?
+    var problem: String?
     /// "en" or "fr": the walk's language, switched by the officer.
     var language: String {
         didSet { walk = rebuilt(answers: walk.answers, checks: walk.checks) }
     }
 
     let mission: String
-    private let store: MissionStore
-    private let now: () -> Date
+    let store: MissionStore
+    let now: () -> Date
     private let timeZone: TimeZone
-    private let places: any PlaceFinder
+    let places: any PlaceFinder
+    /// Signs photos into the mission's evidence chain: the chip key the phone was connected with.
+    let signer: any EvidenceSigner
+    /// The place being read since the camera opened, ready by the shutter (#129).
+    var pendingPlace: Task<PlaceReading, Never>?
+    /// Thumbnails already opened from their sealed files, so scrolling does not open them again.
+    @ObservationIgnored var thumbnails: [Int: UIImage] = [:]
 
     static let finishedProblem = "This walk is finished. Its answers cannot change."
     static let saveProblem = "This could not be saved. Try again; if it keeps failing, restart the app."
-    private var finishedProblem: String {
+    var finishedProblem: String {
         language == "fr" ? "Cette visite est terminée. Ses réponses ne peuvent plus changer." : Self.finishedProblem
     }
-    private var saveProblem: String {
+    var saveProblem: String {
         language == "fr" ? "L'enregistrement a échoué. Réessayez ; si cela continue, redémarrez l'application."
                          : Self.saveProblem
     }
 
     init(form: ChecklistForm, actions: AgreedActions, mission: String, store: MissionStore,
          now: @escaping () -> Date = Date.init, timeZone: TimeZone = .current,
-         preferred: [String] = Locale.preferredLanguages, places: any PlaceFinder = ApplePlaceFinder()) throws {
+         preferred: [String] = Locale.preferredLanguages, places: any PlaceFinder = ApplePlaceFinder(),
+         signer: any EvidenceSigner = SecureEnclaveEvidenceSigner(user: AppSession.localProfile)) throws {
         (self.mission, self.store, self.now, self.timeZone, self.places) = (mission, store, now, timeZone, places)
+        self.signer = signer
         let language = SiteWalk.startingLanguage(preferred: preferred, formHasFrench: form.hasFrench)
         self.language = language
         walk = SiteWalk(form: form, actions: actions, answers: try store.answers(form: form.formId, mission: mission),
@@ -54,8 +63,10 @@ final class SiteWalkModel {
         save { try store.saveAnswer(value, to: question, form: walk.form.formId, mission: mission, now: now()) }
     }
 
+    /// What was seen and a note; the action's photo, if any, stays with it.
     func check(_ seen: ActionSeen, note: String?, action: String) {
-        save { try store.saveCheck(seen, note: note, action: action, mission: mission, now: now()) }
+        let photo = walk.checks[action]?.photo
+        save { try store.saveCheck(seen, note: note, photo: photo, action: action, mission: mission, now: now()) }
     }
 
     /// Records where the phone is as a geopoint answer. Location is asked for only here, when the officer
@@ -88,7 +99,7 @@ final class SiteWalkModel {
     }
 
     @discardableResult
-    private func save(_ change: () throws -> Void) -> Bool {
+    func save(_ change: () throws -> Void) -> Bool {
         defer { reload() }
         do {
             try change()

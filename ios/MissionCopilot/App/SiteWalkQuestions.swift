@@ -8,6 +8,8 @@ struct ChecklistSection: View {
     let locked: Bool
     var onAnswer: (String, String) -> Void = { _, _ in }
     var onPlace: (String) async -> Void = { _ in }
+    var onPhoto: (SiteWalkModel.PhotoTarget) -> Void = { _ in }
+    var thumbnail: (Int) -> UIImage? = { _ in nil }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -25,7 +27,7 @@ struct ChecklistSection: View {
             switch item {
             case .question(let question) where walk.isShown(question.name):
                 QuestionCard(question: question, walk: walk, words: words, locked: locked, onAnswer: onAnswer,
-                             onPlace: onPlace)
+                             onPlace: onPlace, onPhoto: onPhoto, thumbnail: thumbnail)
             case .group(let group) where group.items.contains(where: shows):
                 Text(group.label.text(for: walk.language))
                     .font(.headline)
@@ -54,6 +56,8 @@ struct QuestionCard: View {
     let locked: Bool
     var onAnswer: (String, String) -> Void = { _, _ in }
     var onPlace: (String) async -> Void = { _ in }
+    var onPhoto: (SiteWalkModel.PhotoTarget) -> Void = { _ in }
+    var thumbnail: (Int) -> UIImage? = { _ in nil }
 
     private var answer: String { walk.answers[question.name] ?? "" }
 
@@ -102,9 +106,10 @@ struct QuestionCard: View {
         case .geopoint:
             PlaceAnswer(answer: answer, words: words) { await onPlace(question.name) }
         case .image:
-            Text(words.text(.photosLater))
-                .font(.subheadline)
-                .foregroundStyle(Color(.secondaryText))
+            let seq = SiteWalkModel.photoSeq(inAnswer: answer)
+            PhotoSlot(seq: seq, thumbnail: seq.flatMap(thumbnail), empty: words.text(.takePhoto), words: words) {
+                onPhoto(.question(question.name))
+            }
         case .note:
             EmptyView()
         }
