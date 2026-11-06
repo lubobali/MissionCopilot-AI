@@ -69,7 +69,7 @@ struct SiteWalkView: View {
         VStack(alignment: .leading, spacing: 22) {
             header
             // Live: a photo or the finish changes them at once (#134).
-            NavigationLink(value: RedFlagsLink(id: model.mission)) {
+            NavigationLink(value: RedFlagsLink(id: model.mission, language: model.language)) {
                 RedFlagsCard(results: model.flags,
                              words: RedFlagWords(rules: (try? .bundled()) ?? .empty, language: model.language))
             }

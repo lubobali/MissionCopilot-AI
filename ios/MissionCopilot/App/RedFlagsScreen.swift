@@ -3,6 +3,8 @@ import SwiftUI
 /// Opens a mission's red flags by its id (declared at the stack's root, ContentView).
 struct RedFlagsLink: Hashable, Sendable {
     let id: String
+    /// The walk's language when opened from the walk, so the page speaks as the walk does.
+    var language: String?
 }
 
 /// The red flags page (#134): flags first, then clear, then not checked, each with its sentence, numbers,
@@ -11,6 +13,7 @@ struct RedFlagsLink: Hashable, Sendable {
 struct RedFlagsScreen: View {
     let list: MissionListModel
     let id: String
+    var language: String?
     @State private var walk: SiteWalkModel?
     @State private var cannotOpen = false
 
@@ -38,6 +41,7 @@ struct RedFlagsScreen: View {
                 cannotOpen = true
                 return
             }
+            if let language { model.language = language }
             walk = model
         }
     }
