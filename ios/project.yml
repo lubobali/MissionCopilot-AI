@@ -42,6 +42,9 @@ targets:
       # file the server's tests use.
       - path: ../docs/api/pack-sections.schema.json
         buildPhase: resources
+      # The red-flag rules (#134, ADR 0010): the same file the ADR guard checks, not a copy.
+      - path: ../docs/rules/red-flag-rules.json
+        buildPhase: resources
     dependencies:
       - package: GRDB
         product: GRDB

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "R068",
+      "version": "1",
+      "source": "Open Contracting red flags guide (2024)",
+      "title": {"en": "Paid more than the contract value", "fr": "Paiements supérieurs au montant du marché"},
+      "threshold": {"value": 100, "unit": "percent"}
+    },
+    {
+      "id": "R067",
+      "version": "1",
+      "source": "Open Contracting red flags guide (2024)",
+      "title": {"en": "A milestone is late and not met", "fr": "Un jalon est en retard et non atteint"},
+      "threshold": {"value": 0, "unit": "days"}
+    },
+    {
+      "id": "MC-01",
+      "version": "1",
+      "source": "Custom (payment ahead of progress)",
+      "title": {"en": "Payments ahead of physical progress", "fr": "Paiements en avance sur l'avancement physique"},
+      "threshold": {"value": 20, "unit": "points"}
+    },
+    {
+      "id": "MC-02",
+      "version": "1",
+      "source": "Custom",
+      "title": {"en": "The same invoice paid twice", "fr": "La même facture payée deux fois"},
+      "threshold": {"value": 1, "unit": "count"}
+    },
+    {
+      "id": "MC-03",
+      "version": "1",
+      "source": "Custom",
+      "title": {"en": "Invoiced more than measured", "fr": "Facturé plus que mesuré"},
+      "threshold": {"value": 100, "unit": "percent"}
+    },
+    {
+      "id": "MC-04",
+      "version": "1",
+      "source": "Custom",
+      "title": {"en": "The same photo used again", "fr": "La même photo réutilisée"},
+      "threshold": {"value": 1, "unit": "count"}
+    }
+  ]
+}
