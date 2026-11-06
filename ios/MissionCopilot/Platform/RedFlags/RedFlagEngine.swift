@@ -9,8 +9,11 @@ struct RedFlagResult: Sendable, Equatable {
         case noContracts, noMilestones, zeroValue, needsScan, needsPhotos, unknownRule
     }
 
-    /// One input a result used, citable: a pack field (more kinds come with the walk and the photos).
-    enum Input: Sendable, Equatable { case pack(PackCitation) }
+    /// One input a result used, citable: a pack field or a signed photo.
+    enum Input: Sendable, Equatable {
+        case pack(PackCitation)
+        case evidence(PhotoRef)
+    }
 
     let rule: RuleRef
     let outcome: Outcome
@@ -19,12 +22,15 @@ struct RedFlagResult: Sendable, Equatable {
     let computed: Double?
     let threshold: RedFlagRule.Threshold
     let inputs: [Input]
+    /// Missions that could not be read for this rule (shredded), so a clear is never more than it is.
+    var skippedMissions = 0
 }
 
 /// What the rules read: the pack's figures, today. A nil input is "not in this pack".
 struct RedFlagInputs: Sendable {
     var contracts: PackContracts?
     var milestones: PackMilestones?
+    var photos: PhotoReuseCheck?
 }
 
 /// Plain code, never the model (ADR 0005, 0010): the same inputs always give the same results, in the
@@ -41,7 +47,7 @@ struct RedFlagEngine: Sendable {
             case "MC-01": return context.paidAheadOfBuilt()
             case "MC-02": return context.sameInvoiceTwice()
             case "MC-03": return [context.result(.notChecked(.needsScan))]
-            case "MC-04": return [context.result(.notChecked(.needsPhotos))]
+            case "MC-04": return context.samePhotoAgain()
             default: return [context.result(.notChecked(.unknownRule))]
             }
         }
@@ -157,5 +163,23 @@ private struct Context {
         }
         guard late.isEmpty else { return late }
         return [result(.clear, computed: 0, inputs: pack.milestones.indices.flatMap(cite))]
+    }
+
+    func samePhotoAgain() -> [RedFlagResult] {
+        guard let check = inputs.photos, !check.photos.isEmpty else { return [result(.notChecked(.needsPhotos))] }
+        var seen = Set<[PhotoRef]>()
+        var flags: [RedFlagResult] = []
+        for photo in check.photos {
+            guard let same = check.sameBytes.values.first(where: { $0.contains(photo) }), same.count > 1,
+                  seen.insert(same).inserted else { continue }
+            var flag = judged(Double(same.count), subject: "photo \(photo.seq)",
+                              inputs: same.map(RedFlagResult.Input.evidence))
+            flag.skippedMissions = check.skipped.count
+            flags.append(flag)
+        }
+        guard flags.isEmpty else { return flags }
+        var clear = judged(1, subject: nil, inputs: check.photos.map(RedFlagResult.Input.evidence))
+        clear.skippedMissions = check.skipped.count
+        return [clear]
     }
 }
