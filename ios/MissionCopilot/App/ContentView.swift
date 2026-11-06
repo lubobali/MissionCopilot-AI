@@ -53,6 +53,9 @@ struct ContentView: View {
             .navigationDestination(for: SiteWalkLink.self) { link in
                 if let model = hub?.model { SiteWalkScreen(list: model, id: link.id) }
             }
+            .navigationDestination(for: RedFlagsLink.self) { link in
+                if let model = hub?.model { RedFlagsScreen(list: model, id: link.id) }
+            }
         }
     }
 

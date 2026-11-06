@@ -116,6 +116,28 @@ struct ScreenshotTests {
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: .light, name: "checklist-fr")
     }
 
+    /// The red flags page on the Kandor pack (#134): flags first, then clear, then not checked.
+    @Test(arguments: [("en", Look.light), ("fr", Look.light), ("en", Look.dark), ("en", Look.largestText)])
+    func theRedFlagsAreOnTheThemeBackground(language: String, look: Look) throws {
+        let words = RedFlagWords(rules: RedFlagEngineTests.rules, language: language)
+        try check(RedFlagsView(results: try RedFlagWordsTests.kandor(), mission: "kandor-roads", stored: false,
+                               words: words)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "red-flags-\(language)")
+    }
+
+    @Test(arguments: Look.allCases)
+    func theRedFlagsCardSaysTheCount(look: Look) throws {
+        let words = RedFlagWords(rules: RedFlagEngineTests.rules)
+        let kandor = try RedFlagWordsTests.kandor()
+        try check(VStack(spacing: 12) {
+            RedFlagsCard(results: kandor, words: words)
+            RedFlagsCard(results: Array(kandor.prefix(1)), words: words)
+        }
+        .padding(28)  // room for the glass card's shadow at the corner the check reads
+        .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "red-flags-card")
+    }
+
     /// Fictional Kandor missions in the states a person meets most.
     static let sampleRows: [MissionRow] = {
         let nov3 = MissionWordsTests.nov3, nov10 = MissionWordsTests.nov10

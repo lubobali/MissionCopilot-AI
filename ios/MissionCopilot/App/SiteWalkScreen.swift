@@ -68,6 +68,12 @@ struct SiteWalkView: View {
         let words = local
         VStack(alignment: .leading, spacing: 22) {
             header
+            // Live: a photo or the finish changes them at once (#134).
+            NavigationLink(value: RedFlagsLink(id: model.mission)) {
+                RedFlagsCard(results: model.flags,
+                             words: RedFlagWords(rules: (try? .bundled()) ?? .empty, language: model.language))
+            }
+            .buttonStyle(.plain)
             if let problem = model.problem {
                 Label(problem, systemImage: "exclamationmark.triangle.fill")
                     .font(.callout)
