@@ -37,7 +37,10 @@ struct RedFlagRules: Sendable, Equatable {
     struct Refused: Error, Equatable { let why: String }
 
     static let fileVersion = 1
+    static let empty = RedFlagRules(rules: [])
     let rules: [RedFlagRule]
+
+    private init(rules: [RedFlagRule]) { self.rules = rules }
 
     subscript(id: String) -> RedFlagRule? { rules.first { $0.id == id } }
 
