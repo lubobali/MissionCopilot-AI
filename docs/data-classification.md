@@ -59,7 +59,7 @@ Key names: **MK** = the mission key (one per mission, wrapped by a Secure Enclav
 | Debrief transcript and notes | Field officer | Official Use Only (or Strictly Confidential if marked) | Phone store | DK + MK | Only inside an approved report | No |
 | Photo or scanned page (evidence) | Field officer | Official Use Only | Phone store; org database after approval | DK + MK, signed with SE | After approval, with signature and hash chain | Only if a person labels it Public |
 | Extracted fact | System (rule engine) | Inherited from its source | Phone store; org database after approval | DK + MK; TK | After approval | Only if inherited label is Public |
-| Risk flag | System (rule engine) | Inherited; integrity flags are Strictly Confidential | Phone store; org database after approval | DK + MK; TK | After approval | No |
+| Red flag (rule, outcome, the numbers and inputs it used, #134) | System (rule engine, plain code) | Strictly Confidential (every stored flag: integrity flags are, so the store labels all of them the strictest way) | Phone store; org database after approval | DK + MK; TK | After approval | No |
 | Report sentence | Field officer (approved) | Strictest of its linked facts | Phone store; org database after approval | DK + MK; TK | After approval | Only if Public |
 | Approval record | Approver | Official Use Only, immutable | Phone store; org database | DK + MK; TK | Yes, signed | No |
 | Audit event | System | Official Use Only, immutable | Phone store; org database | DK + MK; TK | Yes, signed | No |
