@@ -82,3 +82,42 @@ struct ThemeControlsTests {
         return renderer.uiImage?.size.height ?? 0
     }
 }
+
+/// A switched-off button looks switched off (found on the iPhone, #129: Retake photo stayed bright on a
+/// finished, locked walk).
+@MainActor
+struct DisabledButtonTests {
+    private func pixel(_ button: some View) throws -> RGB {
+        let renderer = ImageRenderer(content: button.frame(width: 240, height: 60).background(Color(.background)))
+        renderer.scale = 1
+        let image = try #require(renderer.cgImage)
+        return try #require(Pixel.rgb(image, column: 120, row: 30))
+    }
+
+    @Test func aDisabledPrimaryButtonIsDimmed() throws {
+        let enabled = try pixel(Button(" ") {}.buttonStyle(.fieldPrimary))
+        let disabled = try pixel(Button(" ") {}.buttonStyle(.fieldPrimary).disabled(true))
+
+        #expect(enabled == Palette.rgb(.accent, .light))
+        #expect(disabled != enabled)
+    }
+
+    @Test func aDisabledSecondaryButtonIsDimmed() throws {
+        let label = String(repeating: "█", count: 12)
+        let enabled = try pixel(Button(label) {}.buttonStyle(.fieldSecondary))
+        let disabled = try pixel(Button(label) {}.buttonStyle(.fieldSecondary).disabled(true))
+
+        #expect(disabled != enabled)
+    }
+
+    @Test func aDisabledButtonThroughTheRunTimeStyleIsDimmed() throws {
+        // Retake photo goes through AnyButtonStyle: the fade must survive the wrapper.
+        let label = String(repeating: "█", count: 12)
+        let enabled = try pixel(Button(label) {}.buttonStyle(AnyButtonStyle(.fieldSecondary)))
+        let disabled = try pixel(Button(label) {}.buttonStyle(AnyButtonStyle(.fieldSecondary)).disabled(true))
+        let primaryDisabled = try pixel(Button(" ") {}.buttonStyle(AnyButtonStyle(.fieldPrimary)).disabled(true))
+
+        #expect(disabled != enabled)
+        #expect(primaryDisabled != Palette.rgb(.accent, .light))
+    }
+}
