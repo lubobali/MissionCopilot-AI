@@ -192,6 +192,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | P05 | Data disclosure | Official Use Only data reaches cloud AI | Same control as T44 | planned | Phase 6 |
 | P06 | Unawareness | The officer does not know what will be sent | Review screen; nothing leaves before "Approve & Send" | planned | Phase 7 |
 | P07 | Non-compliance | Data kept longer than needed | Retention clock starts at server confirmation (30 days, set per organization), then crypto-shred; key lease as a backstop; every item's retention in docs/data-handling.md, checked by `scripts/test_check_data_handling.py` | planned | Phase 8 (retention clock with sync) |
+| P08 | Linking | Recording places on a site walk tracks the officer's movements | Location only when the officer taps Record location (asked then, while using the app), one reading per tap, never in the background; kept sealed in that one answer with the mission key, so a shred makes it unreadable (#129) | built | `ios/MissionCopilotTests/PlaceTests.swift`, `ios/MissionCopilotTests/SiteWalkStoreTests.swift` |
 
 ## 4. AI-specific mapping
 

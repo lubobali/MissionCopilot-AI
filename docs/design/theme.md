@@ -91,6 +91,20 @@ pixel inside the first card is the surface color, and fail on a picture that is 
 largest text sizes the cards grow and wrap instead of cutting words, and the summary puts each label
 above its value.
 
+## The site walk (#129)
+
+The workspace's **Site walk** card shows its progress and opens the walk: the agreed actions from the
+last mission first (who and by when, Overdue, four large choices with an icon and words each, a note),
+then the site checklist in form order with a control per question type (choice buttons, multiple
+choice, number and decimal pads, text, a date, Record location), then Finish or what is still to do.
+Every target is at least 48 pt for gloves and one hand; the cards are glass, like Before you go. With
+Français on the whole page is French: the form's own words from the pack, and the walk's words, dates
+and messages; the agreed actions stay as the pack gives them and say so (#131 brings their French).
+
+No pictures here: the test renderer draws text fields and the language switch as placeholders, and the
+iPhone screenshots of the proof stay private. The tests check the screens' words in both languages
+(`SiteWalkWordsTests`) and draw the walk and the French checklist on the theme background.
+
 ## The logo, the airplane and the icon (#123)
 
 The L and the key belong to Lubo Bali and are **not** covered by the MIT license (README). The airplane is
