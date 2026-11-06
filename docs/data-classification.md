@@ -71,6 +71,9 @@ Key names: **MK** = the mission key (one per mission, wrapped by a Secure Enclav
 | Server signing key | Organization | Secret | The server's secrets folder (prod's spare: off the server) | File permissions (one owner, 0600) | Public half only (pinned in the app) | No |
 | Backups (every database, the roles, the server's secrets) | Organization | Secret | The environment's own restic repository in a private bucket | restic (AES-256, its own password) and the bucket's encryption | Server only, to its own backup bucket | No |
 | Shred record (mission, reason, time) | System | Official Use Only | Phone store; org database after sync | DK; TK | Yes, on the next sync | No |
+| Site checklist answers (and the finished walk, #129) | Field officer | Official Use Only | Phone store | DK + MK | Only in an approved report, after sync (Phase 8) | No |
+| Agreed action checks (what was seen, a note, #129) | Field officer | Official Use Only | Phone store | DK + MK | Only in an approved report, after sync (Phase 8) | No |
+| The officer's location at the sample point (a checklist answer, #129) | Field officer | Official Use Only, personal data | Phone store, inside the answer | DK + MK | Only in an approved report, after sync (Phase 8) | No |
 
 ## 4. What this map guarantees
 

@@ -12,18 +12,20 @@ struct MissionWorkspaceScreen: View {
     let id: String
     var words = MissionWords()
     @State private var readiness = Readiness()
+    @State private var walk: String?  // the site walk's progress, for its card
 
     var body: some View {
         Group {
             if let row = model.rows.first(where: { $0.id == id }) {
                 ScrollView {
                     MissionWorkspace(row: row, check: readiness.check, installing: readiness.installing,
-                                     problem: readiness.problem, words: words,
+                                     problem: readiness.problem, walk: walk, words: words,
                                      onInstall: { language in Task { await readiness.install(language, for: row) } },
                                      onDownload: { model.download(row.id) })
                 }
                 .refreshable { await readiness.refresh(row) }
                 .task(id: row) { await readiness.refresh(row) }
+                .onAppear { walk = Self.walkProgress(row, store: model.openStore) }
             } else {
                 Loading(text: "Loading the mission")
             }
@@ -34,12 +36,23 @@ struct MissionWorkspaceScreen: View {
     }
 }
 
+extension MissionWorkspaceScreen {
+    /// The site walk's progress for its card; nil when the mission has no pack yet or the app is locked.
+    static func walkProgress(_ row: MissionRow, store: MissionStore?) -> String? {
+        guard row.pack != nil, let store, let walk = try? SiteWalkModel.load(mission: row.id, store: store) else {
+            return nil
+        }
+        return SiteWalkWords().progress(walk.walk.progress, finished: walk.finished)
+    }
+}
+
 /// The workspace without the scrolling, for the screenshot tests too.
 struct MissionWorkspace: View {
     let row: MissionRow
     let check: BeforeYouGo?
     let installing: SpeechLanguage?
     let problem: String?
+    var walk: String?  // the site walk's progress: its card shows when there is one
     let words: MissionWords
     var onInstall: (SpeechLanguage) -> Void = { _ in }
     var onDownload: () -> Void = {}
@@ -68,6 +81,13 @@ struct MissionWorkspace: View {
                 BeforeYouGoCard(check: check, installing: installing, problem: problem, onInstall: onInstall)
             } else {
                 Loading(text: "Checking this iPhone")
+            }
+            if let walk {
+                NavigationLink(value: SiteWalkLink(id: row.id)) {
+                    SiteWalkCard(progress: walk)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint(row.title)
             }
             if let pack = row.pack {
                 NavigationLink("Pack details") { PackSummaryView(title: row.title, pack: pack, words: words) }
@@ -182,5 +202,35 @@ extension BeforeYouGo.State {
         case .toDo: .warning
         case .cannot: .danger
         }
+    }
+}
+
+/// The workspace's way into the site walk: what it is and how far it got.
+struct SiteWalkCard: View {
+    let progress: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "figure.walk")
+                .font(.title2)
+                .foregroundStyle(Color(.accent))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Site walk")
+                    .font(.headline)
+                    .foregroundStyle(Color(.text))
+                Text(progress)
+                    .font(.subheadline)
+                    .foregroundStyle(Color(.secondaryText))
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .foregroundStyle(Color(.secondaryText))
+                .accessibilityHidden(true)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 22))
+        .accessibilityElement(children: .combine)
     }
 }

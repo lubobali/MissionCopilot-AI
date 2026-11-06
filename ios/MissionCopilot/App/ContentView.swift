@@ -50,6 +50,9 @@ struct ContentView: View {
             .navigationDestination(for: MissionLink.self) { link in
                 if let model = hub?.model { MissionWorkspaceScreen(model: model, id: link.id) }
             }
+            .navigationDestination(for: SiteWalkLink.self) { link in
+                if let model = hub?.model { SiteWalkScreen(list: model, id: link.id) }
+            }
         }
     }
 

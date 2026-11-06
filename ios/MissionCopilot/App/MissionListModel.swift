@@ -31,6 +31,9 @@ struct MissionListWorld: Sendable {
 
     private let world: MissionListWorld
     private let missions: @MainActor () -> MissionStore?
+
+    /// The open mission store, or nil while the app is locked (the site walk reads and writes it, #129).
+    var openStore: MissionStore? { missions() }
     private let onShredOrder: (Data) -> Void
     private var list: MissionList?
     private var activity: [String: MissionActivity] = [:]
