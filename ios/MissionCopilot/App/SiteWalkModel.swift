@@ -20,14 +20,15 @@ final class SiteWalkModel {
     private let store: MissionStore
     private let now: () -> Date
     private let timeZone: TimeZone
+    private let places: any PlaceFinder
 
     static let finishedProblem = "This walk is finished. Its answers cannot change."
     static let saveProblem = "This could not be saved. Try again; if it keeps failing, restart the app."
 
     init(form: ChecklistForm, actions: AgreedActions, mission: String, store: MissionStore,
          now: @escaping () -> Date = Date.init, timeZone: TimeZone = .current,
-         preferred: [String] = Locale.preferredLanguages) throws {
-        (self.mission, self.store, self.now, self.timeZone) = (mission, store, now, timeZone)
+         preferred: [String] = Locale.preferredLanguages, places: any PlaceFinder = ApplePlaceFinder()) throws {
+        (self.mission, self.store, self.now, self.timeZone, self.places) = (mission, store, now, timeZone, places)
         let language = SiteWalk.startingLanguage(preferred: preferred, formHasFrench: form.hasFrench)
         self.language = language
         walk = SiteWalk(form: form, actions: actions, answers: try store.answers(form: form.formId, mission: mission),
@@ -48,6 +49,21 @@ final class SiteWalkModel {
 
     func check(_ seen: ActionSeen, note: String?, action: String) {
         save { try store.saveCheck(seen, note: note, action: action, mission: mission, now: now()) }
+    }
+
+    /// Records where the phone is as a geopoint answer. Location is asked for only here, when the officer
+    /// taps (MASVS-PRIVACY-1); a refusal or no fix saves nothing and says what to do.
+    func recordPlace(for question: String) async {
+        let reading = await places.onePlace()
+        guard case .place(let place) = reading else {
+            problem = reading.problem(app: Self.appName)
+            return
+        }
+        answer(place.geopoint, to: question)
+    }
+
+    static var appName: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Mission Copilot"
     }
 
     /// Finishes the walk if nothing is missing; says whether it did.
