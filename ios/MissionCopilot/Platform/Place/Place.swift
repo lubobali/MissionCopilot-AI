@@ -31,14 +31,27 @@ enum PlaceReading: Equatable, Sendable {
     case restricted  // blocked by the phone's settings or the organization
     case noFix  // no position in time
 
-    /// What went wrong and what to do, or nil for a place.
-    func problem(app: String) -> String? {
+    /// What went wrong and what to do, or nil for a place; in French with the walk in French.
+    func problem(app: String, language: String = "en") -> String? {
+        if language == "fr" { return frenchProblem(app: app) }
+        switch self {
+        case .place: return nil
+        case .denied: return "Location is off for \(app). Turn it on in Settings, then try again."
+        case .offForPhone:
+            return "Location Services are off on this iPhone. Turn them on in Settings, Privacy & Security."
+        case .restricted: return "Location is blocked on this iPhone by its settings or your organization."
+        case .noFix: return "No position yet. Move under open sky, wait a moment, and try again."
+        }
+    }
+
+    private func frenchProblem(app: String) -> String? {
         switch self {
         case .place: nil
-        case .denied: "Location is off for \(app). Turn it on in Settings, then try again."
-        case .offForPhone: "Location Services are off on this iPhone. Turn them on in Settings, Privacy & Security."
-        case .restricted: "Location is blocked on this iPhone by its settings or your organization."
-        case .noFix: "No position yet. Move under open sky, wait a moment, and try again."
+        case .denied: "La localisation est désactivée pour \(app). Activez-la dans Réglages, puis réessayez."
+        case .offForPhone: "Le service de localisation est désactivé sur cet iPhone. Activez-le dans Réglages, "
+            + "Confidentialité et sécurité."
+        case .restricted: "La localisation est bloquée sur cet iPhone par ses réglages ou par votre organisation."
+        case .noFix: "Pas encore de position. Placez-vous sous un ciel dégagé, patientez, puis réessayez."
         }
     }
 }

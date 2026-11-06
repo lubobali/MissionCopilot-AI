@@ -88,6 +88,34 @@ struct ScreenshotTests {
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "workspace")
     }
 
+    /// #129: the site walk, part filled, in English and in French.
+    @Test(arguments: [("en", Look.light), ("fr", Look.light), ("en", Look.dark), ("en", Look.largestText)])
+    func theSiteWalkIsOnTheThemeBackground(language: String, look: Look) throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).sqlite")
+        let store = MissionStore(store: try EncryptedStore.open(at: file, key: DataKey.random()),
+                                 vault: SoftwareKeyVault())
+        try store.create(mission: "kandor-roads", title: "Kandor rural roads")
+        let (form, actions) = try SiteWalkTests.kandor()
+        let walk = try SiteWalkModel(form: form, actions: actions, mission: "kandor-roads", store: store,
+                                     now: { SiteWalkTests.walkDay }, timeZone: .gmt, preferred: ["en-US"])
+        walk.check(.inProgress, note: nil, action: actions.actions[0].key)
+        walk.answer("no", to: "bridge_started")
+        walk.answer("25", to: "road_width_m")
+        walk.language = language
+        try check(SiteWalkView(model: walk, words: SiteWalkWords(missions: MissionWordsTests.words, timeZone: .gmt))
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look,
+            name: "walk-\(language)")
+    }
+
+    @Test func theChecklistSpeaksFrenchWhenTheWalkDoes() throws {
+        let walk = try SiteWalkTests.walk(["bridge_started": "yes", "road_width_m": "25"], language: "fr")
+        try check(ChecklistSection(walk: walk, words: SiteWalkWords(missions: MissionWordsTests.words, timeZone: .gmt),
+                                   locked: false)
+            .padding(16).fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: .light, name: "checklist-fr")
+    }
+
     /// Fictional Kandor missions in the states a person meets most.
     static let sampleRows: [MissionRow] = {
         let nov3 = MissionWordsTests.nov3, nov10 = MissionWordsTests.nov10

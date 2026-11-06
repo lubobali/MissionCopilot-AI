@@ -16,7 +16,7 @@ struct PlaceTests {
         }
     }
 
-    static let kmEighteen = Place(latitude: 1.0600004, longitude: 1.05, altitude: 312.46, accuracy: 4.2)
+    nonisolated static let kmEighteen = Place(latitude: 1.0600004, longitude: 1.05, altitude: 312.46, accuracy: 4.2)
 
     @Test func aPlaceIsWrittenAsAnXLSFormGeopoint() {
         // "latitude longitude altitude accuracy", metres; six decimals is about 11 cm.

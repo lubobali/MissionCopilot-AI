@@ -24,6 +24,13 @@ final class SiteWalkModel {
 
     static let finishedProblem = "This walk is finished. Its answers cannot change."
     static let saveProblem = "This could not be saved. Try again; if it keeps failing, restart the app."
+    private var finishedProblem: String {
+        language == "fr" ? "Cette visite est terminée. Ses réponses ne peuvent plus changer." : Self.finishedProblem
+    }
+    private var saveProblem: String {
+        language == "fr" ? "L'enregistrement a échoué. Réessayez ; si cela continue, redémarrez l'application."
+                         : Self.saveProblem
+    }
 
     init(form: ChecklistForm, actions: AgreedActions, mission: String, store: MissionStore,
          now: @escaping () -> Date = Date.init, timeZone: TimeZone = .current,
@@ -56,7 +63,7 @@ final class SiteWalkModel {
     func recordPlace(for question: String) async {
         let reading = await places.onePlace()
         guard case .place(let place) = reading else {
-            problem = reading.problem(app: Self.appName)
+            problem = reading.problem(app: Self.appName, language: language)
             return
         }
         answer(place.geopoint, to: question)
@@ -88,9 +95,9 @@ final class SiteWalkModel {
             problem = nil
             return true
         } catch is MissionStore.WalkFinished {
-            problem = Self.finishedProblem
+            problem = finishedProblem
         } catch {
-            problem = Self.saveProblem
+            problem = saveProblem
         }
         return false
     }
