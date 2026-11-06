@@ -56,7 +56,7 @@ struct RedFlagsView: View {
                 Label(words.summary(results), systemImage: flagged.isEmpty ? "checkmark.shield.fill" : "flag.fill")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Color(flagged.isEmpty ? .success : .danger))
-                Text(words.text(stored ? .stored : .live))
+                Text(words.text(stored ? (results.isEmpty ? .finishedBefore : .stored) : .live))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color(.secondaryText))
                 Text(words.text(.plainCode))

@@ -114,6 +114,15 @@ struct RedFlagStoreTests {
         #expect(try store.store.read { try Int.fetchOne($0, sql: "SELECT count(*) FROM red_flag") } == 0)
     }
 
+    @Test func aWalkFinishedBeforeRedFlagsExistedHasNoneStoredNotLiveOnes() throws {
+        // A phone that finished its walk with the last build: the walk is locked, no flags were stored, and
+        // none are made up now.
+        let store = try store()
+        try store.finishWalk(form: Self.form, version: "2026110401", mission: mission)
+
+        #expect(try store.storedFlags(mission: mission) == [])
+    }
+
     @Test func aStoreFromTheLastBuildGainsTheRedFlagTable() throws {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).sqlite")
         let key = try DataKey.random()

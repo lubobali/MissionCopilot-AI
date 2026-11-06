@@ -21,6 +21,8 @@ struct RedFlagWordsTests {
         #expect(Self.french.summary(results) == "2 alertes · 2 sans alerte · 2 non vérifiées")
         #expect(Self.english.summary(Array(results[1...1])) == "1 flag")
         #expect(Self.english.summary([]) == "No rules ran")
+        #expect(Self.english.text(.finishedBefore)
+                == "This walk was finished before this version of the app checked red flags, so none were stored.")
     }
 
     @Test func eachKandorResultIsOneSentenceFromItsNumbers() throws {

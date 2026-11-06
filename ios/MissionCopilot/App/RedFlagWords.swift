@@ -10,7 +10,7 @@ struct RedFlagWords: Sendable {
     private var french: Bool { language == "fr" }
 
     enum Key: CaseIterable, Sendable {
-        case redFlags, flag, clear, notChecked, computedFrom, live, stored, plainCode
+        case redFlags, flag, clear, notChecked, computedFrom, live, stored, plainCode, finishedBefore
     }
 
     func text(_ key: Key) -> String {
@@ -26,6 +26,10 @@ struct RedFlagWords: Sendable {
         .computedFrom: ("Computed from", "Calculé à partir de"),
         .live: ("Live: these change as the walk goes.", "En direct : elles changent au fil de la visite."),
         .stored: ("Stored when the walk was finished.", "Enregistrées à la fin de la visite."),
+        .finishedBefore: ("This walk was finished before this version of the app checked red flags, so none "
+                          + "were stored.",
+                          "Cette visite a été terminée avant que cette version de l'application vérifie les alertes : "
+                          + "aucune n'a été enregistrée."),
         .plainCode: ("Checked by fixed, cited rules in plain code, never by the AI. Each one can be computed again "
                      + "from the inputs it names.",
                      "Vérifiées par des règles fixes et citées, en code simple, jamais par l'IA. Chacune peut être "
