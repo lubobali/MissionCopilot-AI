@@ -10,6 +10,8 @@ import UIKit
 final class SiteWalkModel {
     private(set) var walk: SiteWalk
     private(set) var finished: FinishedWalk?
+    /// The red flags (#134): live while the walk is open, then the ones stored at the finish.
+    private(set) var flags: [RedFlagResult] = []
     /// A save that did not happen, in words.
     var problem: String?
     /// "en" or "fr": the walk's language, switched by the officer.
@@ -21,6 +23,8 @@ final class SiteWalkModel {
     let store: MissionStore
     let now: () -> Date
     private let timeZone: TimeZone
+    private let figures: RedFlagInputs
+    private let rules: RedFlagRules
     let places: any PlaceFinder
     /// Signs photos into the mission's evidence chain: the chip key the phone was connected with.
     let signer: any EvidenceSigner
@@ -42,21 +46,27 @@ final class SiteWalkModel {
     init(form: ChecklistForm, actions: AgreedActions, mission: String, store: MissionStore,
          now: @escaping () -> Date = Date.init, timeZone: TimeZone = .current,
          preferred: [String] = Locale.preferredLanguages, places: any PlaceFinder = ApplePlaceFinder(),
-         signer: any EvidenceSigner = SecureEnclaveEvidenceSigner(user: AppSession.localProfile)) throws {
+         signer: any EvidenceSigner = SecureEnclaveEvidenceSigner(user: AppSession.localProfile),
+         figures: RedFlagInputs = RedFlagInputs(), rules: RedFlagRules = (try? .bundled()) ?? .empty) throws {
         (self.mission, self.store, self.now, self.timeZone, self.places) = (mission, store, now, timeZone, places)
-        self.signer = signer
+        (self.signer, self.figures, self.rules) = (signer, figures, rules)
         let language = SiteWalk.startingLanguage(preferred: preferred, formHasFrench: form.hasFrench)
         self.language = language
         walk = SiteWalk(form: form, actions: actions, answers: try store.answers(form: form.formId, mission: mission),
                         checks: try store.checks(mission: mission), language: language, now: now(), timeZone: timeZone)
         finished = try store.finishedWalk(form: form.formId, mission: mission)
+        flags = currentFlags()
     }
 
     /// The walk for a mission whose pack is on the phone: its checklist and agreed actions.
     static func load(mission: String, store: MissionStore) throws -> SiteWalkModel {
         let form = try ChecklistForm.read(try store.packFile("forms/road-checklist.json", in: mission))
         let actions = try AgreedActions.read(try store.packFile(AgreedActions.path, in: mission))
-        return try SiteWalkModel(form: form, actions: actions, mission: mission, store: store)
+        // A pack without a section leaves that input empty: its rules say "not checked", never clear.
+        let figures = RedFlagInputs(
+            contracts: try? PackContracts.read(try store.packFile(PackContracts.path, in: mission)),
+            milestones: try? PackMilestones.read(try store.packFile(PackMilestones.path, in: mission)))
+        return try SiteWalkModel(form: form, actions: actions, mission: mission, store: store, figures: figures)
     }
 
     func answer(_ value: String, to question: String) {
@@ -94,7 +104,8 @@ final class SiteWalkModel {
             for question in hidden {
                 try store.saveAnswer("", to: question, form: walk.form.formId, mission: mission, now: now())
             }
-            try store.finishWalk(form: walk.form.formId, version: walk.form.version, mission: mission, now: now())
+            try store.finishWalk(form: walk.form.formId, version: walk.form.version, mission: mission, now: now(),
+                                 flags: liveFlags())
         }
     }
 
@@ -120,6 +131,19 @@ final class SiteWalkModel {
               let checks = try? store.checks(mission: mission) else { return }
         walk = rebuilt(answers: answers, checks: checks)
         finished = try? store.finishedWalk(form: form.formId, mission: mission)
+        flags = currentFlags()
+    }
+
+    /// The flags as they are now: the pack's figures and this phone's photos, through the rules file.
+    private func liveFlags() -> [RedFlagResult] {
+        var inputs = figures
+        inputs.photos = try? store.photoReuse(for: mission)
+        return RedFlagEngine(rules: rules).run(inputs, walk: now(), timeZone: timeZone)
+    }
+
+    private func currentFlags() -> [RedFlagResult] {
+        if let stored = try? store.storedFlags(mission: mission) { return stored }
+        return liveFlags()
     }
 
     private func rebuilt(answers: [String: String], checks: [String: ActionCheck]) -> SiteWalk {

@@ -234,6 +234,7 @@ enum StoreSchema {
         migrator.registerMigration("v12-action-photo") { database in
             try database.execute(sql: "ALTER TABLE action_check ADD COLUMN photo_seq INTEGER CHECK (photo_seq >= 1)")
         }
+        registerRedFlags(in: &migrator)
         return migrator
     }
 }

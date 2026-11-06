@@ -1,7 +1,7 @@
 import Foundation
 
 /// What a rule's computed value and threshold are counted in.
-enum RuleUnit: String, Sendable { case percent, days, points, count }
+enum RuleUnit: String, Codable, Sendable { case percent, days, points, count }
 
 /// One red-flag rule as data (ADR 0010, #134): its id and version (what a flag records), its public or
 /// custom source, its title in English and French, and the threshold its computed value must go above.
@@ -14,7 +14,7 @@ struct RedFlagRule: Sendable, Equatable {
     }
 
     /// Every rule flags when its value is strictly above the threshold, so one test covers them all.
-    struct Threshold: Sendable, Equatable {
+    struct Threshold: Codable, Sendable, Equatable {
         let value: Double
         let unit: RuleUnit
 

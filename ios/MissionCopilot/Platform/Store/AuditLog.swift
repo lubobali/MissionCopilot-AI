@@ -9,6 +9,7 @@ struct AuditEvent: Sendable, Equatable {
         case packImported  // #92: the target is the version ("v3"), never any content
         // #129: the target is the question's name, the action's key, or the form and its version; never a value
         case siteAnswered, actionChecked, siteWalkFinished
+        case redFlagRaised  // #134: the target is the rule id ("MC-01"), never a value or an input
     }
 
     let seq: Int

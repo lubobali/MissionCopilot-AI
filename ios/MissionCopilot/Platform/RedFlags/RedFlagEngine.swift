@@ -5,7 +5,7 @@ import Foundation
 struct RedFlagResult: Sendable, Equatable {
     enum Outcome: Sendable, Equatable { case flag, clear, notChecked(NotChecked) }
 
-    enum NotChecked: String, Sendable {
+    enum NotChecked: String, Codable, Sendable {
         case noContracts, noMilestones, zeroValue, needsScan, needsPhotos, unknownRule
     }
 

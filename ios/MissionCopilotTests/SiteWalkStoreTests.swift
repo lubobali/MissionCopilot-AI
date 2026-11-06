@@ -158,7 +158,8 @@ struct SiteWalkStoreTests {
 
         let upgraded = try EncryptedStore.open(at: file, key: key)
 
-        #expect(try upgraded.appliedMigrations().suffix(2) == ["v11-site-walk", "v12-action-photo"])
+        #expect(Array(try upgraded.appliedMigrations().drop { $0 != "v11-site-walk" }.prefix(2))
+                == ["v11-site-walk", "v12-action-photo"])
         let tables = try upgraded.read { database in
             try String.fetchAll(database, sql: "SELECT name FROM sqlite_master WHERE type = 'table'")
         }
