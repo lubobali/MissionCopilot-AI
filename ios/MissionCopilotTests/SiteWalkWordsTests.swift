@@ -164,3 +164,17 @@ struct SiteWalkScreenRulesTests {
         #expect(MissionWorkspaceScreen.walkProgress(ScreenshotTests.sampleRows[0], store: nil) == nil)
     }
 }
+
+/// What a typed answer saves (#129, found on the iPhone: the number pad kept the dot out and stayed open).
+struct TypedAnswerTests {
+    @Test func aDecimalSavesWithThePointTheFormWantsWhicheverSeparatorWasTyped() {
+        #expect(TypedAnswer.saved("6.2", kind: .decimal) == "6.2")
+        #expect(TypedAnswer.saved("6,2", kind: .decimal) == "6.2")
+        #expect(TypedAnswer.saved(" 6.2 ", kind: .decimal) == "6.2")
+    }
+
+    @Test func textKeepsItsCommasAndLosesOnlyOuterSpaces() {
+        #expect(TypedAnswer.saved(" KN-0042 ", kind: .text) == "KN-0042")
+        #expect(TypedAnswer.saved("a, b", kind: .text) == "a, b")
+    }
+}

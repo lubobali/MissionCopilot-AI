@@ -18,6 +18,11 @@ struct SiteWalkScreen: View {
             if let walk {
                 ScrollView { SiteWalkView(model: walk) }
                     .scrollDismissesKeyboard(.interactively)
+                    // A tap outside a field closes the keyboard, and the field saves as it closes.
+                    .simultaneousGesture(TapGesture().onEnded {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil,
+                                                        from: nil, for: nil)
+                    })
             } else if cannotOpen {
                 Text("The site walk cannot open. Unlock the app, and make sure the mission's pack is downloaded.")
                     .multilineTextAlignment(.center)

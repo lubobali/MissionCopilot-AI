@@ -75,6 +75,15 @@ struct ActionCard: View {
                 .background(Color(.surface), in: .rect(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.border)))
                 .focused($writing)
+                .toolbar {
+                    if writing {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button(words.language == "fr" ? "OK" : "Done") { writing = false }
+                                .font(.headline)
+                        }
+                    }
+                }
                 .disabled(locked || check == nil)
                 .onChange(of: writing) { _, isWriting in
                     // Saved when the officer leaves the note, never on every letter (one audit event).
