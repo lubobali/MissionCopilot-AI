@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import UIKit
 
 /// A mission's site walk on screen (#129): the rules of `SiteWalk`, saved as they change. Every answer
 /// and check goes to the encrypted store at once, so a walk opened again (the app closed, the phone
@@ -25,6 +26,8 @@ final class SiteWalkModel {
     let signer: any EvidenceSigner
     /// The place being read since the camera opened, ready by the shutter (#129).
     var pendingPlace: Task<PlaceReading, Never>?
+    /// Thumbnails already opened from their sealed files, so scrolling does not open them again.
+    @ObservationIgnored var thumbnails: [Int: UIImage] = [:]
 
     static let finishedProblem = "This walk is finished. Its answers cannot change."
     static let saveProblem = "This could not be saved. Try again; if it keeps failing, restart the app."
@@ -60,8 +63,10 @@ final class SiteWalkModel {
         save { try store.saveAnswer(value, to: question, form: walk.form.formId, mission: mission, now: now()) }
     }
 
+    /// What was seen and a note; the action's photo, if any, stays with it.
     func check(_ seen: ActionSeen, note: String?, action: String) {
-        save { try store.saveCheck(seen, note: note, action: action, mission: mission, now: now()) }
+        let photo = walk.checks[action]?.photo
+        save { try store.saveCheck(seen, note: note, photo: photo, action: action, mission: mission, now: now()) }
     }
 
     /// Records where the phone is as a geopoint answer. Location is asked for only here, when the officer
@@ -94,7 +99,7 @@ final class SiteWalkModel {
     }
 
     @discardableResult
-    private func save(_ change: () throws -> Void) -> Bool {
+    func save(_ change: () throws -> Void) -> Bool {
         defer { reload() }
         do {
             try change()

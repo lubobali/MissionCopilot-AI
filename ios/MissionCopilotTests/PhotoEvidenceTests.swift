@@ -97,3 +97,86 @@ struct PhotoEvidenceTests {
         #expect(walk.problem == SiteWalkModel.finishedProblem)
     }
 }
+
+/// Photos in the walk (#129, step 6.2.9): on the checklist's photo question and on an agreed action.
+@MainActor
+@Suite(.timeLimit(.minutes(1)))
+struct WalkPhotoTests {
+    let mission = "kandor-roads"
+
+    private func walk() throws -> (SiteWalkModel, MissionStore) {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).sqlite")
+        let store = MissionStore(store: try EncryptedStore.open(at: file, key: DataKey.random()),
+                                 vault: SoftwareKeyVault())
+        try store.create(mission: mission, title: "Kandor rural roads")
+        let (form, actions) = try SiteWalkTests.kandor()
+        let walk = try SiteWalkModel(form: form, actions: actions, mission: mission, store: store,
+                                     now: { SiteWalkTests.walkDay }, timeZone: .gmt, preferred: ["en-US"],
+                                     places: PlaceTests.FakePlaces(.place(PlaceTests.kmEighteen)),
+                                     signer: SoftwareEvidenceSigner())
+        return (walk, store)
+    }
+
+    private func photo() throws -> UIImage {
+        try #require(UIImage(data: try SitePhotoTests.cameraJPEG(width: 1200, height: 900)))
+    }
+
+    @Test func thePhotoQuestionPointsAtItsEvidenceAndARetakePointsAtTheNewest() async throws {
+        let (walk, store) = try walk()
+
+        let first = try #require(await walk.photoTaken(try photo(), for: .question("sample_photo")))
+        let second = try #require(await walk.photoTaken(try photo(), for: .question("sample_photo")))
+
+        #expect(walk.walk.answers["sample_photo"] == "evidence:\(second)")
+        #expect(first != second)
+        #expect(try store.evidence(in: mission).count == 2, "the first photo stays: evidence is append-only")
+    }
+
+    @Test func anAgreedActionsPhotoKeepsWhatWasSeenAndTheNote() async throws {
+        let (walk, _) = try walk()
+        let key = walk.walk.actions.actions[0].key
+        walk.check(.notStarted, note: "No works at the bridge", action: key)
+
+        let seq = try #require(await walk.photoTaken(try photo(), for: .action(key)))
+
+        #expect(walk.walk.checks[key] == ActionCheck(seen: .notStarted, note: "No works at the bridge", photo: seq))
+    }
+
+    @Test func changingWhatWasSeenKeepsThePhoto() async throws {
+        let (walk, _) = try walk()
+        let key = walk.walk.actions.actions[0].key
+        walk.check(.notStarted, note: nil, action: key)
+        let seq = try #require(await walk.photoTaken(try photo(), for: .action(key)))
+
+        walk.check(.inProgress, note: "Piers started", action: key)
+
+        #expect(walk.walk.checks[key]?.photo == seq)
+    }
+
+    @Test func anActionsPhotoNeedsWhatWasSeenFirst() async throws {
+        let (walk, store) = try walk()
+        let key = walk.walk.actions.actions[0].key
+
+        let seq = await walk.photoTaken(try photo(), for: .action(key))
+
+        #expect(seq == nil)
+        #expect(try store.evidence(in: mission).isEmpty, "no photo is taken for nothing")
+        #expect(walk.problem == SiteWalkWords().text(.pickFirst))
+    }
+
+    @Test func aPhotoComesBackAsAThumbnailFromItsSealedFile() async throws {
+        let (walk, _) = try walk()
+        let seq = try #require(await walk.photoTaken(try photo(), for: .question("sample_photo")))
+
+        let thumbnail = try #require(walk.thumbnail(seq))
+
+        #expect(max(thumbnail.size.width, thumbnail.size.height) * thumbnail.scale <= 600)
+        #expect(walk.thumbnail(99) == nil)
+    }
+
+    @Test func anEvidenceAnswerNamesItsSeq() {
+        #expect(SiteWalkModel.photoSeq(inAnswer: "evidence:12") == 12)
+        #expect(SiteWalkModel.photoSeq(inAnswer: "evidence:x") == nil)
+        #expect(SiteWalkModel.photoSeq(inAnswer: "") == nil)
+    }
+}

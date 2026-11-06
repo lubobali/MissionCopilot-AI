@@ -10,7 +10,8 @@ struct SiteWalkWords: Sendable {
 
     enum Key: CaseIterable, Sendable {
         case agreedActions, actionsAsGiven, checklist, overdue, note, pickFirst, yourAnswer, number, setDate, clear
-        case recordLocation, recordAgain, finding, photosLater, stillToDo, finish, finishQuestion, finishWarning
+        case recordLocation, recordAgain, finding, takePhoto, retakePhoto, addPhoto, stillToDo, finish
+        case finishQuestion, finishWarning
         case finishConfirm, notYet, locked, agreedAction, required, notStarted, finishedOn, languageLabel
     }
 
@@ -34,8 +35,9 @@ struct SiteWalkWords: Sendable {
         .recordLocation: ("Record location", "Enregistrer la position"),
         .recordAgain: ("Record again", "Enregistrer à nouveau"),
         .finding: ("Finding your position", "Recherche de votre position"),
-        .photosLater: ("Taking photos comes in the next update of the app.",
-                       "La prise de photos arrive dans la prochaine mise à jour de l'application."),
+        .takePhoto: ("Take photo", "Prendre une photo"),
+        .retakePhoto: ("Retake photo", "Reprendre la photo"),
+        .addPhoto: ("Add a photo", "Ajouter une photo"),
         .stillToDo: ("Still to do before you can finish", "À faire avant de pouvoir terminer"),
         .finish: ("Finish the site walk", "Terminer la visite de site"),
         .finishQuestion: ("Finish the site walk?", "Terminer la visite de site ?"),

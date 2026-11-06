@@ -59,6 +59,25 @@ struct SiteWalkStoreTests {
         #expect(try store.checks(mission: mission) == [bridgeAction: ActionCheck(seen: .inProgress, note: nil)])
     }
 
+    @Test func anActionCheckCanPointAtItsPhoto() throws {
+        // #129 PR 2 (schema v12): the photo is evidence; the check keeps its seq.
+        let store = try store()
+        try store.addEvidence(EvidenceChainTests.capture("bridge site"), to: mission, signer: SoftwareEvidenceSigner())
+
+        try store.saveCheck(.notStarted, note: "No works", photo: 1, action: bridgeAction, mission: mission)
+
+        #expect(try store.checks(mission: mission)[bridgeAction] == ActionCheck(seen: .notStarted, note: "No works",
+                                                                                 photo: 1))
+    }
+
+    @Test func aCheckCannotPointAtEvidenceThatIsNotThere() throws {
+        let store = try store()
+
+        #expect(throws: MissionStore.NoSuchPhoto.self) {
+            try store.saveCheck(.done, note: nil, photo: 7, action: self.bridgeAction, mission: self.mission)
+        }
+    }
+
     @Test func finishingRecordsTheFormVersionAndLocksTheWalk() throws {
         let store = try store()
         try store.saveAnswer("yes", to: "bridge_started", form: Self.form, mission: mission)
@@ -89,6 +108,7 @@ struct SiteWalkStoreTests {
         "DELETE FROM site_answer",
         "INSERT INTO site_answer VALUES ('kandor-roads', 'kandor_road_check', 'drainage_present', x'00', 0)",
         "UPDATE action_check SET seen = 'done'",
+        "UPDATE action_check SET photo_seq = 1",
         "DELETE FROM action_check",
         "UPDATE site_walk_finished SET finished_at = 0",
         "DELETE FROM site_walk_finished"
@@ -138,7 +158,7 @@ struct SiteWalkStoreTests {
 
         let upgraded = try EncryptedStore.open(at: file, key: key)
 
-        #expect(try upgraded.appliedMigrations().last == "v11-site-walk")
+        #expect(try upgraded.appliedMigrations().suffix(2) == ["v11-site-walk", "v12-action-photo"])
         let tables = try upgraded.read { database in
             try String.fetchAll(database, sql: "SELECT name FROM sqlite_master WHERE type = 'table'")
         }

@@ -39,6 +39,58 @@ extension SiteWalkModel {
         return payload.seq
     }
 
+    /// Where a photo goes: the checklist's photo question, or an agreed action (by its key).
+    enum PhotoTarget: Equatable, Sendable {
+        case question(String), action(String)
+    }
+
+    /// The photo just taken, kept as evidence and linked to its question or action; a retake points at the
+    /// newest and the older one stays (evidence is append-only). An action needs what was seen first.
+    func photoTaken(_ image: UIImage, for target: PhotoTarget) async -> Int? {
+        if case .action(let key) = target, walk.checks[key] == nil {
+            problem = SiteWalkWords(language: language).text(.pickFirst)
+            return nil
+        }
+        guard let seq = await photoTaken(image) else { return nil }
+        let note = problem  // "saved without its place" survives the link below
+        switch target {
+        case .question(let question):
+            answer("evidence:\(seq)", to: question)
+        case .action(let key):
+            guard let check = walk.checks[key] else { return seq }
+            save { try store.saveCheck(check.seen, note: check.note, photo: seq, action: key, mission: mission,
+                                       now: now()) }
+        }
+        if problem == nil { problem = note }
+        return seq
+    }
+
+    /// A photo's thumbnail (600 px), opened from its sealed file in memory only.
+    func thumbnail(_ seq: Int) -> UIImage? {
+        if let opened = thumbnails[seq] { return opened }
+        guard let file = try? store.evidenceFile(in: mission, seq: seq), let image = UIImage(data: file),
+              let thumbnail = image.preparingThumbnail(of: Self.thumbnailSize(of: image.size)) else { return nil }
+        thumbnails[seq] = thumbnail
+        return thumbnail
+    }
+
+    /// The camera closed without a photo: the place reading is no longer needed.
+    func cameraCancelled() {
+        pendingPlace?.cancel()
+        pendingPlace = nil
+    }
+
+    static func thumbnailSize(of size: CGSize) -> CGSize {
+        let scale = min(1, 600 / max(size.width, size.height, 1))
+        return CGSize(width: (size.width * scale).rounded(), height: (size.height * scale).rounded())
+    }
+
+    /// The seq an "evidence:<seq>" answer names.
+    static func photoSeq(inAnswer answer: String) -> Int? {
+        guard answer.hasPrefix("evidence:") else { return nil }
+        return Int(answer.dropFirst("evidence:".count))
+    }
+
     static func withoutPlace(_ reading: PlaceReading, language: String) -> String {
         let reason = reading.problem(app: appName, language: language) ?? ""
         return (language == "fr" ? "La photo est enregistrée sans son emplacement. "

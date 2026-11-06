@@ -229,6 +229,11 @@ enum StoreSchema {
                 BEGIN SELECT RAISE(ABORT, 'append-only: a finished walk goes only with its mission'); END;
                 """)
         }
+        // An agreed action's photo (#129 PR 2): the check keeps the evidence's seq. The column is added to the
+        // locked table, so the v11 triggers lock it too once the walk is finished.
+        migrator.registerMigration("v12-action-photo") { database in
+            try database.execute(sql: "ALTER TABLE action_check ADD COLUMN photo_seq INTEGER CHECK (photo_seq >= 1)")
+        }
         return migrator
     }
 }

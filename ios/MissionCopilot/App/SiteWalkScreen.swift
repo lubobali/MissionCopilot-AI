@@ -50,6 +50,7 @@ struct SiteWalkView: View {
     @Bindable var model: SiteWalkModel
     var words = SiteWalkWords()
     @State private var confirming = false
+    @State private var camera: CameraTarget?
 
     private var locked: Bool { model.finished != nil }
 
@@ -72,15 +73,36 @@ struct SiteWalkView: View {
                     .font(.callout)
                     .foregroundStyle(Color(.warning))
             }
-            AgreedActionsSection(walk: model.walk, words: words, locked: locked) { seen, note, key in
-                model.check(seen, note: note, action: key)
-            }
+            AgreedActionsSection(walk: model.walk, words: words, locked: locked,
+                                 onCheck: { seen, note, key in model.check(seen, note: note, action: key) },
+                                 onPhoto: openCamera, thumbnail: model.thumbnail)
             ChecklistSection(walk: model.walk, words: words, locked: locked,
                              onAnswer: { value, question in model.answer(value, to: question) },
-                             onPlace: { question in await model.recordPlace(for: question) })
+                             onPlace: { question in await model.recordPlace(for: question) },
+                             onPhoto: openCamera, thumbnail: model.thumbnail)
             finish
         }
         .padding(16)
+        .fullScreenCover(item: $camera) { open in
+            CameraView(onPhoto: { image in
+                camera = nil
+                Task { await model.photoTaken(image, for: open.target) }
+            }, onCancel: {
+                camera = nil
+                model.cameraCancelled()
+            })
+            .ignoresSafeArea()
+        }
+    }
+
+    /// Opens the camera for a slot, or says why it cannot (asked for only now, MASVS-PRIVACY-1).
+    private func openCamera(_ target: SiteWalkModel.PhotoTarget) {
+        if let problem = CameraAccess.current().problem(app: SiteWalkModel.appName, language: model.language) {
+            model.problem = problem
+            return
+        }
+        model.cameraOpening()
+        camera = CameraTarget(target: target)
     }
 
     private var header: some View {
