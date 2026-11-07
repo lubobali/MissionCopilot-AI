@@ -218,3 +218,11 @@ struct DebriefRow: View {
         .accessibilityElement(children: .contain)
     }
 }
+
+extension MissionWorkspaceScreen {
+    /// The debriefs' summary for their card; nil when the mission has no pack yet or the app is locked.
+    static func debriefsSummary(_ row: MissionRow, store: MissionStore?) -> String? {
+        guard row.pack != nil, let store, let debriefs = try? store.debriefs(in: row.id) else { return nil }
+        return DebriefModel.summary(debriefs)
+    }
+}

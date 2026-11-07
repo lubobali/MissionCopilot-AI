@@ -104,6 +104,12 @@ struct DebriefModelTests {
         again.load()
         #expect(again.debriefs.count == 1)
         #expect(DebriefModel.summary([]) == DebriefCard.start)
+        let sample = ScreenshotTests.sampleRows[0]
+        let row = MissionRow(id: "kandor-roads", title: sample.title, status: sample.status, pack: sample.pack,
+                             updateAvailable: false, canDownload: false, note: nil)
+        #expect(MissionWorkspaceScreen.debriefsSummary(row, store: store) == "1 debrief · 0:42")
+        #expect(MissionWorkspaceScreen.debriefsSummary(row, store: nil) == nil)
+        #expect(MissionWorkspaceScreen.debriefsSummary(ScreenshotTests.sampleRows[1], store: store) == nil)
     }
 
     @Test func nothingIsRecordedBeforeTheConsentLine() async throws {

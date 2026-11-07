@@ -15,6 +15,7 @@ struct MissionWorkspaceScreen: View {
     @State private var walk: String?  // the site walk's progress, for its card
     @State private var flags: [RedFlagResult]?  // the red flags, for theirs (#134)
     @State private var documents: String?  // the documents' summary, for their card (#138)
+    @State private var debriefs: String?  // the debriefs' summary, for theirs (#142)
 
     var body: some View {
         Group {
@@ -27,13 +28,14 @@ struct MissionWorkspaceScreen: View {
                                      onInstall: { language in Task { await readiness.install(language, for: row) } },
                                      onDownload: { model.download(row.id) },
                                      onTestModel: { Task { await readiness.testModel() } },
-                                     documents: documents, debriefs: row.pack == nil ? nil : DebriefCard.start)
+                                     documents: documents, debriefs: debriefs)
                 }
                 .refreshable { await readiness.refresh(row) }
                 .task(id: row) { await readiness.refresh(row) }
                 .onAppear {
                     (walk, flags) = Self.walkCards(row, store: model.openStore)
                     documents = Self.documentsSummary(row, store: model.openStore)
+                    debriefs = Self.debriefsSummary(row, store: model.openStore)
                 }
             } else {
                 Loading(text: "Loading the mission")
