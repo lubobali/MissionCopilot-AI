@@ -20,5 +20,22 @@ extension StoreSchema {
                 BEGIN SELECT RAISE(ABORT, 'append-only: a scan goes only with its mission'); END;
                 """)
         }
+        // What Vision read on each scanned page (#138): text and table cells, sealed with the mission key, once
+        // per page and reader version; append-only, gone with its mission.
+        migrator.registerMigration("v15-page-readings") { database in
+            try database.execute(sql: """
+                CREATE TABLE page_reading (
+                    mission_id TEXT NOT NULL REFERENCES mission(id) ON DELETE CASCADE,
+                    evidence_seq INTEGER NOT NULL, reader TEXT NOT NULL,
+                    sealed_reading BLOB NOT NULL, read_at REAL NOT NULL,
+                    PRIMARY KEY (mission_id, evidence_seq, reader),
+                    FOREIGN KEY (mission_id, evidence_seq) REFERENCES evidence(mission_id, seq) ON DELETE CASCADE);
+                CREATE TRIGGER page_reading_no_update BEFORE UPDATE ON page_reading
+                BEGIN SELECT RAISE(ABORT, 'append-only: a page reading cannot be changed'); END;
+                CREATE TRIGGER page_reading_no_delete BEFORE DELETE ON page_reading
+                WHEN EXISTS (SELECT 1 FROM mission WHERE id = OLD.mission_id)
+                BEGIN SELECT RAISE(ABORT, 'append-only: a page reading goes only with its mission'); END;
+                """)
+        }
     }
 }
