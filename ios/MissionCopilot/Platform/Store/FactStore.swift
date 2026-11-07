@@ -42,32 +42,44 @@ enum FactError: Error, Equatable {
 extension MissionStore {
     @discardableResult
     func addFact(_ input: FactInput, to mission: String, now: Date = Date()) throws -> Fact {
-        guard let first = input.sources.first else { throw FactError.noSource }
-        let sealed = try MissionData.seal(Data(input.value.utf8), with: missionKey(for: mission))
-        let fact = Fact(id: UUID().uuidString.lowercased(), name: input.name, value: input.value, unit: input.unit,
-                        rule: input.rule, classification: try strictestLabel(of: input.sources, in: mission),
-                        sources: input.sources)
-        try store.write { database in
-            try database.execute(sql: """
-                INSERT INTO fact (id, mission_id, name, sealed_value, unit, rule_id, rule_version, classification,
-                                  created_at, first_source_seq) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, arguments: [fact.id, mission, fact.name, sealed, fact.unit, fact.rule.id, fact.rule.version,
-                                 fact.classification.rawValue, now.timeIntervalSince1970, first.seq])
-            for source in input.sources {
-                try database.execute(sql: "INSERT INTO fact_source VALUES (?, ?, ?, ?)",
-                                     arguments: [fact.id, mission, source.seq, source.region])
-            }
-            try EncryptedStore.appendAudit(AuditEntry(action: .factAdded, actor: actor, mission: mission,
-                                                      target: fact.id, time: now), in: database)
-        }
-        return fact
+        try addFacts([input], to: mission, now: now)[0]
     }
 
-    /// The mission's facts, oldest first, each with its sources in evidence order.
+    /// Several facts in one write: all are stored, or none (#138: an invoice's 8 facts go in together).
+    @discardableResult
+    func addFacts(_ inputs: [FactInput], to mission: String, now: Date = Date()) throws -> [Fact] {
+        let key = try missionKey(for: mission)
+        let facts = try inputs.map { input in
+            guard !input.sources.isEmpty else { throw FactError.noSource }
+            return Fact(id: UUID().uuidString.lowercased(), name: input.name, value: input.value, unit: input.unit,
+                        rule: input.rule, classification: try strictestLabel(of: input.sources, in: mission),
+                        sources: input.sources)
+        }
+        try store.write { database in
+            for fact in facts {
+                let sealed = try MissionData.seal(Data(fact.value.utf8), with: key)
+                try database.execute(sql: """
+                    INSERT INTO fact (id, mission_id, name, sealed_value, unit, rule_id, rule_version,
+                                      classification, created_at, first_source_seq)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, arguments: [fact.id, mission, fact.name, sealed, fact.unit, fact.rule.id, fact.rule.version,
+                                     fact.classification.rawValue, now.timeIntervalSince1970, fact.sources[0].seq])
+                for source in fact.sources {
+                    try database.execute(sql: "INSERT INTO fact_source VALUES (?, ?, ?, ?)",
+                                         arguments: [fact.id, mission, source.seq, source.region])
+                }
+                try EncryptedStore.appendAudit(AuditEntry(action: .factAdded, actor: actor, mission: mission,
+                                                          target: fact.id, time: now), in: database)
+            }
+        }
+        return facts
+    }
+
+    /// The mission's facts, oldest first (then in the order written), each with its sources in evidence order.
     func facts(in mission: String) throws -> [Fact] {
         let key = try missionKey(for: mission)
         return try store.read { database in
-            try Row.fetchAll(database, sql: "SELECT * FROM fact WHERE mission_id = ? ORDER BY created_at, id",
+            try Row.fetchAll(database, sql: "SELECT * FROM fact WHERE mission_id = ? ORDER BY created_at, rowid",
                              arguments: [mission]).map { row in
                 let sources = try Row.fetchAll(database, sql: """
                     SELECT evidence_seq, region FROM fact_source WHERE fact_id = ? ORDER BY evidence_seq
