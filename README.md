@@ -1,7 +1,7 @@
 # MissionCopilot-AI
 
 [![CI](https://github.com/lubobali/MissionCopilot-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/lubobali/MissionCopilot-AI/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: All rights reserved](https://img.shields.io/badge/license-all%20rights%20reserved-red.svg)](LICENSE)
 
 Small, offline AI for evidence-first field supervision. It runs on the iPhone in airplane mode,
 keeps sensitive notes on the phone, links every fact to its evidence, and only shares a report
@@ -85,9 +85,10 @@ The app has three builds: Debug (the local server), Staging (its own app, "MC St
 Every commit runs the same checks as CI through prek hooks.
 
 ## License
-Code: MIT (see LICENSE).
-Logo: the logo (the L and the key, in `ios/MissionCopilot/Assets.xcassets`) and the app icon that shows it
-belong to Lubo Bali and are **not** covered by the MIT license. Please do not reuse them; a fork needs its own
-icon. The airplane mark is our own drawing and is MIT, like the code.
+**All rights reserved** (see LICENSE). This repository is public to be read, for example to evaluate the
+author's work; copying, using, running or changing it needs his written permission. Versions up to commit
+a3576ab (6 November 2026) were published under the MIT License.
+The logo (the L and the key, in `ios/MissionCopilot/Assets.xcassets`), the app icon that shows it and the
+airplane mark belong to Lubo Bali, like the code.
 AI models are not stored in this repo. Each model keeps its own license, listed in the
 architecture decision records.
