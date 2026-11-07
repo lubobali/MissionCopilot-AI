@@ -10,15 +10,52 @@ struct PageReading: Codable, Sendable, Equatable {
     let transcript: String
     let tables: [[[String]]]
     let reader: String
+    /// Where the text sat on the image, for the bad-crop warning (6.5.4).
+    var layout: PageLayout?
 
     /// Reads an encoded page image (the sealed evidence file, opened in memory), on the phone, offline.
     static func read(_ image: Data) async throws -> PageReading {
         let documents = try await RecognizeDocumentsRequest().perform(on: image).map(\.document)
+        let rect = { (box: NormalizedRect) in
+            CGRect(origin: box.origin, size: CGSize(width: box.width, height: box.height))
+        }
+        let pages = documents.map { rect($0.boundingRegion.boundingBox) }
+        let page = pages.max { $0.width * $0.height < $1.width * $1.height } ?? .zero
+        let lines = documents.flatMap { $0.text.lines.map { rect($0.boundingRegion.boundingBox) } }
         return PageReading(transcript: documents.map(\.text.transcript).joined(separator: "\n"),
                            tables: documents.flatMap(\.tables).map { table in
                                table.rows.map { row in row.map(\.content.text.transcript) }
                            },
-                           reader: currentReader)
+                           reader: currentReader, layout: PageLayout(page: page, lines: lines))
+    }
+}
+
+/// Whether a scan caught more than its page (spike #15: in the darkest run the scanner took the whole monitor
+/// and the model, given the extra text, returned "0 of 0 km"). Vision calls the whole image the page even
+/// with other windows around it (found while testing), so the sign is the edge: a cropped page has margins,
+/// a caught screen has text at its very edge. Then the officer is asked to retake it (and may still use it).
+struct PageLayout: Codable, Sendable, Equatable {
+    /// The edge band, as a fraction of the image: printed pages keep wider margins than this.
+    static let edgeBand = 0.025
+    static let smallestPage = 0.5
+
+    let documentArea: Double
+    let linesAtTheEdge: Int
+
+    var looksCropped: Bool { documentArea < Self.smallestPage || linesAtTheEdge > 0 }
+
+    init(documentArea: Double, linesAtTheEdge: Int) {
+        self.documentArea = documentArea
+        self.linesAtTheEdge = linesAtTheEdge
+    }
+
+    /// From Vision's normalized boxes (0 to 1): the page it found and every line of text on the image.
+    init(page: CGRect, lines: [CGRect]) {
+        let band = Self.edgeBand
+        self.init(documentArea: Double(page.width * page.height),
+                  linesAtTheEdge: lines.filter { line in
+                      line.minX < band || line.minY < band || line.maxX > 1 - band || line.maxY > 1 - band
+                  }.count)
     }
 }
 
