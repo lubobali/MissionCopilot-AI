@@ -98,7 +98,8 @@ struct DebriefView: View {
             controls
             status
             ForEach(model.debriefs.reversed()) { debrief in
-                DebriefRow(debrief: debrief, transcript: model.transcripts[debrief.seq] ?? .reading) {
+                DebriefRow(debrief: debrief, transcript: model.transcripts[debrief.seq] ?? .reading,
+                           notesSaved: model.confirmed.contains(debrief.seq), mission: model.mission) {
                     Task { await model.retry(debrief.seq) }
                 }
             }
@@ -175,6 +176,8 @@ struct VoiceBars: View {
 struct DebriefRow: View {
     let debrief: Debrief
     var transcript = DebriefModel.TranscriptState.reading
+    var notesSaved = false
+    var mission = ""
     var onRetry: () -> Void = {}
 
     var body: some View {
@@ -204,6 +207,16 @@ struct DebriefRow: View {
                     .font(.body)
                     .foregroundStyle(Color(.text))
                     .textSelection(.enabled)
+                if notesSaved {
+                    Label("Notes saved", systemImage: "checkmark.seal.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(Color(.success))
+                } else {
+                    NavigationLink(value: DebriefNotesLink(id: mission, seq: debrief.seq)) {
+                        Label("Draft the notes", systemImage: "list.bullet.clipboard")
+                    }
+                    .buttonStyle(.fieldSecondary)
+                }
             case .problem:
                 Label(transcript.words, systemImage: "exclamationmark.triangle.fill")
                     .font(.subheadline)

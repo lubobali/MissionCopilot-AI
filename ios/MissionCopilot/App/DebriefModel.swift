@@ -38,6 +38,8 @@ final class DebriefModel {
     var language = SpeechLanguage.english
     private(set) var debriefs: [Debrief] = []
     private(set) var transcripts: [Int: TranscriptState] = [:]
+    /// Debriefs whose notes are saved (6.6.8).
+    private(set) var confirmed: Set<Int> = []
     private(set) var levels = Array(repeating: 0.0, count: DebriefModel.bars)
     let recorder: any DebriefRecorder
     let mission: String
@@ -56,6 +58,7 @@ final class DebriefModel {
     /// The debriefs kept for this mission, oldest first, each with its stored text if it has one.
     func load() {
         debriefs = (try? store.debriefs(in: mission)) ?? []
+        confirmed = (try? store.confirmedDebriefs(in: mission)) ?? []
         for debrief in debriefs where transcripts[debrief.seq] == nil {
             if let kept = (try? store.transcript(of: debrief.seq, in: mission)).flatMap({ $0 }) {
                 transcripts[debrief.seq] = .heard(kept.text)
