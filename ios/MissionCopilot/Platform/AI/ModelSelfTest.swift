@@ -11,16 +11,7 @@ enum AppModel {
 /// 8 facts) through the same door every real call uses, checked by code against the true values. Offline,
 /// and nothing is stored: it only says whether the assistant works on this iPhone, and how fast.
 enum ModelSelfTest {
-    struct Facts: Codable, Equatable, Sendable {
-        let invoiceNumber: String
-        let invoiceDate: String
-        let amountDue: Int
-        let cumulativePaid: Int
-        let contractValue: Int
-        let kmCompleted: Int
-        let kmTotal: Int
-        let bridgeStatus: String
-    }
+    typealias Facts = InvoiceFacts
 
     enum Result: Equatable, Sendable {
         case answered(seconds: Double, right: Int)
@@ -71,14 +62,7 @@ enum ModelSelfTest {
 
         CONTRACTOR PROGRESS REPORT, September 2026. Road section 1 to 3, total length 64 km. Completed: 32 km \
         asphalt. Section 3 bridge: not started. Planned completion: 15 Dec 2026.
-        """, schema: #"""
-        {"type":"object","additionalProperties":false,"required":["invoiceNumber","invoiceDate","amountDue",\#
-        "cumulativePaid","contractValue","kmCompleted","kmTotal","bridgeStatus"],"properties":{\#
-        "invoiceNumber":{"type":"string"},"invoiceDate":{"type":"string","pattern":"^\\d{4}-\\d{2}-\\d{2}$"},\#
-        "amountDue":{"type":"integer"},"cumulativePaid":{"type":"integer"},"contractValue":{"type":"integer"},\#
-        "kmCompleted":{"type":"integer"},"kmTotal":{"type":"integer"},\#
-        "bridgeStatus":{"type":"string","enum":["not_started","in_progress","completed"]}}}
-        """#, maxTokens: 256)
+        """, schema: InvoiceFacts.schema, maxTokens: 256)
 
     static func run(_ model: FieldModel) async -> Result {
         let start = ContinuousClock.now
