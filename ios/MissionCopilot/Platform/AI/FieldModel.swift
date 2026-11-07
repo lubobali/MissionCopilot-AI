@@ -9,8 +9,14 @@ struct ModelRequest: Sendable, Equatable {
     let maxTokens: Int
 }
 
-enum ModelEngineError: Error, Equatable {
-    case unavailable(String)
+/// Why the model cannot answer at all, in words the screens can say (6.4.5).
+enum ModelUnavailable: Error, Equatable, Sendable {
+    /// Debug builds and builds made without the model (CI).
+    case notInThisBuild
+    /// The signature check refused it: never loaded (T46).
+    case failedCheck
+    /// It passed the check but could not be loaded (memory, a broken file).
+    case couldNotLoad
 }
 
 /// The model itself: the real one is MLX on the iPhone (6.4.4); tests use a fake.
@@ -30,7 +36,7 @@ enum ModelAnswer<Output: Sendable>: Sendable {
     enum Refusal: Sendable, Equatable {
         case inputTooLong(characters: Int)
         case notSchemaValid
-        case unavailable(String)
+        case unavailable(ModelUnavailable)
         case failed
     }
 
@@ -63,7 +69,7 @@ struct FieldModel: Sendable {
         let outcome: ModelOutcome<String>
         do {
             outcome = try await limit.run { try await engine.generate(request) }
-        } catch ModelEngineError.unavailable(let why) {
+        } catch let why as ModelUnavailable {
             return .refused(.unavailable(why))
         } catch {
             return .refused(.failed)

@@ -88,13 +88,13 @@ struct FieldModelTests {
     @Test func aModelErrorIsRefusedWithItsReason() async {
         struct Broken: ModelEngine {
             func generate(_ request: ModelRequest) async throws -> String {
-                throw ModelEngineError.unavailable("no model")
+                throw ModelUnavailable.notInThisBuild
             }
         }
 
         let answer = await FieldModel(engine: Broken()).run(Self.task())
 
-        #expect(answer == .refused(.unavailable("no model")))
+        #expect(answer == .refused(.unavailable(.notInThisBuild)))
     }
 
     @Test func eachCallStartsFreshWithOnlyItsOwnPrompt() async throws {
