@@ -84,3 +84,15 @@ extension InvoiceFacts {
          "kmCompleted": String(kmCompleted), "kmTotal": String(kmTotal), "bridgeStatus": bridgeStatus][field]
     }
 }
+
+extension MissionStore {
+    /// The scanned pages whose facts are already stored (by the scan rule or the officer).
+    func confirmedPages(in mission: String) throws -> Set<Int> {
+        Set(try store.read { database in
+            try Int.fetchAll(database, sql: """
+                SELECT DISTINCT fact_source.evidence_seq FROM fact_source JOIN fact ON fact.id = fact_source.fact_id
+                WHERE fact.mission_id = ? AND fact.rule_id IN (?, ?)
+                """, arguments: [mission, Self.scanRule.id, Self.officerRule.id])
+        })
+    }
+}

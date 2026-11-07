@@ -34,6 +34,21 @@ struct DocumentsModelTests {
         #expect(try store.reading(of: documents.scans[0].pages[0].seq, in: mission) != nil)
     }
 
+    /// 6.5.11: read pages wait for the facts review until their facts are saved.
+    @Test func readPagesWaitForTheFactsUntilTheyAreSaved() async throws {
+        let (documents, store) = try model(pages: [try PageReadingTests.demo("invoice-14"),
+                                                   try PageReadingTests.demo("progress-report-2026-09")])
+        await documents.scan()
+        #expect(documents.pagesForFacts == 2)
+
+        let typed = Dictionary(uniqueKeysWithValues: InvoiceFacts.fields.map { ($0, FactDecision.correct("1")) })
+        try store.confirmFacts(FactReview(facts: .blank, printedAt: [:], problems: []), decisions: typed,
+                               pages: documents.scans[0].pages.map(\.seq), in: mission)
+        await documents.loadAndRead()
+
+        #expect(documents.pagesForFacts == 0)
+    }
+
     @Test func aPageWithTheScreenAroundItSaysRetake() async throws {
         let page = try PageReadingTests.demo("invoice-14")
         let size = CGSize(width: page.size.width * 2, height: page.size.height * 2)

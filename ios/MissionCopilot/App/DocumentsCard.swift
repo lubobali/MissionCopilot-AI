@@ -59,7 +59,8 @@ struct DocumentsScreen: View {
         .navigationTitle("Documents")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            guard documents == nil else { return }
+            // Back from the facts review: the pages it saved are no longer waiting.
+            if let documents { return await documents.loadAndRead() }
             guard let store = list.openStore else {
                 cannotOpen = true
                 return
@@ -102,6 +103,13 @@ struct DocumentsView: View {
             }
             .buttonStyle(.fieldPrimary)
             .disabled(scanning)
+            if model.pagesForFacts > 0 {
+                NavigationLink(value: FactsLink(id: model.mission)) {
+                    Label("Read the facts from \(model.pagesForFacts) page\(model.pagesForFacts == 1 ? "" : "s")",
+                          systemImage: "text.viewfinder")
+                }
+                .buttonStyle(.fieldSecondary)
+            }
             ForEach(Array(model.scans.reversed())) { scan in
                 ScanCard(scan: scan, thumbnail: model.thumbnail)
             }

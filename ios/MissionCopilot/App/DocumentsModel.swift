@@ -50,6 +50,8 @@ final class DocumentsModel {
 
     private(set) var scans: [Scan] = []
     private(set) var outcome: ScanOutcome?
+    /// Read pages whose facts are not saved yet: the review can read them (6.5.11).
+    private(set) var pagesForFacts = 0
     let mission: String
     private let store: MissionStore
     private let signer: any EvidenceSigner
@@ -82,6 +84,18 @@ final class DocumentsModel {
     func loadAndRead() async {
         load()
         await readWaitingPages()
+        countPagesForFacts()
+    }
+
+    private func countPagesForFacts() {
+        let confirmed = (try? store.confirmedPages(in: mission)) ?? []
+        let usable = { (state: PageState) -> Bool in  // a cropped page the officer kept is still a page
+            switch state {
+            case .read, .cropped: true
+            case .reading, .unreadable: false
+            }
+        }
+        pagesForFacts = scans.flatMap(\.pages).filter { usable($0.state) && !confirmed.contains($0.seq) }.count
     }
 
     /// The camera, then every page saved as signed evidence and read.
