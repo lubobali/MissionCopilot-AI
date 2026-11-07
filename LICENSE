@@ -12,9 +12,6 @@ international institutions.
 Third-party components inside it keep their own licenses: see ios/MissionCopilot/Licenses and
 docs/sbom/app.cdx.json. AI models keep their own licenses, listed in the architecture decision records.
 
-History: versions up to and including commit a3576ab (6 November 2026) were published under the MIT License.
-Everything after that commit is under this notice only.
-
 To ask for permission: open an issue on github.com/lubobali/MissionCopilot-AI or contact the author through
 his GitHub profile.
 

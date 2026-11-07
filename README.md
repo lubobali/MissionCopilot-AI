@@ -86,8 +86,7 @@ Every commit runs the same checks as CI through prek hooks.
 
 ## License
 **All rights reserved** (see LICENSE). This repository is public to be read, for example to evaluate the
-author's work; copying, using, running or changing it needs his written permission. Versions up to commit
-a3576ab (6 November 2026) were published under the MIT License.
+author's work; copying, using, running or changing any of it needs his written permission.
 The logo (the L and the key, in `ios/MissionCopilot/Assets.xcassets`), the app icon that shows it and the
 airplane mark belong to Lubo Bali, like the code.
 AI models are not stored in this repo. Each model keeps its own license, listed in the
