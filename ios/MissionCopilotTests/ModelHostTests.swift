@@ -116,4 +116,21 @@ struct ModelHostTests {
         #expect(await host.isLoaded == false)
         withExtendedLifetime(watcher) {}
     }
+
+    /// Found on the iPhone (#136): a second test after the background took 3.6 s like a warm one, so the time
+    /// alone cannot say whether the model was dropped. The host says whether the last call loaded it.
+    @Test func theHostSaysWhetherTheLastCallLoadedTheModel() async throws {
+        let calls = Calls()
+        let host = Self.host(calls)
+
+        _ = try await host.generate(Self.request)
+        guard case .loaded = await host.lastLoad else { Issue.record("first call loads"); return }
+
+        _ = try await host.generate(Self.request)
+        #expect(await host.lastLoad == .alreadyLoaded)
+
+        await host.release()
+        _ = try await host.generate(Self.request)
+        guard case .loaded = await host.lastLoad else { Issue.record("after a release it loads again"); return }
+    }
 }

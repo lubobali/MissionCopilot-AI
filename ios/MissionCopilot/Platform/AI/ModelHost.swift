@@ -15,6 +15,22 @@ actor ModelHost: ModelEngine {
     private let folder: URL
     private var loading: Task<any ModelEngine, any Error>?
 
+    /// Whether the last call loaded the model, and how long the check and the load took (for the self-test).
+    enum LoadNote: Equatable, Sendable {
+        case loaded(seconds: Double)
+        case alreadyLoaded
+
+        var words: String {
+            switch self {
+            case .loaded(let seconds):
+                "Model loaded for this test in \(seconds.formatted(.number.precision(.fractionLength(1)))) s"
+            case .alreadyLoaded: "Model was already loaded"
+            }
+        }
+    }
+
+    private(set) var lastLoad: LoadNote?
+
     init(check: @escaping Check, load: @escaping Load, clearMemory: @escaping @Sendable () async -> Void,
          folder: URL) {
         (self.check, self.load, self.clearMemory, self.folder) = (check, load, clearMemory, folder)
@@ -41,7 +57,11 @@ actor ModelHost: ModelEngine {
     }
 
     private func loaded() async throws -> any ModelEngine {
-        if let loading { return try await loading.value }
+        if let loading {
+            lastLoad = .alreadyLoaded
+            return try await loading.value
+        }
+        let start = ContinuousClock.now
         let (check, load, folder) = (check, load, folder)
         let task = Task<any ModelEngine, any Error> {
             switch await check() {
@@ -53,7 +73,10 @@ actor ModelHost: ModelEngine {
         }
         loading = task
         do {
-            return try await task.value
+            let engine = try await task.value
+            let took = ContinuousClock.now - start
+            lastLoad = .loaded(seconds: Double(took.components.seconds) + Double(took.components.attoseconds) / 1e18)
+            return engine
         } catch {
             if loading == task { loading = nil }  // try again next time
             throw error

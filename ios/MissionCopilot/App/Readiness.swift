@@ -11,6 +11,8 @@ final class Readiness {
     private(set) var problem: String?
     /// "Test the AI assistant" (#136): idle, running, or its result.
     private(set) var selfTest = SelfTest.idle
+    /// Whether that test loaded the model (found on the iPhone: the time alone cannot say).
+    private(set) var selfTestLoad: ModelHost.LoadNote?
 
     enum SelfTest: Equatable {
         case idle, running
@@ -57,7 +59,9 @@ final class Readiness {
     func testModel() async {
         guard selfTest != .running else { return }
         selfTest = .running
-        selfTest = .done(await ModelSelfTest.run(fieldModel))
+        let result = await ModelSelfTest.run(fieldModel)
+        selfTestLoad = await (fieldModel.engine as? ModelHost)?.lastLoad
+        selfTest = .done(result)
     }
 
     /// Needs a connection: Apple downloads the files. A failure is said, and the line stays to do.

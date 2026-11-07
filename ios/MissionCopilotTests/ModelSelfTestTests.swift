@@ -65,6 +65,11 @@ struct ModelSelfTestTests {
                 == "It could not start. Close other apps and try again.")
     }
 
+    @Test func theLoadNoteInWords() {
+        #expect(ModelHost.LoadNote.loaded(seconds: 0.42).words == "Model loaded for this test in 0.4 s")
+        #expect(ModelHost.LoadNote.alreadyLoaded.words == "Model was already loaded")
+    }
+
     @Test func onlyAllEightRightCountsAsPassed() {
         #expect(ModelSelfTest.Result.answered(seconds: 3, right: 8).passed)
         #expect(!ModelSelfTest.Result.answered(seconds: 3, right: 7).passed)
@@ -99,5 +104,6 @@ struct ReadinessSelfTestTests {
             return
         }
         #expect(right == 8)
+        #expect(readiness.selfTestLoad == nil, "a fake engine is not a host: no load note")
     }
 }

@@ -21,7 +21,8 @@ struct MissionWorkspaceScreen: View {
                 ScrollView {
                     MissionWorkspace(row: row, check: readiness.check, installing: readiness.installing,
                                      problem: readiness.problem, walk: walk, flags: flags,
-                                     selfTest: readiness.selfTest, words: words,
+                                     selfTest: readiness.selfTest, selfTestLoad: readiness.selfTestLoad,
+                                     words: words,
                                      onInstall: { language in Task { await readiness.install(language, for: row) } },
                                      onDownload: { model.download(row.id) },
                                      onTestModel: { Task { await readiness.testModel() } })
@@ -63,6 +64,7 @@ struct MissionWorkspace: View {
     var walk: String?  // the site walk's progress: its card shows when there is one
     var flags: [RedFlagResult]?  // the red flags: their card shows with the walk's (#134)
     var selfTest = Readiness.SelfTest.idle  // "Test the AI assistant" (#136)
+    var selfTestLoad: ModelHost.LoadNote?
     let words: MissionWords
     var onInstall: (SpeechLanguage) -> Void = { _ in }
     var onDownload: () -> Void = {}
@@ -90,7 +92,7 @@ struct MissionWorkspace: View {
             }
             if let check {
                 BeforeYouGoCard(check: check, installing: installing, problem: problem, selfTest: selfTest,
-                                onInstall: onInstall, onTestModel: onTestModel)
+                                selfTestLoad: selfTestLoad, onInstall: onInstall, onTestModel: onTestModel)
             } else {
                 Loading(text: "Checking this iPhone")
             }
@@ -123,6 +125,7 @@ struct BeforeYouGoCard: View {
     let installing: SpeechLanguage?
     let problem: String?
     var selfTest = Readiness.SelfTest.idle
+    var selfTestLoad: ModelHost.LoadNote?
     var onInstall: (SpeechLanguage) -> Void = { _ in }
     var onTestModel: () -> Void = {}
 
@@ -144,8 +147,8 @@ struct BeforeYouGoCard: View {
             }
             .accessibilityElement(children: .combine)
             ForEach(check.lines) { line in
-                ReadinessLine(line: line, installing: installing, selfTest: selfTest, onInstall: onInstall,
-                              onTestModel: onTestModel)
+                ReadinessLine(line: line, installing: installing, selfTest: selfTest, selfTestLoad: selfTestLoad,
+                              onInstall: onInstall, onTestModel: onTestModel)
             }
             if let problem {
                 Label(problem, systemImage: "exclamationmark.triangle.fill")
@@ -164,6 +167,7 @@ struct ReadinessLine: View {
     let line: BeforeYouGo.Line
     let installing: SpeechLanguage?
     var selfTest = Readiness.SelfTest.idle
+    var selfTestLoad: ModelHost.LoadNote?
     var onInstall: (SpeechLanguage) -> Void = { _ in }
     var onTestModel: () -> Void = {}
 
@@ -207,6 +211,11 @@ extension ReadinessLine {
             Label(result.words, systemImage: result.passed ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
                 .font(.footnote)
                 .foregroundStyle(Color(result.passed ? .success : .warning))
+            if let selfTestLoad {
+                Text(selfTestLoad.words)
+                    .font(.caption)
+                    .foregroundStyle(Color(.secondaryText))
+            }
         }
         Button(selfTest == .running ? "Testing the AI assistant" : "Test the AI assistant", action: onTestModel)
             .buttonStyle(.fieldSecondary)
