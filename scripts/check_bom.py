@@ -18,7 +18,9 @@ SIGNATURE = Path("docs/models/LFM2.5-1.2B-Instruct-4bit.sig")
 RESOLVED = Path("ios/AILab/EncryptionLab/Package.resolved")
 PROJECT = Path("ios/project.yml")
 # A package pinned by commit in project.yml (XcodeGen), read without a YAML library.
-PACKAGE = re.compile(r"^  (\w[\w.-]*):\n    url: (\S+)\n    revision: ([0-9a-f]{40})$", re.M)
+PACKAGE = re.compile(
+    r"^  (\w[\w.-]*):(?:[ \t]*#.*)?\n    url: (\S+)\n    revision: ([0-9a-f]{40})$", re.M
+)
 WEIGHTS = "model.safetensors"
 
 
@@ -64,6 +66,19 @@ def app_pins(project_yml: str) -> list[dict]:
     ]
 
 
+def unpinned(project_yml: str) -> list[str]:
+    """Every package of the main app pinned by a 40-character commit (#136), so none can drift."""
+    section = re.search(r"^packages:\n((?:  .*\n|\n)*)", project_yml, re.M)
+    if not section:
+        return []
+    found = []
+    entries = re.findall(r"^  (\w[\w.-]*):(?:[ \t]*#.*)?\n((?:    .*\n)*)", section.group(1), re.M)
+    for name, body in entries:
+        if not re.search(r"^    (revision: [0-9a-f]{40}|path: \S+)$", body, re.M):
+            found.append(f"{name}: pin it by revision (40-character commit), not a version")
+    return found
+
+
 def problems(bom: dict, signature: dict, resolved: dict) -> list[str]:
     if bom.get("bomFormat") != "CycloneDX" or bom.get("specVersion") != "1.6":
         return ["not a CycloneDX 1.6 BOM"]
@@ -78,9 +93,10 @@ def problems(bom: dict, signature: dict, resolved: dict) -> list[str]:
 
 
 def main() -> int:
+    project = PROJECT.read_text(encoding="utf-8")
     resolved = load(RESOLVED)
-    resolved["pins"] += app_pins(PROJECT.read_text(encoding="utf-8"))
-    found = problems(load(BOM), load(SIGNATURE), resolved)
+    resolved["pins"] += app_pins(project)
+    found = unpinned(project) + problems(load(BOM), load(SIGNATURE), resolved)
     for problem in found:
         print(f"BOM: {problem}")
     if not found:

@@ -27,6 +27,45 @@ packages:
   GRDB:
     url: https://github.com/lubobali/GRDB.swift
     revision: 743e132654bb30469ce64e2294e14d8ad0aa4d95
+  # The on-device model's libraries (#136), at exactly the versions the AI Lab proved on the iPhone
+  # (mlx-swift-lm 3.32.3, swift-transformers 1.3.5) and every package they pull in, each pinned by commit
+  # here so none can move on its own (scripts/check_bom.py); recorded in docs/sbom/app.cdx.json.
+  MLXSwiftLM:  # 3.32.3
+    url: https://github.com/ml-explore/mlx-swift-lm
+    revision: 3b339ad6e3b3f44c8121ecff5131c7fd55e075e6
+  MLXSwift:  # 0.32.3
+    url: https://github.com/ml-explore/mlx-swift
+    revision: 19601207e9a0de51e03ee6ec0c3c5f3784275075
+  Transformers:  # 1.3.5
+    url: https://github.com/huggingface/swift-transformers
+    revision: 48473106a93b2d8dfb114b82f0628ebbb71734e7
+  SwiftHuggingFace:  # 1.0.0
+    url: https://github.com/huggingface/swift-huggingface
+    revision: c30143a4616f3fa994ee3ab3e3464f752845c07c
+  SwiftJinja:  # 2.5.2
+    url: https://github.com/huggingface/swift-jinja.git
+    revision: 1e4d0dc69f7ec1277131fb3853808229c5991825
+  SwiftCollections:  # 1.7.5
+    url: https://github.com/apple/swift-collections.git
+    revision: f96b909e1a9e469620bc5037c1e24e00153f376f
+  SwiftNumerics:  # 1.1.1
+    url: https://github.com/apple/swift-numerics
+    revision: 0c0290ff6b24942dadb83a929ffaaa1481df04a2
+  SwiftCrypto:  # 4.5.2
+    url: https://github.com/apple/swift-crypto.git
+    revision: da9d28d69ebe3894b18376c8f2395c2f37b8448f
+  SwiftASN1:  # 1.7.3
+    url: https://github.com/apple/swift-asn1.git
+    revision: 3b6410f7dee09eb33cdd26260c5fd47fda19b0e2
+  SwiftSyntax:  # 603.0.2
+    url: https://github.com/swiftlang/swift-syntax.git
+    revision: 79e4b74a295b6eb74a8b585e3a39d29e70c1dbd1
+  EventSource:  # 1.5.1
+    url: https://github.com/mattt/EventSource.git
+    revision: 86b5096ac59ab46e66bd1f6377c604bc1dab0bc2
+  YYJSON:  # 0.12.0
+    url: https://github.com/ibireme/yyjson.git
+    revision: 8b4a38dc994a110abaec8a400615567bd996105f
 targets:
   MissionCopilot:
     type: application
@@ -48,6 +87,14 @@ targets:
     dependencies:
       - package: GRDB
         product: GRDB
+      - package: MLXSwiftLM
+        product: MLXLLM
+      - package: MLXSwiftLM
+        product: MLXLMCommon
+      - package: MLXSwiftLM
+        product: MLXGuidedGeneration
+      - package: Transformers
+        product: Tokenizers
     # The on-device model ships inside the app (#125; Lubo, Nov 5). Only its signed files and the
     # signature are copied, for Staging and Release; Debug and a Mac without the model ship none, and the
     # app says so. The app checks the signature before it trusts the model (threat model T46).

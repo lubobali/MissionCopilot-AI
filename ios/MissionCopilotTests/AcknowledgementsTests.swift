@@ -8,7 +8,8 @@ struct AcknowledgementsTests {
     @Test func theAppShipsTheLicenseOfEveryLinkedLibrary() throws {
         let licenses = try Acknowledgement.all(in: .main)
 
-        #expect(licenses.map(\.name) == ["GRDB", "SQLCipher", "LFM2.5"])
+        #expect(Array(licenses.map(\.name).prefix(3)) == ["GRDB", "SQLCipher", "LFM2.5"])
+        #expect(licenses.count == 15)
         #expect(licenses[0].text.contains("Gwendal Rou"))
         #expect(licenses[1].text.contains("ZETETIC LLC"))
     }
@@ -22,6 +23,20 @@ struct AcknowledgementsTests {
         #expect(model.text.contains("TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION"))
         #expect(model.text.contains("4-bit"))
         #expect(model.text.contains("mlx-community"))
+    }
+
+    @Test func theModelsLibrariesComeWithEveryLicenseTheyInclude() throws {
+        // #136: one file per library in the parts list; MLX Swift's includes the C++ libraries inside it.
+        let all = try Acknowledgement.all(in: .main)
+        let text = { (name: String) -> String in all.first { $0.name == name }?.text ?? "" }
+
+        #expect(text("mlx-swift-lm").contains("ml-explore"))
+        #expect(text("mlx-swift").contains("Included in MLX Swift: fmt"))
+        #expect(text("mlx-swift").contains("Included in MLX Swift: metal-cpp"))
+        #expect(text("swift-transformers").contains("Apache License"))
+        #expect(text("swift-collections").contains("Runtime Library Exception"))
+        #expect(text("EventSource").contains("Mattt"))
+        #expect(text("yyjson").contains("YaoYuan"))
     }
 
     @Test func aMissingLicenseIsAnErrorNotAnEmptyScreen() {

@@ -7,7 +7,13 @@ import SwiftUI
 struct Acknowledgement: Equatable, Identifiable {
     struct Missing: Error, Equatable { let name: String }
 
-    static let libraries = ["GRDB", "SQLCipher", "LFM2.5"]
+    /// Then the model's libraries (#136), one per entry of docs/sbom/app.cdx.json (a guard keeps them equal);
+    /// mlx-swift's file includes the C++ libraries inside it.
+    static let libraries = [
+        "GRDB", "SQLCipher", "LFM2.5", "mlx-swift-lm", "mlx-swift", "swift-transformers", "swift-huggingface",
+        "swift-jinja", "swift-collections", "swift-numerics", "swift-crypto", "swift-asn1", "swift-syntax",
+        "EventSource", "yyjson"
+    ]
 
     let name: String
     let text: String
