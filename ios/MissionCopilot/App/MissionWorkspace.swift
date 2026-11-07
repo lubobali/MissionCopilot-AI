@@ -15,6 +15,7 @@ struct MissionWorkspaceScreen: View {
     @State private var walk: String?  // the site walk's progress, for its card
     @State private var flags: [RedFlagResult]?  // the red flags, for theirs (#134)
     @State private var documents: String?  // the documents' summary, for their card (#138)
+    @State private var debriefs: String?  // the debriefs' summary, for theirs (#142)
 
     var body: some View {
         Group {
@@ -27,13 +28,14 @@ struct MissionWorkspaceScreen: View {
                                      onInstall: { language in Task { await readiness.install(language, for: row) } },
                                      onDownload: { model.download(row.id) },
                                      onTestModel: { Task { await readiness.testModel() } },
-                                     documents: documents)
+                                     documents: documents, debriefs: debriefs)
                 }
                 .refreshable { await readiness.refresh(row) }
                 .task(id: row) { await readiness.refresh(row) }
                 .onAppear {
                     (walk, flags) = Self.walkCards(row, store: model.openStore)
                     documents = Self.documentsSummary(row, store: model.openStore)
+                    debriefs = Self.debriefsSummary(row, store: model.openStore)
                 }
             } else {
                 Loading(text: "Loading the mission")
@@ -75,6 +77,7 @@ struct MissionWorkspace: View {
     var onDownload: () -> Void = {}
     var onTestModel: () -> Void = {}
     var documents: String?  // the documents' summary: their card shows with the pack (#138)
+    var debriefs: String?  // the debriefs' summary: their card shows with the pack (#142)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -118,6 +121,11 @@ struct MissionWorkspace: View {
             }
             if let documents {
                 NavigationLink(value: DocumentsLink(id: row.id)) { DocumentsCard(summary: documents) }
+                    .buttonStyle(.plain)
+                    .accessibilityHint(row.title)
+            }
+            if let debriefs {
+                NavigationLink(value: DebriefLink(id: row.id)) { DebriefCard(summary: debriefs) }
                     .buttonStyle(.plain)
                     .accessibilityHint(row.title)
             }
@@ -261,35 +269,5 @@ extension BeforeYouGo.State {
         case .toDo: .warning
         case .cannot: .danger
         }
-    }
-}
-
-/// The workspace's way into the site walk: what it is and how far it got.
-struct SiteWalkCard: View {
-    let progress: String
-
-    var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "figure.walk")
-                .font(.title2)
-                .foregroundStyle(Color(.accent))
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Site walk")
-                    .font(.headline)
-                    .foregroundStyle(Color(.text))
-                Text(progress)
-                    .font(.subheadline)
-                    .foregroundStyle(Color(.secondaryText))
-            }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .foregroundStyle(Color(.secondaryText))
-                .accessibilityHidden(true)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 22))
-        .accessibilityElement(children: .combine)
     }
 }

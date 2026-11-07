@@ -169,3 +169,33 @@ extension View {
             .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 20))
     }
 }
+
+/// The workspace's way into the site walk: what it is and how far it got.
+struct SiteWalkCard: View {
+    let progress: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "figure.walk")
+                .font(.title2)
+                .foregroundStyle(Color(.accent))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Site walk")
+                    .font(.headline)
+                    .foregroundStyle(Color(.text))
+                Text(progress)
+                    .font(.subheadline)
+                    .foregroundStyle(Color(.secondaryText))
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .foregroundStyle(Color(.secondaryText))
+                .accessibilityHidden(true)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 22))
+        .accessibilityElement(children: .combine)
+    }
+}

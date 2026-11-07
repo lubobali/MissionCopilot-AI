@@ -177,6 +177,25 @@ struct ScreenshotTests {
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "facts")
     }
 
+    /// #142: the Debrief page with two kept debriefs: one read into text, one where no words were heard.
+    @Test(arguments: [Look.light, .dark, .largestText])
+    func theDebriefsAreOnTheThemeBackground(look: Look) async throws {
+        let store = try DebriefModelTests.store()
+        let engine = DebriefTranscriptTests.FakeTranscriber(.success(
+            "Met the deputy minister. Section 3 bridge not started. Invoice 14 for 480,000."))
+        try store.addDebrief(try DebriefStoreTests.recording(seconds: 42), language: .english, to: "kandor-roads",
+                             signer: SoftwareEvidenceSigner())
+        let model = try DebriefModelTests.model(DebriefModelTests.FakeRecorder(), store: store, transcriber: engine)
+        await model.loadAndRead()
+        engine.answer = .failure(.nothingHeard)
+        try store.addDebrief(try DebriefStoreTests.recording(seconds: 4), language: .french, to: "kandor-roads",
+                             signer: SoftwareEvidenceSigner())
+        await model.loadAndRead()
+        model.consent = true
+        try check(DebriefView(model: model).fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "debriefs")
+    }
+
     /// Fictional Kandor missions in the states a person meets most.
     static let sampleRows: [MissionRow] = {
         let nov3 = MissionWordsTests.nov3, nov10 = MissionWordsTests.nov10
