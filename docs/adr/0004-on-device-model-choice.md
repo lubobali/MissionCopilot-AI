@@ -40,6 +40,12 @@ settings.
   (`BundledModel`, threat T46), and the license text, with the notice that this is the 4-bit MLX
   conversion, is on the Licenses screen, as the LFM Open License v1.0 asks (Section 4).
 
+- The model runs in the main app since #136 (Nov 6, 2026): MLX Swift LM 3.32.3 with swift-transformers 1.3.5,
+  every package pinned by commit (docs/sbom/app.cdx.json). The app grew from 643 MB to 685 MB (the program
+  9.2 to 50.6 MB, plus MLX's GPU code); the model is still 633 MB of it. Loaded only after its signature
+  check, released when the app goes to the background or iOS warns about memory; on the iPhone 13 Pro Max a
+  reload takes under 1 s and a test extraction 2.8 to 6.9 s.
+
 ## Engine decision (spike #12, Oct 30 2026)
 Both engines ran LFM2.5 1.2B inside our own app on the iPhone 13 Pro Max in airplane mode, 12 runs each,
 no crash (docs/spikes/01-model-engine.md):
