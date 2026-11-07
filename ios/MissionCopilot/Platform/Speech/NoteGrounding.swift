@@ -1,0 +1,141 @@
+import Foundation
+
+/// Where words sit in a transcript: their position and length, counted in characters.
+struct TextSpan: Codable, Sendable, Equatable {
+    let offset: Int
+    let length: Int
+}
+
+/// A drafted note after grounding: where its quote is in the transcript (nil when not there) and its problems.
+struct NoteCheck: Sendable, Equatable {
+    let note: DebriefNote
+    let found: TextSpan?
+    let problems: [String]
+}
+
+/// Grounding a debrief's notes (#142, step 6.6.6). Pure code, no model: the quote must be words that were said,
+/// who and by-when must be words of the quote, and no number or month may appear that was never said.
+enum NoteGrounding {
+    static func check(_ notes: [DebriefNote], transcript: String) -> [NoteCheck] {
+        let spoken = Words(transcript)
+        return notes.map { note in
+            let quote = Words(note.quote).text
+            var problems: [String] = []
+            var found: TextSpan?
+            if quote.isEmpty {
+                problems.append("No words from the debrief were given for this note.")
+            } else if let span = spoken.find(quote) {
+                found = span
+            } else {
+                problems.append("These words are not in the debrief: “\(note.quote)”.")
+            }
+            for part in [note.who, note.byWhen] where !Words(part).text.isEmpty {
+                if !" \(quote) ".contains(" \(Words(part).text) ") {
+                    problems.append("“\(part)” is not in the words quoted.")
+                }
+            }
+            let written = Words([note.text, note.who, note.byWhen].joined(separator: " "))
+            problems += written.numbers.filter { !spoken.numbers.contains($0) }
+                .map { "The number \($0) was not said in the debrief." }
+            problems += written.months.filter { !spoken.months.contains($0) }
+                .map { "The month \($0) was not said in the debrief." }
+            return NoteCheck(note: note, found: found, problems: problems)
+        }
+    }
+}
+
+/// Text as plain words: lower case, letters and digits only, one space between words; each character remembers
+/// where it was in the original, so a match points back into the transcript.
+private struct Words {
+    let text: String
+    private let characters: [Character]
+    private let origin: [Int]
+
+    init(_ original: String) {
+        var characters: [Character] = [], origin: [Int] = []
+        for (offset, character) in original.enumerated() {
+            if character.isLetter || character.isNumber {
+                characters.append(contentsOf: character.lowercased())
+                origin.append(contentsOf: Array(repeating: offset, count: character.lowercased().count))
+            } else if characters.last.map({ $0 != " " }) ?? false {
+                characters.append(" ")
+                origin.append(offset)
+            }
+        }
+        while characters.last == " " {
+            characters.removeLast()
+            origin.removeLast()
+        }
+        (self.characters, self.origin, self.text) = (characters, origin, String(characters))
+    }
+
+    /// The original position of `words` (already plain), starting and ending on whole words.
+    func find(_ words: String) -> TextSpan? {
+        let needle = Array(words)
+        guard !needle.isEmpty, needle.count <= characters.count else { return nil }
+        for start in 0...(characters.count - needle.count)
+        where Array(characters[start..<start + needle.count]) == needle {
+            let end = start + needle.count
+            guard start == 0 || characters[start - 1] == " ", end == characters.count || characters[end] == " " else {
+                continue
+            }
+            return TextSpan(offset: origin[start], length: origin[end - 1] - origin[start] + 1)
+        }
+        return nil
+    }
+
+    private var tokens: [String] { text.split(separator: " ").map(String.init) }
+
+    /// Every number, from digits ("480000", "15") or a small number word ("two", "deux"), in order, each once.
+    var numbers: [String] {
+        var seen: [String] = []
+        for token in tokens {
+            let number = token.allSatisfy(\.isNumber) ? String(Int(token) ?? 0)
+                : Self.numberWords[token].map(String.init)
+            if let number, !seen.contains(number) { seen.append(number) }
+        }
+        return seen
+    }
+
+    /// Every month named, in English or French, as its English name; "may" only next to a number (it is also
+    /// a common word).
+    var months: [String] {
+        let tokens = tokens
+        var seen: [String] = []
+        for (index, token) in tokens.enumerated() {
+            guard let month = Self.monthNames[token] else { continue }
+            if token == "may" {
+                let near = [index - 1, index + 1].filter(tokens.indices.contains).map { tokens[$0] }
+                guard near.contains(where: { $0.allSatisfy(\.isNumber) }) else { continue }
+            }
+            if !seen.contains(month) { seen.append(month) }
+        }
+        return seen
+    }
+
+    static let numberWords: [String: Int] = [
+        "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8,
+        "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "fifteen": 15, "twenty": 20, "thirty": 30,
+        "un": 1, "une": 1, "deux": 2, "trois": 3, "quatre": 4, "cinq": 5, "sept": 7, "huit": 8, "neuf": 9,
+        "dix": 10, "onze": 11, "douze": 12, "quinze": 15, "vingt": 20, "trente": 30
+    ]
+
+    static let monthNames: [String: String] = {
+        let english = ["january", "february", "march", "april", "may", "june", "july", "august", "september",
+                       "october", "november", "december"]
+        let french = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre",
+                      "octobre", "novembre", "décembre"]
+        var names: [String: String] = [:]
+        for (index, month) in english.enumerated() {
+            let name = month.prefix(1).uppercased() + month.dropFirst()
+            names[month] = name
+            names[String(month.prefix(3))] = name
+            names[french[index]] = name
+        }
+        names["sept"] = nil  // "sept" is French for seven
+        names["fevrier"] = "February"
+        names["aout"] = "August"
+        names["decembre"] = "December"
+        return names
+    }()
+}
