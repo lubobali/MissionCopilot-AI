@@ -58,7 +58,8 @@ Key names: **MK** = the mission key (one per mission, wrapped by a Secure Enclav
 | Voice debrief audio | Field officer | Official Use Only | Phone store | DK + MK | **Never** | No |
 | Debrief transcript and notes | Field officer | Official Use Only (or Strictly Confidential if marked) | Phone store | DK + MK | Only inside an approved report | No |
 | Photo or scanned page (evidence) | Field officer | Official Use Only | Phone store; org database after approval | DK + MK, signed with SE | After approval, with signature and hash chain | Only if a person labels it Public |
-| Extracted fact | System (rule engine) | Inherited from its source | Phone store; org database after approval | DK + MK; TK | After approval | Only if inherited label is Public |
+| Page reading (the text and tables Apple Vision read from a scanned page, #138) | System (Vision, on the phone) | Inherited from its page | Phone store | DK + MK | No: the page itself is the evidence; the reading is read again from it if needed | No |
+| Extracted fact (from a scanned invoice: the officer confirms or corrects each one, #138) | System (rule engine); the officer when corrected | Inherited from its source | Phone store; org database after approval | DK + MK; TK | After approval | Only if inherited label is Public |
 | Red flag (rule, outcome, the numbers and inputs it used, #134) | System (rule engine, plain code) | Strictly Confidential (every stored flag: integrity flags are, so the store labels all of them the strictest way) | Phone store; org database after approval | DK + MK; TK | After approval | No |
 | Report sentence | Field officer (approved) | Strictest of its linked facts | Phone store; org database after approval | DK + MK; TK | After approval | Only if Public |
 | Approval record | Approver | Official Use Only, immutable | Phone store; org database | DK + MK; TK | Yes, signed | No |
