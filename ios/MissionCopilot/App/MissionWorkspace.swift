@@ -13,19 +13,20 @@ struct MissionWorkspaceScreen: View {
     var words = MissionWords()
     @State private var readiness = Readiness()
     @State private var walk: String?  // the site walk's progress, for its card
+    @State private var flags: [RedFlagResult]?  // the red flags, for theirs (#134)
 
     var body: some View {
         Group {
             if let row = model.rows.first(where: { $0.id == id }) {
                 ScrollView {
                     MissionWorkspace(row: row, check: readiness.check, installing: readiness.installing,
-                                     problem: readiness.problem, walk: walk, words: words,
+                                     problem: readiness.problem, walk: walk, flags: flags, words: words,
                                      onInstall: { language in Task { await readiness.install(language, for: row) } },
                                      onDownload: { model.download(row.id) })
                 }
                 .refreshable { await readiness.refresh(row) }
                 .task(id: row) { await readiness.refresh(row) }
-                .onAppear { walk = Self.walkProgress(row, store: model.openStore) }
+                .onAppear { (walk, flags) = Self.walkCards(row, store: model.openStore) }
             } else {
                 Loading(text: "Loading the mission")
             }
@@ -39,10 +40,15 @@ struct MissionWorkspaceScreen: View {
 extension MissionWorkspaceScreen {
     /// The site walk's progress for its card; nil when the mission has no pack yet or the app is locked.
     static func walkProgress(_ row: MissionRow, store: MissionStore?) -> String? {
+        walkCards(row, store: store).progress
+    }
+
+    /// The walk's progress and its red flags (#134), from one load of the walk.
+    static func walkCards(_ row: MissionRow, store: MissionStore?) -> (progress: String?, flags: [RedFlagResult]?) {
         guard row.pack != nil, let store, let walk = try? SiteWalkModel.load(mission: row.id, store: store) else {
-            return nil
+            return (nil, nil)
         }
-        return SiteWalkWords().progress(walk.walk.progress, finished: walk.finished)
+        return (SiteWalkWords().progress(walk.walk.progress, finished: walk.finished), walk.flags)
     }
 }
 
@@ -53,6 +59,7 @@ struct MissionWorkspace: View {
     let installing: SpeechLanguage?
     let problem: String?
     var walk: String?  // the site walk's progress: its card shows when there is one
+    var flags: [RedFlagResult]?  // the red flags: their card shows with the walk's (#134)
     let words: MissionWords
     var onInstall: (SpeechLanguage) -> Void = { _ in }
     var onDownload: () -> Void = {}
@@ -85,6 +92,13 @@ struct MissionWorkspace: View {
             if let walk {
                 NavigationLink(value: SiteWalkLink(id: row.id)) {
                     SiteWalkCard(progress: walk)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint(row.title)
+            }
+            if let flags {
+                NavigationLink(value: RedFlagsLink(id: row.id)) {
+                    RedFlagsCard(results: flags, words: RedFlagWords(rules: (try? .bundled()) ?? .empty))
                 }
                 .buttonStyle(.plain)
                 .accessibilityHint(row.title)

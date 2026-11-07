@@ -103,9 +103,13 @@ extension MissionStore {
     }
 
     /// Finishes the walk: from now on its answers and the mission's action checks cannot change.
-    func finishWalk(form: String, version: String, mission: String, now: Date = Date()) throws {
+    /// Locks the walk; the red flags as they stand now are stored in the same transaction (#134).
+    func finishWalk(form: String, version: String, mission: String, now: Date = Date(),
+                    flags: [RedFlagResult] = []) throws {
         try refuseIfFinished(form: form, mission: mission)
+        let key = try missionKey(for: mission)
         try store.write { database in
+            try insert(flags, mission: mission, key: key, now: now, in: database)
             try database.execute(sql: "INSERT INTO site_walk_finished VALUES (?, ?, ?, ?)",
                                  arguments: [mission, form, version, now.timeIntervalSince1970])
             try EncryptedStore.appendAudit(AuditEntry(action: .siteWalkFinished, actor: actor, mission: mission,

@@ -53,7 +53,7 @@ struct EncryptedStoreTests {
         #expect(try reopened.appliedMigrations()
             == ["v1-store-info", "v2-missions", "v3-leases-and-shreds", "v4-evidence", "v5-facts", "v6-sentences",
                 "v7-append-only", "v8-audit", "v9-pack-files", "v10-mission-lives", "v11-site-walk",
-                "v12-action-photo"])
+                "v12-action-photo", "v13-red-flags"])
     }
 
     @Test func aShredFromBeforeMissionLivesStaysAShredAfterTheUpgrade() throws {

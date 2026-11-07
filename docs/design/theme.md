@@ -105,6 +105,21 @@ No pictures here: the test renderer draws text fields and the language switch as
 iPhone screenshots of the proof stay private. The tests check the screens' words in both languages
 (`SiteWalkWordsTests`) and draw the walk and the French checklist on the theme background.
 
+## Red flags (#134)
+
+A **Red flags** card sits under the Site walk card on the workspace and at the top of the walk; it says
+the count ("2 flags · 2 clear · 2 not checked"), with a red flag when any rule flags and a green shield
+when none does. The page opens with that summary, whether the flags are live or stored at the finish,
+and one line saying they come from fixed, cited rules in plain code, never the AI. Then one glass card
+per result: flags first, then clear, then not checked, each with a thin edge in its outcome's colour
+(danger, success, secondary text), the outcome in capitals, the rule's title, one sentence from its own
+numbers ("Payments are 35 points ahead of the work built."), the threshold, the rule's id, version and
+source, and a folded "Computed from" list naming each pack field or photo. English or French with the
+walk; the rule sources stay as cited.
+
+Screenshots (tests, not committed): red-flags-en light, dark and largest text, red-flags-fr light,
+red-flags-card in all three looks.
+
 ## The logo, the airplane and the icon (#123)
 
 The L and the key belong to Lubo Bali and are **not** covered by the MIT license (README). The airplane is
