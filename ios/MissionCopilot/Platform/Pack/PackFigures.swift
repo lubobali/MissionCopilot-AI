@@ -64,12 +64,20 @@ struct PackContracts: Sendable, Equatable {
 
     enum Status: String, Codable, Sendable { case pending, active, complete, cancelled }
 
+    /// The days the contract runs, ISO dates as the pack prints them (#138).
+    struct Period: Codable, Sendable, Equatable {
+        let start: String
+        let end: String
+    }
+
     struct Contract: Codable, Sendable, Equatable {
         let ocid: String
         let title: String
         let supplier: String
         let status: Status
         let contractValue: Int
+        let contractPeriod: Period
+        let paymentApprover: String  // only this person approves a payment, inside the app (#138)
         let payments: [Payment]
         let physicalProgress: Progress
     }
