@@ -10,6 +10,7 @@ struct DebriefModelTests {
     /// A microphone that records whatever length the test sets, and remembers what it was asked.
     final class FakeRecorder: DebriefRecorder {
         var seconds: Double = 0
+        var level: Double = 0
         var refuse: RecordingProblem?
         private(set) var started = 0
         private(set) var cancelled = 0
@@ -102,6 +103,33 @@ struct DebriefModelTests {
         #expect(MicrophoneRecorder.settings[AVSampleRateKey] as? Int == 16_000)
         #expect(MicrophoneRecorder.settings[AVNumberOfChannelsKey] as? Int == 1)
         #expect(MicrophoneRecorder.settings[AVEncoderBitRateKey] as? Int == 32_000)
+    }
+
+    /// Found on the iPhone: a timer alone does not show the microphone hears you; bars move with the voice.
+    @Test func theBarsFollowTheVoiceAndKeepTheLastFew() async {
+        let recorder = FakeRecorder()
+        let model = DebriefModel(recorder: recorder)
+        model.consent = true
+        await model.record()
+        #expect(model.levels == Array(repeating: 0, count: DebriefModel.bars))
+
+        for loudness in [0.2, 0.9, 0.5] {
+            recorder.level = loudness
+            model.tick()
+        }
+
+        #expect(model.levels.count == DebriefModel.bars)
+        #expect(Array(model.levels.suffix(3)) == [0.2, 0.9, 0.5])
+        model.stop()
+        #expect(model.levels.allSatisfy { $0 == 0 })
+    }
+
+    @Test func theMicrophoneLoudnessBecomesABarHeight() {
+        #expect(MicrophoneRecorder.height(decibels: -160) == 0)  // silence
+        #expect(MicrophoneRecorder.height(decibels: -50) == 0)
+        #expect(MicrophoneRecorder.height(decibels: -25) == 0.5)
+        #expect(MicrophoneRecorder.height(decibels: 0) == 1)
+        #expect(MicrophoneRecorder.height(decibels: 6) == 1)
     }
 
     @Test func theTimeReadsInMinutesAndSeconds() {

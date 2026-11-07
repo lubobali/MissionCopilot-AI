@@ -76,12 +76,15 @@ struct DebriefView: View {
 
     @ViewBuilder private var controls: some View {
         if model.state == .recording {
-            TimelineView(.periodic(from: .now, by: 0.5)) { context in
-                Label(model.elapsed, systemImage: "record.circle")
-                    .font(.title2.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(Color(.danger))
-                    .onChange(of: context.date) { model.tick() }
-                    .accessibilityLabel("Recording, \(model.elapsed)")
+            TimelineView(.periodic(from: .now, by: 0.08)) { context in
+                VStack(alignment: .leading, spacing: 14) {
+                    Label(model.elapsed, systemImage: "record.circle")
+                        .font(.title2.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(Color(.danger))
+                        .accessibilityLabel("Recording, \(model.elapsed)")
+                    VoiceBars(levels: model.levels)
+                }
+                .onChange(of: context.date) { model.tick() }
             }
             HStack {
                 Button("Stop", systemImage: "stop.fill", action: model.stop)
@@ -109,5 +112,25 @@ struct DebriefView: View {
         case .idle, .recording:
             EmptyView()
         }
+    }
+}
+
+/// The voice as moving bars, newest on the right: they rise when the microphone hears speech (found on the
+/// iPhone: a timer alone does not show that it hears you).
+struct VoiceBars: View {
+    let levels: [Double]
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 4) {
+            ForEach(Array(levels.enumerated()), id: \.offset) { _, level in
+                Capsule()
+                    .fill(Color(.accent))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 6 + 58 * level)
+            }
+        }
+        .frame(height: 64)
+        .animation(.easeOut(duration: 0.08), value: levels)
+        .accessibilityHidden(true)  // the timer above says it is recording
     }
 }

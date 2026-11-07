@@ -24,6 +24,8 @@ enum RecordingProblem: Error, Equatable, Sendable {
 protocol DebriefRecorder: AnyObject {
     /// How long the current recording has run.
     var seconds: Double { get }
+    /// How loud the microphone is right now, 0 (silence) to 1, for the bars that show it hears the voice.
+    var level: Double { get }
     func start() async throws
     func stop() -> Recording?
     /// Stops and deletes the file: a cancelled debrief leaves nothing.
@@ -42,6 +44,17 @@ final class MicrophoneRecorder: DebriefRecorder {
 
     var seconds: Double { recorder?.currentTime ?? 0 }
 
+    var level: Double {
+        guard let recorder else { return 0 }
+        recorder.updateMeters()
+        return Self.height(decibels: Double(recorder.averagePower(forChannel: 0)))
+    }
+
+    /// The meter's decibels (-160 silence to 0 loudest) as a bar height: below -50 dB is quiet, 0 dB is full.
+    static func height(decibels: Double) -> Double {
+        min(max((decibels + 50) / 50, 0), 1)
+    }
+
     func start() async throws {
         guard await AVAudioApplication.requestRecordPermission() else { throw RecordingProblem.microphoneDenied }
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("debrief-\(UUID().uuidString).m4a")
@@ -50,6 +63,7 @@ final class MicrophoneRecorder: DebriefRecorder {
             try session.setCategory(.record, mode: .measurement)
             try session.setActive(true)
             let recorder = try AVAudioRecorder(url: file, settings: Self.settings)
+            recorder.isMeteringEnabled = true
             guard recorder.record(forDuration: DebriefModel.limit) else { throw RecordingProblem.couldNotStart }
             try? FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete],
                                                    ofItemAtPath: file.path)
