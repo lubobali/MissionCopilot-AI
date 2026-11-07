@@ -45,7 +45,9 @@ struct RedFlagStoreTests {
         try finish(store, flags: flags)
 
         #expect(try store.storedFlags(mission: mission) == flags)
-        #expect(flags.map(\.outcome).filter { $0 == .flag }.count == 3)
+        // Typed: Xcode 26.6 (CI) could not type-check the short form in time.
+        let raised = flags.filter { (result: RedFlagResult) -> Bool in result.outcome == .flag }
+        #expect(raised.count == 3)
         #expect(flags.last?.skippedMissions == 1)
     }
 
@@ -166,7 +168,9 @@ struct RedFlagWalkTests {
         let (walk, _) = try walk()
 
         #expect(walk.flags.map(\.rule.id) == ["R068", "R067", "MC-01", "MC-02", "MC-03", "MC-04"])
-        #expect(walk.flags.filter { $0.outcome == .flag }.map(\.rule.id) == ["R067", "MC-01"])
+        let raised: [String] = walk.flags.filter { (result: RedFlagResult) -> Bool in result.outcome == .flag }
+            .map { (result: RedFlagResult) -> String in result.rule.id }
+        #expect(raised == ["R067", "MC-01"])
     }
 
     @Test func aPhotoChangesThePhotoRuleAtOnce() async throws {

@@ -62,8 +62,9 @@ struct RedFlagEngineTests {
         let results = Self.run(contracts: contracts, milestones: milestones)
 
         #expect(results.map(\.rule.id) == ["R068", "R067", "MC-01", "MC-02", "MC-03", "MC-04"])
-        #expect(results.map(\.outcome) == [.clear, .flag, .flag, .clear, .notChecked(.needsScan),
-                                           .notChecked(.needsPhotos)])
+        let expected: [RedFlagResult.Outcome] = [.clear, .flag, .flag, .clear, .notChecked(.needsScan),
+                                                 .notChecked(.needsPhotos)]
+        #expect(results.map(\.outcome) == expected)
         #expect(results[0].computed == 85)
         #expect(results[1].subject == "M3")
         #expect(results[1].computed == 41, "Sep 30 to Nov 10")
@@ -133,7 +134,7 @@ struct RedFlagEngineTests {
         let results = Self.only("R067", Self.run(milestones: milestones))
 
         #expect(results.map(\.subject) == ["M2", "M3"])
-        #expect(results.allSatisfy { $0.outcome == .flag })
+        #expect(results.allSatisfy { (result: RedFlagResult) -> Bool in result.outcome == .flag })
     }
 
     @Test func theDaysLateCountInTheOfficersOwnTimeZone() throws {
