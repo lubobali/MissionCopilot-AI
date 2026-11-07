@@ -38,15 +38,37 @@ struct DebriefCard: View {
 
 /// The Debrief page: the consent line, then record with a timer, stop, or cancel.
 struct DebriefScreen: View {
+    let list: MissionListModel
     let id: String
-    @State private var model = DebriefModel()
+    @State private var model: DebriefModel?
+    @State private var cannotOpen = false
 
     var body: some View {
-        ScrollView { DebriefView(model: model) }
-            .fieldScreen()
-            .navigationTitle("Debrief")
-            .navigationBarTitleDisplayMode(.inline)
-            .onDisappear { if model.state == .recording { model.cancel() } }  // never record off screen
+        Group {
+            if let model {
+                ScrollView { DebriefView(model: model) }
+                    .onDisappear { if model.state == .recording { model.cancel() } }  // never record off screen
+            } else if cannotOpen {
+                Text("The debriefs cannot open. Unlock the app and try again.")
+                    .multilineTextAlignment(.center)
+                    .padding(24)
+            } else {
+                Loading(text: "Opening the debriefs")
+            }
+        }
+        .fieldScreen()
+        .navigationTitle("Debrief")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            guard model == nil else { return }
+            guard let store = list.openStore else {
+                cannotOpen = true
+                return
+            }
+            let made = DebriefModel(mission: id, store: store)
+            made.load()
+            model = made
+        }
     }
 }
 
@@ -68,8 +90,14 @@ struct DebriefView: View {
             Toggle("I am recording only myself, or people who agreed to be recorded.", isOn: $model.consent)
                 .font(.subheadline)
                 .disabled(model.state == .recording)
+            Picker("Language", selection: $model.language) {
+                ForEach(SpeechLanguage.allCases, id: \.self) { Text($0.name).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .disabled(model.state == .recording)
             controls
             status
+            ForEach(model.debriefs.reversed()) { debrief in DebriefRow(debrief: debrief) }
         }
         .padding(16)
     }
@@ -102,7 +130,8 @@ struct DebriefView: View {
     @ViewBuilder private var status: some View {
         switch model.state {
         case .recorded(let seconds):
-            Label("Recorded \(DebriefModel.clock(seconds))", systemImage: "checkmark.circle.fill")
+            Label("Recorded \(DebriefModel.clock(seconds)) and kept as signed evidence",
+                  systemImage: "checkmark.circle.fill")
                 .font(.subheadline)
                 .foregroundStyle(Color(.success))
         case .problem(let problem):
@@ -132,5 +161,32 @@ struct VoiceBars: View {
         .frame(height: 64)
         .animation(.easeOut(duration: 0.08), value: levels)
         .accessibilityHidden(true)  // the timer above says it is recording
+    }
+}
+
+/// One kept debrief on glass: when, how long, and in which language.
+struct DebriefRow: View {
+    let debrief: Debrief
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "waveform")
+                .font(.title3)
+                .foregroundStyle(Color(.accent))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(debrief.recordedAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(.headline)
+                    .foregroundStyle(Color(.text))
+                Text("\(DebriefModel.clock(debrief.seconds)) · \(debrief.language.name) · signed evidence")
+                    .font(.subheadline)
+                    .foregroundStyle(Color(.secondaryText))
+            }
+            Spacer()
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 22))
+        .accessibilityElement(children: .combine)
     }
 }

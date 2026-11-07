@@ -21,14 +21,51 @@ struct DebriefModelTests {
             started += 1
         }
 
-        func stop() -> Recording? { started > 0 ? Recording(file: file, seconds: seconds) : nil }
+        func stop() -> Recording? {
+            guard started > 0 else { return nil }
+            try? Data("fake m4a audio".utf8).write(to: file)
+            return Recording(file: file, seconds: seconds)
+        }
 
         func cancel() { cancelled += 1 }
     }
 
-    @Test func nothingIsRecordedBeforeTheConsentLine() async {
+    static func store() throws -> MissionStore {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).sqlite")
+        let store = MissionStore(store: try EncryptedStore.open(at: file, key: DataKey.random()),
+                                 vault: SoftwareKeyVault())
+        try store.create(mission: "kandor-roads", title: "Kandor rural roads")
+        return store
+    }
+
+    static func model(_ recorder: FakeRecorder, store: MissionStore? = nil) throws -> DebriefModel {
+        DebriefModel(mission: "kandor-roads", store: try store ?? Self.store(), signer: SoftwareEvidenceSigner(),
+                     recorder: recorder)
+    }
+
+    @Test func stoppingKeepsTheRecordingAsADebrief() async throws {
         let recorder = FakeRecorder()
-        let model = DebriefModel(recorder: recorder)
+        let store = try Self.store()
+        let model = try Self.model(recorder, store: store)
+        model.consent = true
+        model.language = .french
+        await model.record()
+        recorder.seconds = 42
+
+        model.stop()
+
+        #expect(try store.debriefs(in: "kandor-roads").map(\.language) == [.french])
+        #expect(model.debriefs == (try store.debriefs(in: "kandor-roads")))
+        #expect(model.summary == "1 debrief · 0:42")
+        let again = try Self.model(FakeRecorder(), store: store)
+        again.load()
+        #expect(again.debriefs.count == 1)
+        #expect(DebriefModel.summary([]) == DebriefCard.start)
+    }
+
+    @Test func nothingIsRecordedBeforeTheConsentLine() async throws {
+        let recorder = FakeRecorder()
+        let model = try Self.model(recorder)
 
         await model.record()
 
@@ -37,9 +74,9 @@ struct DebriefModelTests {
         #expect(!model.canRecord)
     }
 
-    @Test func afterConsentItRecordsThenStops() async {
+    @Test func afterConsentItRecordsThenStops() async throws {
         let recorder = FakeRecorder()
-        let model = DebriefModel(recorder: recorder)
+        let model = try Self.model(recorder)
         model.consent = true
         #expect(model.canRecord)
 
@@ -51,12 +88,12 @@ struct DebriefModelTests {
         model.stop()
 
         #expect(model.state == .recorded(seconds: 42))
-        #expect(model.recording == Recording(file: recorder.file, seconds: 42))
+        #expect(model.debriefs.map(\.seconds) == [42])
     }
 
-    @Test func itStopsByItselfAtFiveMinutes() async {
+    @Test func itStopsByItselfAtFiveMinutes() async throws {
         let recorder = FakeRecorder()
-        let model = DebriefModel(recorder: recorder)
+        let model = try Self.model(recorder)
         model.consent = true
         await model.record()
 
@@ -70,9 +107,9 @@ struct DebriefModelTests {
         #expect(DebriefModel.limit == 300)
     }
 
-    @Test func aCancelledRecordingLeavesNothing() async {
+    @Test func aCancelledRecordingLeavesNothing() async throws {
         let recorder = FakeRecorder()
-        let model = DebriefModel(recorder: recorder)
+        let model = try Self.model(recorder)
         model.consent = true
         await model.record()
 
@@ -80,13 +117,13 @@ struct DebriefModelTests {
 
         #expect(recorder.cancelled == 1)
         #expect(model.state == .idle)
-        #expect(model.recording == nil)
+        #expect(model.debriefs.isEmpty)
     }
 
-    @Test func aRefusedMicrophoneSaysWhereToTurnItOn() async {
+    @Test func aRefusedMicrophoneSaysWhereToTurnItOn() async throws {
         let recorder = FakeRecorder()
         recorder.refuse = .microphoneDenied
-        let model = DebriefModel(recorder: recorder)
+        let model = try Self.model(recorder)
         model.consent = true
 
         await model.record()
@@ -106,9 +143,9 @@ struct DebriefModelTests {
     }
 
     /// Found on the iPhone: a timer alone does not show the microphone hears you; bars move with the voice.
-    @Test func theBarsFollowTheVoiceAndKeepTheLastFew() async {
+    @Test func theBarsFollowTheVoiceAndKeepTheLastFew() async throws {
         let recorder = FakeRecorder()
-        let model = DebriefModel(recorder: recorder)
+        let model = try Self.model(recorder)
         model.consent = true
         await model.record()
         #expect(model.levels == Array(repeating: 0, count: DebriefModel.bars))

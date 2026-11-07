@@ -12,6 +12,7 @@ struct AuditEvent: Sendable, Equatable {
         case redFlagRaised  // #134: the target is the rule id ("MC-01"), never a value or an input
         case documentScanned  // #138: the target is the scan's id and its page count, never its text
         case pageRead  // #138: the target is the page's evidence seq and the reader, never what it read
+        case debriefRecorded  // #142: the target is the audio's evidence seq, length and language, never words
     }
 
     let seq: Int

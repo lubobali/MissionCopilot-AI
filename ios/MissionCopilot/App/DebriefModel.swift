@@ -11,21 +11,41 @@ final class DebriefModel {
         case problem(RecordingProblem)
     }
 
-    static let limit: TimeInterval = 300
+    nonisolated static let limit: TimeInterval = 300
     /// How many bars show the voice, newest on the right.
-    static let bars = 32
+    nonisolated static let bars = 32
 
     /// "I record only myself, or people who agreed": nothing records until the officer says so (threat P02).
     var consent = false
     private(set) var state = State.idle
     private(set) var elapsed = "0:00 of 5:00"
-    private(set) var recording: Recording?
+    /// The language the officer speaks; the transcript is read in it (6.6.3).
+    var language = SpeechLanguage.english
+    private(set) var debriefs: [Debrief] = []
     private(set) var levels = Array(repeating: 0.0, count: DebriefModel.bars)
     let recorder: any DebriefRecorder
+    let mission: String
+    private let store: MissionStore
+    private let signer: any EvidenceSigner
 
-    init(recorder: any DebriefRecorder = MicrophoneRecorder()) {
-        self.recorder = recorder
+    init(mission: String, store: MissionStore,
+         signer: any EvidenceSigner = SecureEnclaveEvidenceSigner(user: AppSession.localProfile),
+         recorder: any DebriefRecorder = MicrophoneRecorder()) {
+        (self.mission, self.store, self.signer, self.recorder) = (mission, store, signer, recorder)
     }
+
+    /// The debriefs kept for this mission, oldest first.
+    func load() {
+        debriefs = (try? store.debriefs(in: mission)) ?? []
+    }
+
+    static func summary(_ debriefs: [Debrief]) -> String {
+        guard !debriefs.isEmpty else { return DebriefCard.start }
+        let total = debriefs.reduce(0) { $0 + $1.seconds }
+        return "\(debriefs.count) debrief\(debriefs.count == 1 ? "" : "s") · \(clock(total))"
+    }
+
+    var summary: String { Self.summary(debriefs) }
 
     var canRecord: Bool { consent && state != .recording }
 
@@ -33,7 +53,6 @@ final class DebriefModel {
         guard canRecord else { return }
         do {
             try await recorder.start()
-            recording = nil
             levels = Array(repeating: 0, count: Self.bars)
             state = .recording
             tick()
@@ -54,16 +73,22 @@ final class DebriefModel {
         if seconds >= Self.limit { stop() }
     }
 
+    /// Stops, then keeps the recording as signed evidence at once (6.6.2).
     func stop() {
         guard state == .recording, let made = recorder.stop() else { return }
-        recording = made
-        state = .recorded(seconds: made.seconds)
+        do {
+            try store.addDebrief(made, language: language, to: mission, signer: signer)
+            load()
+            state = .recorded(seconds: made.seconds)
+        } catch {
+            try? FileManager.default.removeItem(at: made.file)
+            state = .problem(.notSaved)
+        }
         levels = Array(repeating: 0, count: Self.bars)
     }
 
     func cancel() {
         recorder.cancel()
-        recording = nil
         state = .idle
         elapsed = "0:00 of 5:00"
         levels = Array(repeating: 0, count: Self.bars)

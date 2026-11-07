@@ -9,12 +9,13 @@ struct Recording: Equatable, Sendable {
 
 /// Why the microphone did not record, in words the officer can act on.
 enum RecordingProblem: Error, Equatable, Sendable {
-    case microphoneDenied, couldNotStart
+    case microphoneDenied, couldNotStart, notSaved
 
     var words: String {
         switch self {
         case .microphoneDenied: "The microphone is off for Mission Copilot. Turn it on in Settings, Mission Copilot."
         case .couldNotStart: "The recording did not start. Try again."
+        case .notSaved: "The recording could not be kept. Try again."
         }
     }
 }
