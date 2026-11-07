@@ -14,6 +14,7 @@ struct MissionWorkspaceScreen: View {
     @State private var readiness = Readiness()
     @State private var walk: String?  // the site walk's progress, for its card
     @State private var flags: [RedFlagResult]?  // the red flags, for theirs (#134)
+    @State private var scan: ScanOutcome?  // the last document scan (#138)
 
     var body: some View {
         Group {
@@ -25,7 +26,9 @@ struct MissionWorkspaceScreen: View {
                                      words: words,
                                      onInstall: { language in Task { await readiness.install(language, for: row) } },
                                      onDownload: { model.download(row.id) },
-                                     onTestModel: { Task { await readiness.testModel() } })
+                                     onTestModel: { Task { await readiness.testModel() } },
+                                     scan: scan,
+                                     onScan: { Task { scan = await DocumentScanner.shared.scan().outcome } })
                 }
                 .refreshable { await readiness.refresh(row) }
                 .task(id: row) { await readiness.refresh(row) }
@@ -69,6 +72,8 @@ struct MissionWorkspace: View {
     var onInstall: (SpeechLanguage) -> Void = { _ in }
     var onDownload: () -> Void = {}
     var onTestModel: () -> Void = {}
+    var scan: ScanOutcome?  // the last document scan (#138)
+    var onScan: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -109,6 +114,9 @@ struct MissionWorkspace: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityHint(row.title)
+            }
+            if row.pack != nil {
+                DocumentsCard(scan: scan, onScan: onScan)
             }
             if let pack = row.pack {
                 NavigationLink("Pack details") { PackSummaryView(title: row.title, pack: pack, words: words) }
