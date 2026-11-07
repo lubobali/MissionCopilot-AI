@@ -83,7 +83,7 @@ struct ScreenshotTests {
                                     speech: [.english: .installed, .french: .canInstall],
                                     freeBytes: 12_000_000_000, words: MissionWordsTests.words)
         try check(MissionWorkspace(row: row, check: readiness, installing: nil, problem: nil,
-                                   words: MissionWordsTests.words)
+                                   selfTest: .done(.answered(seconds: 3.6, right: 8)), words: MissionWordsTests.words)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "workspace")
     }

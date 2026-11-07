@@ -20,9 +20,11 @@ struct MissionWorkspaceScreen: View {
             if let row = model.rows.first(where: { $0.id == id }) {
                 ScrollView {
                     MissionWorkspace(row: row, check: readiness.check, installing: readiness.installing,
-                                     problem: readiness.problem, walk: walk, flags: flags, words: words,
+                                     problem: readiness.problem, walk: walk, flags: flags,
+                                     selfTest: readiness.selfTest, words: words,
                                      onInstall: { language in Task { await readiness.install(language, for: row) } },
-                                     onDownload: { model.download(row.id) })
+                                     onDownload: { model.download(row.id) },
+                                     onTestModel: { Task { await readiness.testModel() } })
                 }
                 .refreshable { await readiness.refresh(row) }
                 .task(id: row) { await readiness.refresh(row) }
@@ -60,9 +62,11 @@ struct MissionWorkspace: View {
     let problem: String?
     var walk: String?  // the site walk's progress: its card shows when there is one
     var flags: [RedFlagResult]?  // the red flags: their card shows with the walk's (#134)
+    var selfTest = Readiness.SelfTest.idle  // "Test the AI assistant" (#136)
     let words: MissionWords
     var onInstall: (SpeechLanguage) -> Void = { _ in }
     var onDownload: () -> Void = {}
+    var onTestModel: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -85,7 +89,8 @@ struct MissionWorkspace: View {
                     .accessibilityHint(row.title)
             }
             if let check {
-                BeforeYouGoCard(check: check, installing: installing, problem: problem, onInstall: onInstall)
+                BeforeYouGoCard(check: check, installing: installing, problem: problem, selfTest: selfTest,
+                                onInstall: onInstall, onTestModel: onTestModel)
             } else {
                 Loading(text: "Checking this iPhone")
             }
@@ -117,7 +122,9 @@ struct BeforeYouGoCard: View {
     let check: BeforeYouGo
     let installing: SpeechLanguage?
     let problem: String?
+    var selfTest = Readiness.SelfTest.idle
     var onInstall: (SpeechLanguage) -> Void = { _ in }
+    var onTestModel: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -137,7 +144,8 @@ struct BeforeYouGoCard: View {
             }
             .accessibilityElement(children: .combine)
             ForEach(check.lines) { line in
-                ReadinessLine(line: line, installing: installing, onInstall: onInstall)
+                ReadinessLine(line: line, installing: installing, selfTest: selfTest, onInstall: onInstall,
+                              onTestModel: onTestModel)
             }
             if let problem {
                 Label(problem, systemImage: "exclamationmark.triangle.fill")
@@ -155,7 +163,9 @@ struct BeforeYouGoCard: View {
 struct ReadinessLine: View {
     let line: BeforeYouGo.Line
     let installing: SpeechLanguage?
+    var selfTest = Readiness.SelfTest.idle
     var onInstall: (SpeechLanguage) -> Void = { _ in }
+    var onTestModel: () -> Void = {}
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -184,8 +194,23 @@ struct ReadinessLine: View {
                     .buttonStyle(.fieldSecondary)
                     .disabled(installing != nil)
                 }
+                if line.testsModel { modelTest }
             }
         }
+    }
+}
+
+extension ReadinessLine {
+    /// "Test the AI assistant": runs offline; the result says how fast and how many facts were right.
+    @ViewBuilder var modelTest: some View {
+        if case .done(let result) = selfTest {
+            Label(result.words, systemImage: result.passed ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                .font(.footnote)
+                .foregroundStyle(Color(result.passed ? .success : .warning))
+        }
+        Button(selfTest == .running ? "Testing the AI assistant" : "Test the AI assistant", action: onTestModel)
+            .buttonStyle(.fieldSecondary)
+            .disabled(selfTest == .running)
     }
 }
 
