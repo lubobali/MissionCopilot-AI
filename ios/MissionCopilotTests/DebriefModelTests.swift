@@ -38,9 +38,52 @@ struct DebriefModelTests {
         return store
     }
 
-    static func model(_ recorder: FakeRecorder, store: MissionStore? = nil) throws -> DebriefModel {
+    static func model(_ recorder: FakeRecorder, store: MissionStore? = nil,
+                      transcriber: DebriefTranscriptTests.FakeTranscriber = .init()) throws -> DebriefModel {
         DebriefModel(mission: "kandor-roads", store: try store ?? Self.store(), signer: SoftwareEvidenceSigner(),
-                     recorder: recorder)
+                     recorder: recorder, transcriber: transcriber)
+    }
+
+    /// 6.6.3: each kept debrief is turned into text on its own; opened again, the text comes back unread.
+    @Test func eachDebriefIsReadIntoTextAndComesBackAsItWas() async throws {
+        let recorder = FakeRecorder()
+        let store = try Self.store()
+        let engine = DebriefTranscriptTests.FakeTranscriber()
+        let model = try Self.model(recorder, store: store, transcriber: engine)
+        model.consent = true
+        await model.record()
+        recorder.seconds = 20
+        model.stop()
+
+        await model.readWaiting()
+
+        let seq = try #require(model.debriefs.first?.seq)
+        #expect(model.transcripts[seq] == .heard("Section 3 bridge not started."))
+        let again = try Self.model(FakeRecorder(), store: store, transcriber: engine)
+        again.load()  // shown at once on opening, before any reading
+        #expect(again.transcripts[seq] == .heard("Section 3 bridge not started."))
+        await again.readWaiting()
+        #expect(engine.calls.count == 1)
+    }
+
+    @Test func aDebriefWithNoTextSaysWhyAndCanBeTriedAgain() async throws {
+        let recorder = FakeRecorder()
+        let engine = DebriefTranscriptTests.FakeTranscriber(.failure(.nothingHeard))
+        let model = try Self.model(recorder, transcriber: engine)
+        model.consent = true
+        await model.record()
+        recorder.seconds = 5
+        model.stop()
+
+        await model.readWaiting()
+        let seq = try #require(model.debriefs.first?.seq)
+        #expect(model.transcripts[seq] == .problem(.nothingHeard))
+        #expect(DebriefModel.TranscriptState.problem(.nothingHeard).words == TranscriptionProblem.nothingHeard.words)
+        #expect(DebriefModel.TranscriptState.reading.words == "Turning the recording into text")
+
+        engine.answer = .success("Invoice 14 for 480,000.")
+        await model.retry(seq)
+        #expect(model.transcripts[seq] == .heard("Invoice 14 for 480,000."))
     }
 
     @Test func stoppingKeepsTheRecordingAsADebrief() async throws {

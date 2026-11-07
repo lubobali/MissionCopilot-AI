@@ -29,5 +29,23 @@ extension StoreSchema {
                 BEGIN SELECT RAISE(ABORT, 'append-only: a debrief goes only with its mission'); END;
                 """)
         }
+        // What Apple's speech engine heard in each debrief (#142): sealed with the mission key, once per debrief
+        // and engine version; append-only, gone with its mission.
+        migrator.registerMigration("v17-debrief-transcripts") { database in
+            try database.execute(sql: """
+                CREATE TABLE debrief_transcript (
+                    mission_id TEXT NOT NULL REFERENCES mission(id) ON DELETE CASCADE,
+                    evidence_seq INTEGER NOT NULL, engine TEXT NOT NULL,
+                    sealed_text BLOB NOT NULL, transcribed_at REAL NOT NULL,
+                    PRIMARY KEY (mission_id, evidence_seq, engine),
+                    FOREIGN KEY (mission_id, evidence_seq) REFERENCES debrief(mission_id, evidence_seq)
+                        ON DELETE CASCADE);
+                CREATE TRIGGER debrief_transcript_no_update BEFORE UPDATE ON debrief_transcript
+                BEGIN SELECT RAISE(ABORT, 'append-only: a transcript cannot be changed'); END;
+                CREATE TRIGGER debrief_transcript_no_delete BEFORE DELETE ON debrief_transcript
+                WHEN EXISTS (SELECT 1 FROM mission WHERE id = OLD.mission_id)
+                BEGIN SELECT RAISE(ABORT, 'append-only: a transcript goes only with its mission'); END;
+                """)
+        }
     }
 }

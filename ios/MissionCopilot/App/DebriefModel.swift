@@ -11,6 +11,21 @@ final class DebriefModel {
         case problem(RecordingProblem)
     }
 
+    /// Where a kept debrief's text is: being read, read, or why not.
+    enum TranscriptState: Equatable, Sendable {
+        case reading
+        case heard(String)
+        case problem(TranscriptionProblem)
+
+        var words: String {
+            switch self {
+            case .reading: "Turning the recording into text"
+            case .heard(let text): text
+            case .problem(let problem): problem.words
+            }
+        }
+    }
+
     nonisolated static let limit: TimeInterval = 300
     /// How many bars show the voice, newest on the right.
     nonisolated static let bars = 32
@@ -22,21 +37,60 @@ final class DebriefModel {
     /// The language the officer speaks; the transcript is read in it (6.6.3).
     var language = SpeechLanguage.english
     private(set) var debriefs: [Debrief] = []
+    private(set) var transcripts: [Int: TranscriptState] = [:]
     private(set) var levels = Array(repeating: 0.0, count: DebriefModel.bars)
     let recorder: any DebriefRecorder
     let mission: String
     private let store: MissionStore
     private let signer: any EvidenceSigner
+    private let transcriber: any DebriefTranscriber
 
     init(mission: String, store: MissionStore,
          signer: any EvidenceSigner = SecureEnclaveEvidenceSigner(user: AppSession.localProfile),
-         recorder: any DebriefRecorder = MicrophoneRecorder()) {
+         recorder: any DebriefRecorder = MicrophoneRecorder(),
+         transcriber: any DebriefTranscriber = AppleTranscriber()) {
         (self.mission, self.store, self.signer, self.recorder) = (mission, store, signer, recorder)
+        self.transcriber = transcriber
     }
 
-    /// The debriefs kept for this mission, oldest first.
+    /// The debriefs kept for this mission, oldest first, each with its stored text if it has one.
     func load() {
         debriefs = (try? store.debriefs(in: mission)) ?? []
+        for debrief in debriefs where transcripts[debrief.seq] == nil {
+            if let kept = (try? store.transcript(of: debrief.seq, in: mission)).flatMap({ $0 }) {
+                transcripts[debrief.seq] = .heard(kept.text)
+            }
+        }
+    }
+
+    func loadAndRead() async {
+        load()
+        await readWaiting()
+    }
+
+    /// Every kept debrief with no text yet is read now, one at a time (never twice at once).
+    func readWaiting() async {
+        for debrief in debriefs where transcripts[debrief.seq] == nil {
+            await read(debrief)
+        }
+    }
+
+    /// Tries a debrief whose text failed again.
+    func retry(_ seq: Int) async {
+        guard case .problem = transcripts[seq], let debrief = debriefs.first(where: { $0.seq == seq }) else { return }
+        await read(debrief)
+    }
+
+    private func read(_ debrief: Debrief) async {
+        transcripts[debrief.seq] = .reading
+        do {
+            let transcript = try await store.transcribe(debrief, in: mission, engine: transcriber)
+            transcripts[debrief.seq] = .heard(transcript.text)
+        } catch let problem as TranscriptionProblem {
+            transcripts[debrief.seq] = .problem(problem)
+        } catch {
+            transcripts[debrief.seq] = .problem(.failed)
+        }
     }
 
     static func summary(_ debriefs: [Debrief]) -> String {

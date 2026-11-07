@@ -66,8 +66,8 @@ struct DebriefScreen: View {
                 return
             }
             let made = DebriefModel(mission: id, store: store)
-            made.load()
             model = made
+            await made.loadAndRead()
         }
     }
 }
@@ -97,7 +97,11 @@ struct DebriefView: View {
             .disabled(model.state == .recording)
             controls
             status
-            ForEach(model.debriefs.reversed()) { debrief in DebriefRow(debrief: debrief) }
+            ForEach(model.debriefs.reversed()) { debrief in
+                DebriefRow(debrief: debrief, transcript: model.transcripts[debrief.seq] ?? .reading) {
+                    Task { await model.retry(debrief.seq) }
+                }
+            }
         }
         .padding(16)
     }
@@ -115,7 +119,10 @@ struct DebriefView: View {
                 .onChange(of: context.date) { model.tick() }
             }
             HStack {
-                Button("Stop", systemImage: "stop.fill", action: model.stop)
+                Button("Stop", systemImage: "stop.fill") {
+                    model.stop()
+                    Task { await model.readWaiting() }
+                }
                     .buttonStyle(.fieldPrimary)
                 Button("Cancel", action: model.cancel)
                     .buttonStyle(.fieldSecondary)
@@ -164,29 +171,50 @@ struct VoiceBars: View {
     }
 }
 
-/// One kept debrief on glass: when, how long, and in which language.
+/// One kept debrief on glass: when, how long, in which language, and what was heard (or why not yet).
 struct DebriefRow: View {
     let debrief: Debrief
+    var transcript = DebriefModel.TranscriptState.reading
+    var onRetry: () -> Void = {}
 
     var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "waveform")
-                .font(.title3)
-                .foregroundStyle(Color(.accent))
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(debrief.recordedAt.formatted(date: .abbreviated, time: .shortened))
-                    .font(.headline)
-                    .foregroundStyle(Color(.text))
-                Text("\(DebriefModel.clock(debrief.seconds)) · \(debrief.language.name) · signed evidence")
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 14) {
+                Image(systemName: "waveform")
+                    .font(.title3)
+                    .foregroundStyle(Color(.accent))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(debrief.recordedAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(.headline)
+                        .foregroundStyle(Color(.text))
+                    Text("\(DebriefModel.clock(debrief.seconds)) · \(debrief.language.name) · signed evidence")
+                        .font(.subheadline)
+                        .foregroundStyle(Color(.secondaryText))
+                }
+                Spacer()
+            }
+            switch transcript {
+            case .reading:
+                Label(transcript.words, systemImage: "text.bubble")
                     .font(.subheadline)
                     .foregroundStyle(Color(.secondaryText))
+            case .heard(let text):
+                Text(text)
+                    .font(.body)
+                    .foregroundStyle(Color(.text))
+                    .textSelection(.enabled)
+            case .problem:
+                Label(transcript.words, systemImage: "exclamationmark.triangle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(Color(.warning))
+                Button("Try again", systemImage: "arrow.clockwise", action: onRetry)
+                    .buttonStyle(.fieldSecondary)
             }
-            Spacer()
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 22))
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
     }
 }
