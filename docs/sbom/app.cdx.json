@@ -112,6 +112,180 @@
           }
         }
       ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "mlx-swift-lm",
+      "group": "ml-explore",
+      "name": "mlx-swift-lm",
+      "version": "3.32.3",
+      "purl": "pkg:github/ml-explore/mlx-swift-lm@3b339ad6e3b3f44c8121ecff5131c7fd55e075e6",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "mlx-swift",
+      "group": "ml-explore",
+      "name": "mlx-swift",
+      "version": "0.32.3",
+      "purl": "pkg:github/ml-explore/mlx-swift@19601207e9a0de51e03ee6ec0c3c5f3784275075",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "swift-transformers",
+      "group": "huggingface",
+      "name": "swift-transformers",
+      "version": "1.3.5",
+      "purl": "pkg:github/huggingface/swift-transformers@48473106a93b2d8dfb114b82f0628ebbb71734e7",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "swift-huggingface",
+      "group": "huggingface",
+      "name": "swift-huggingface",
+      "version": "1.0.0",
+      "purl": "pkg:github/huggingface/swift-huggingface@c30143a4616f3fa994ee3ab3e3464f752845c07c",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "swift-jinja",
+      "group": "huggingface",
+      "name": "swift-jinja",
+      "version": "2.5.2",
+      "purl": "pkg:github/huggingface/swift-jinja@1e4d0dc69f7ec1277131fb3853808229c5991825",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "swift-collections",
+      "group": "apple",
+      "name": "swift-collections",
+      "version": "1.7.5",
+      "purl": "pkg:github/apple/swift-collections@f96b909e1a9e469620bc5037c1e24e00153f376f",
+      "licenses": [
+        {
+          "expression": "Apache-2.0 WITH Swift-exception"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "swift-numerics",
+      "group": "apple",
+      "name": "swift-numerics",
+      "version": "1.1.1",
+      "purl": "pkg:github/apple/swift-numerics@0c0290ff6b24942dadb83a929ffaaa1481df04a2",
+      "licenses": [
+        {
+          "expression": "Apache-2.0 WITH Swift-exception"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "swift-crypto",
+      "group": "apple",
+      "name": "swift-crypto",
+      "version": "4.5.2",
+      "purl": "pkg:github/apple/swift-crypto@da9d28d69ebe3894b18376c8f2395c2f37b8448f",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "swift-asn1",
+      "group": "apple",
+      "name": "swift-asn1",
+      "version": "1.7.3",
+      "purl": "pkg:github/apple/swift-asn1@3b6410f7dee09eb33cdd26260c5fd47fda19b0e2",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "swift-syntax",
+      "group": "swiftlang",
+      "name": "swift-syntax",
+      "version": "603.0.2",
+      "purl": "pkg:github/swiftlang/swift-syntax@79e4b74a295b6eb74a8b585e3a39d29e70c1dbd1",
+      "licenses": [
+        {
+          "expression": "Apache-2.0 WITH Swift-exception"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "eventsource",
+      "group": "mattt",
+      "name": "EventSource",
+      "version": "1.5.1",
+      "purl": "pkg:github/mattt/EventSource@86b5096ac59ab46e66bd1f6377c604bc1dab0bc2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "yyjson",
+      "group": "ibireme",
+      "name": "yyjson",
+      "version": "0.12.0",
+      "purl": "pkg:github/ibireme/yyjson@8b4a38dc994a110abaec8a400615567bd996105f",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
     }
   ]
 }

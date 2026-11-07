@@ -4,6 +4,8 @@ import SwiftUI
 struct MissionCopilotApp: App {
     /// Pauses every store before iOS locks its files away, from the first moment the app runs (#69).
     private let suspension = StoreSuspension(observing: .default)
+    /// Drops the on-device model when the app goes to the background or iOS warns about memory (#136).
+    private let modelMemory = ModelMemoryWatcher(host: AppModel.host)
     /// The app lock (#73): Face ID or the passcode, then the user's missions open with that same proof.
     @State private var session = AppSession(authenticator: LocalAuthenticator(), policy: AppLockPolicy()) { proof in
         try UserStore.openMissions(user: AppSession.localProfile, in: UserStore.live.base,

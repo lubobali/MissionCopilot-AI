@@ -9,11 +9,21 @@ final class Readiness {
     private(set) var check: BeforeYouGo?
     private(set) var installing: SpeechLanguage?
     private(set) var problem: String?
+    /// "Test the AI assistant" (#136): idle, running, or its result.
+    private(set) var selfTest = SelfTest.idle
+    /// Whether that test loaded the model (found on the iPhone: the time alone cannot say).
+    private(set) var selfTestLoad: ModelHost.LoadNote?
+
+    enum SelfTest: Equatable {
+        case idle, running
+        case done(ModelSelfTest.Result)
+    }
 
     private let checkModel: @Sendable () async -> BundledModel.State
     private let speech: any SpeechFiles
     private let freeBytes: @Sendable () -> Int64
     private let words: MissionWords
+    private let fieldModel: FieldModel
     private var model: BundledModel.State?
 
     init(model: @escaping @Sendable () async -> BundledModel.State = {
@@ -21,8 +31,9 @@ final class Readiness {
          },
          speech: any SpeechFiles = AppleSpeechFiles(),
          freeBytes: @escaping @Sendable () -> Int64 = { Readiness.liveFreeBytes() },
-         words: MissionWords = MissionWords()) {
+         words: MissionWords = MissionWords(), fieldModel: FieldModel = AppModel.field) {
         self.checkModel = model
+        self.fieldModel = fieldModel
         self.speech = speech
         self.freeBytes = freeBytes
         self.words = words
@@ -42,6 +53,15 @@ final class Readiness {
         }
         check = BeforeYouGo(pack: row.status, facts: row.pack, model: model, speech: languages,
                             freeBytes: freeBytes(), words: words)
+    }
+
+    /// Runs the fixed fictional task offline and keeps the result for the card; nothing is stored.
+    func testModel() async {
+        guard selfTest != .running else { return }
+        selfTest = .running
+        let result = await ModelSelfTest.run(fieldModel)
+        selfTestLoad = await (fieldModel.engine as? ModelHost)?.lastLoad
+        selfTest = .done(result)
     }
 
     /// Needs a connection: Apple downloads the files. A failure is said, and the line stays to do.

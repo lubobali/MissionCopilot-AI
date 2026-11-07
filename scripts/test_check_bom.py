@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 import pytest
-from check_bom import BOM, PROJECT, RESOLVED, SIGNATURE, app_pins, load, problems
+from check_bom import BOM, PROJECT, RESOLVED, SIGNATURE, app_pins, load, problems, unpinned
 
 pytestmark = pytest.mark.unit
 
@@ -152,5 +152,47 @@ def test_the_repo_app_and_spike_pins_both_match_the_bom(real):
     bom, signature, resolved = copy.deepcopy(real)
     resolved["pins"] += app_pins((ROOT / PROJECT).read_text(encoding="utf-8"))
 
-    assert len(resolved["pins"]) == 3
+    assert len(resolved["pins"]) == 15  # the spike's 2, the app's GRDB and the model's 12 (#136)
     assert problems(bom, signature, resolved) == []
+
+
+# The app's packages are pinned by commit in project.yml (#136): a version or a range there would
+# let a sub-package of the model's libraries move without the BOM noticing.
+APP_YML = """packages:
+  GRDB:
+    url: https://github.com/lubobali/GRDB.swift
+    revision: 743e132654bb30469ce64e2294e14d8ad0aa4d95
+  MLXSwiftLM:
+    url: https://github.com/ml-explore/mlx-swift-lm
+    exactVersion: 3.32.3
+targets:
+  MissionCopilot:
+    type: application
+"""
+
+
+def test_an_app_package_not_pinned_by_commit_is_caught():
+    assert unpinned(APP_YML) == [
+        "MLXSwiftLM: pin it by revision (40-character commit), not a version"
+    ]
+
+
+def test_app_packages_pinned_by_commit_pass():
+    pinned = APP_YML.replace("    exactVersion: 3.32.3\n", "    revision: " + "3" * 40 + "\n")
+
+    assert unpinned(pinned) == []
+
+
+def test_the_real_project_pins_every_app_package_by_commit():
+    assert unpinned((ROOT / PROJECT).read_text(encoding="utf-8")) == []
+
+
+def test_a_comment_after_a_package_name_does_not_hide_it():
+    # Found adding the model packages: "  MLXSwiftLM:  # 3.32.3" was skipped, passing unchecked.
+    commented = APP_YML.replace("  MLXSwiftLM:\n", "  MLXSwiftLM:  # 3.32.3\n")
+    pinned = commented.replace("    exactVersion: 3.32.3\n", "    revision: " + "3" * 40 + "\n")
+
+    assert unpinned(commented) == [
+        "MLXSwiftLM: pin it by revision (40-character commit), not a version"
+    ]
+    assert [pin["identity"] for pin in app_pins(pinned)] == ["GRDB (app)", "MLXSwiftLM (app)"]

@@ -5,6 +5,7 @@ simulator that can run it."""
 
 import json
 import plistlib
+import re
 from pathlib import Path
 
 import pytest
@@ -233,3 +234,19 @@ def test_no_step_skips_xcodes_trust_checks_for_macros_or_plugins():
 
     assert "-skipMacroValidation" not in workflow
     assert "-skipPackagePluginValidation" not in workflow
+
+
+def test_the_licenses_screen_lists_every_library_in_the_parts_list():
+    # #136: a file in the app is not enough; the Licenses screen must show it too.
+    bom = json.loads((ROOT / "docs" / "sbom" / "app.cdx.json").read_text(encoding="utf-8"))
+    libraries = [
+        c["name"].removesuffix(".swift") for c in bom["components"] if c["type"] == "library"
+    ]
+    source = (ROOT / "ios" / "MissionCopilot" / "App" / "Acknowledgements.swift").read_text(
+        encoding="utf-8"
+    )
+    listed = re.findall(
+        r'"([^"]+)"', source.split("static let libraries = [", 1)[1].split("]", 1)[0]
+    )
+
+    assert sorted(listed) == sorted(libraries + ["LFM2.5"])

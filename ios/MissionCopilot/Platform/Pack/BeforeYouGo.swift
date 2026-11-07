@@ -18,6 +18,7 @@ struct BeforeYouGo: Equatable, Sendable {
         let detail: String
         let needsConnection: Bool  // do it while still online
         var installs: SpeechLanguage?  // the line's button installs this language's speech files
+        var testsModel = false  // the line's button runs "Test the AI assistant" (#136)
         var id: String { title }
     }
 
@@ -76,7 +77,8 @@ struct BeforeYouGo: Equatable, Sendable {
         let title = "AI assistant"
         switch state {
         case .verified:
-            return Line(title: title, state: .ready, detail: "On this iPhone, checked", needsConnection: false)
+            return Line(title: title, state: .ready, detail: "On this iPhone, checked", needsConnection: false,
+                        testsModel: true)
         case .notInThisBuild:
             return Line(title: title, state: .cannot, detail: "Not in this build of the app. Install the full app.",
                         needsConnection: false)
