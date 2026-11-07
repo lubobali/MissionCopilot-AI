@@ -138,6 +138,21 @@ struct ScreenshotTests {
         .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "red-flags-card")
     }
 
+    /// #138: the Documents page after scanning the two demo pages, each read on the "phone".
+    @Test(arguments: [Look.light, .dark, .largestText])
+    func theDocumentsAreOnTheThemeBackground(look: Look) async throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).sqlite")
+        let store = MissionStore(store: try EncryptedStore.open(at: file, key: DataKey.random()),
+                                 vault: SoftwareKeyVault())
+        try store.create(mission: "kandor-roads", title: "Kandor rural roads")
+        let pages = [try PageReadingTests.demo("invoice-14"), try PageReadingTests.demo("progress-report-2026-09")]
+        let documents = DocumentsModel(mission: "kandor-roads", store: store, signer: SoftwareEvidenceSigner(),
+                                       scanner: { (.pages(2), pages) })
+        await documents.scan()
+        try check(DocumentsView(model: documents).fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "documents")
+    }
+
     /// Fictional Kandor missions in the states a person meets most.
     static let sampleRows: [MissionRow] = {
         let nov3 = MissionWordsTests.nov3, nov10 = MissionWordsTests.nov10

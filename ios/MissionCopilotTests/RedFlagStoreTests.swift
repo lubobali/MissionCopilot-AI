@@ -132,7 +132,7 @@ struct RedFlagStoreTests {
 
         let upgraded = try EncryptedStore.open(at: file, key: key)
 
-        #expect(try upgraded.appliedMigrations().last == "v13-red-flags")
+        #expect(try upgraded.appliedMigrations().contains("v13-red-flags"))
     }
 }
 

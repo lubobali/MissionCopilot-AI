@@ -14,6 +14,7 @@ struct MissionWorkspaceScreen: View {
     @State private var readiness = Readiness()
     @State private var walk: String?  // the site walk's progress, for its card
     @State private var flags: [RedFlagResult]?  // the red flags, for theirs (#134)
+    @State private var documents: String?  // the documents' summary, for their card (#138)
 
     var body: some View {
         Group {
@@ -25,11 +26,15 @@ struct MissionWorkspaceScreen: View {
                                      words: words,
                                      onInstall: { language in Task { await readiness.install(language, for: row) } },
                                      onDownload: { model.download(row.id) },
-                                     onTestModel: { Task { await readiness.testModel() } })
+                                     onTestModel: { Task { await readiness.testModel() } },
+                                     documents: documents)
                 }
                 .refreshable { await readiness.refresh(row) }
                 .task(id: row) { await readiness.refresh(row) }
-                .onAppear { (walk, flags) = Self.walkCards(row, store: model.openStore) }
+                .onAppear {
+                    (walk, flags) = Self.walkCards(row, store: model.openStore)
+                    documents = Self.documentsSummary(row, store: model.openStore)
+                }
             } else {
                 Loading(text: "Loading the mission")
             }
@@ -69,6 +74,7 @@ struct MissionWorkspace: View {
     var onInstall: (SpeechLanguage) -> Void = { _ in }
     var onDownload: () -> Void = {}
     var onTestModel: () -> Void = {}
+    var documents: String?  // the documents' summary: their card shows with the pack (#138)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -109,6 +115,11 @@ struct MissionWorkspace: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityHint(row.title)
+            }
+            if let documents {
+                NavigationLink(value: DocumentsLink(id: row.id)) { DocumentsCard(summary: documents) }
+                    .buttonStyle(.plain)
+                    .accessibilityHint(row.title)
             }
             if let pack = row.pack {
                 NavigationLink("Pack details") { PackSummaryView(title: row.title, pack: pack, words: words) }
