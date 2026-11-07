@@ -111,6 +111,26 @@ struct FactReviewModelTests {
         #expect(try store.facts(in: mission).map(\.rule).allSatisfy { $0 == MissionStore.officerRule })
     }
 
+    /// Spike #15: a scan that caught a screen fed the model extra text ("0 of 0 km"). Kept as evidence, a
+    /// cropped page is never read for facts.
+    @Test func aCroppedPageIsNotReadForFacts() async throws {
+        let store = try await store()
+        var screen = PageReading(transcript: "Terminal: 0 of 0 km built", tables: [], reader: PageReading.currentReader)
+        screen.layout = PageLayout(page: CGRect(x: 0, y: 0, width: 1, height: 1),
+                                   lines: [CGRect(x: 0, y: 0.5, width: 0.4, height: 0.02)])
+        let scan = try store.addScan([try ScanStoreTests.page()], to: mission, signer: SoftwareEvidenceSigner())
+        let caught = screen
+        _ = try await store.readPage(scan.pages[0], in: mission, read: { _ in caught })
+        let engine = FieldModelTests.FakeEngine(answer: ScanExtractionTests.answer)
+        let model = FactReviewModel(mission: mission, store: store, contracts: nil, model: FieldModel(engine: engine))
+
+        await model.read()
+
+        #expect(screen.layout?.looksCropped == true)
+        #expect(await engine.asked.first?.prompt.contains("Terminal") == false)
+        #expect(model.stage == .review)
+    }
+
     @Test func confirmedPagesAreNotReadAgain() async throws {
         let store = try await store()
         let first = try model(store)

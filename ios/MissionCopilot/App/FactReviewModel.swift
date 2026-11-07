@@ -44,12 +44,14 @@ final class FactReviewModel {
                         contracts: try? PackContracts.read(try store.packFile(PackContracts.path, in: mission)))
     }
 
-    /// The read pages not confirmed yet, in scan order, through the assistant and then every check.
+    /// The read pages not confirmed yet (never a cropped one), in scan order, through the assistant and then
+    /// every check.
     func read() async {
         stage = .reading
         let confirmed = (try? store.confirmedPages(in: mission)) ?? []
         let waiting = ((try? store.scans(in: mission)) ?? []).flatMap(\.pages).filter { !confirmed.contains($0) }
             .compactMap { seq in (try? store.reading(of: seq, in: mission)).flatMap { $0 }.map { (seq, $0) } }
+            .filter { $0.1.layout?.looksCropped != true }  // spike #15: a caught screen's text misleads the model
         guard !waiting.isEmpty else {
             stage = .noPages
             return
