@@ -93,6 +93,9 @@ struct FactReviewModelTests {
         #expect(!model.correct("bridgeStatus", to: "maybe"))
         #expect(model.problem == "Enter not started, in progress or completed.")
         #expect(!model.correct("invoiceNumber", to: "  "))
+        #expect(!model.correct("invoiceNumber", to: "abc"))  // found on the iPhone: a number needs a digit
+        #expect(model.problem == "Enter the invoice number as printed, like 14.")
+        #expect(model.correct("invoiceNumber", to: "INV-14/A"))
     }
 
     @Test func whenTheAssistantCannotAnswerTheOfficerEntersTheFacts() async throws {

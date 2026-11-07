@@ -107,4 +107,26 @@ struct SiteWalkModelTests {
         model.language = "en"
         #expect(model.walk.problem(of: "road_width_m") == "A road width is between 0 and 20 metres")
     }
+
+    /// Found on the iPhone (#138): documents may be scanned after the walk is finished, so the facts confirmed
+    /// then add their red flags next to the stored ones, which never change.
+    @Test func factsConfirmedAfterTheFinishAddTheirFlagsToTheStoredOnes() throws {
+        let store = try store()
+        let walk = try model(store)
+        try fill(walk)
+        #expect(walk.finish())
+        let stored = try #require(try store.storedFlags(mission: mission))
+        let scan = try store.addScan([try ScanStoreTests.page()], to: mission, signer: SoftwareEvidenceSigner())
+        let typed = ["14", "2026-10-12", "480000", "8500000", "10000000", "32", "64", "not_started"]
+        let decisions = Dictionary(uniqueKeysWithValues: zip(InvoiceFacts.fields, typed.map(FactDecision.correct)))
+        try store.confirmFacts(FactReview(facts: .blank, printedAt: [:], problems: []), decisions: decisions,
+                               pages: scan.pages, in: mission)
+
+        let flags = try model(store).flags
+
+        #expect(Array(flags.prefix(stored.count)) == stored)
+        #expect(flags.dropFirst(stored.count).map(\.subject) == ["Scanned invoice 14", "Scanned invoice 14"])
+        #expect(flags.dropFirst(stored.count).map(\.outcome) == [.clear, .flag])
+        #expect(try store.storedFlags(mission: mission) == stored)
+    }
 }

@@ -32,6 +32,10 @@ extension InvoiceFacts {
             let parser = FactGrounding.isoDay
             return parser.date(from: text).map(parser.string) == text ? text : nil
         }
+        if field == "invoiceNumber" {  // found on the iPhone: "abc" was taken; a number has a digit, like INV-14/A
+            let pattern = #"^[A-Za-z0-9 ./-]*\d[A-Za-z0-9 ./-]*$"#
+            return text.range(of: pattern, options: .regularExpression) == nil ? nil : text
+        }
         if field == "bridgeStatus" {
             let key = text.lowercased().replacingOccurrences(of: " ", with: "_")
             return bridgeStates[key] == nil ? nil : key
@@ -46,6 +50,7 @@ extension InvoiceFacts {
         switch field {
         case "invoiceDate": return "Enter the date as year-month-day, like 2026-10-12."
         case "bridgeStatus": return "Enter not started, in progress or completed."
+        case "invoiceNumber": return "Enter the invoice number as printed, like 14."
         default: return "Enter it as printed on the page."
         }
     }

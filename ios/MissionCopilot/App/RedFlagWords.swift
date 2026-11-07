@@ -25,7 +25,10 @@ struct RedFlagWords: Sendable {
         .notChecked: ("Not checked", "Non vérifiée"),
         .computedFrom: ("Computed from", "Calculé à partir de"),
         .live: ("Live: these change as the walk goes.", "En direct : elles changent au fil de la visite."),
-        .stored: ("Stored when the walk was finished.", "Enregistrées à la fin de la visite."),
+        .stored: ("Stored when the walk was finished, and never changed. Invoices confirmed from a later scan are "
+                  + "added.",
+                  "Enregistrées à la fin de la visite, sans jamais changer. Les factures confirmées par un scan "
+                  + "ultérieur s'y ajoutent."),
         .finishedBefore: ("This walk was finished before this version of the app checked red flags, so none "
                           + "were stored.",
                           "Cette visite a été terminée avant que cette version de l'application vérifie les alertes : "
