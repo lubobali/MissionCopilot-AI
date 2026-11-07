@@ -2,10 +2,11 @@ import CryptoKit
 import Foundation
 import GRDB
 
-/// One stored input: a pack field or a signed photo.
+/// One stored input: a pack field, a signed photo or a confirmed fact.
 private struct StoredFlagInput: Codable {
     var pack: PackCitation?
     var evidence: PhotoRef?
+    var fact: FactRef?
 }
 
 /// The red flags stored at the finish (#134): one row per result in the engine's order. The rule and the
@@ -33,6 +34,7 @@ extension MissionStore {
                 switch input {
                 case .pack(let citation): StoredFlagInput(pack: citation)
                 case .evidence(let photo): StoredFlagInput(evidence: photo)
+                case .fact(let fact): StoredFlagInput(fact: fact)
                 }
             }
             let detail = Detail(subject: flag.subject, computed: flag.computed, threshold: flag.threshold,
@@ -68,6 +70,7 @@ extension MissionStore {
             }
             let inputs = detail.inputs.compactMap { input -> RedFlagResult.Input? in
                 if let citation = input.pack { return .pack(citation) }
+                if let fact = input.fact { return .fact(fact) }
                 return input.evidence.map(RedFlagResult.Input.evidence)
             }
             var result = RedFlagResult(rule: RuleRef(id: row["rule_id"], version: row["rule_version"]),
