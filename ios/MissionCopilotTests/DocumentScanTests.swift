@@ -6,8 +6,9 @@ import Testing
 /// sheet: iOS 26 can crash there, Apple forums 811188); it is proven on the iPhone, not here.
 struct DocumentScanTests {
     @Test(arguments: [
-        (ScanOutcome.pages(1), "1 page scanned"),
-        (.pages(3), "3 pages scanned"),
+        (ScanOutcome.pages(1), "1 page saved as signed evidence"),
+        (.pages(3), "3 pages saved as signed evidence"),
+        (.notSaved, "The pages could not be saved. Try again."),
         (.cancelled, "No pages scanned"),
         (.unavailable, "This iPhone cannot scan documents. Take a photo of each page instead."),
         (.failed, "The scan did not finish. Try again.")
@@ -20,5 +21,6 @@ struct DocumentScanTests {
         #expect(ScanOutcome.pages(2).scanned)
         #expect(!ScanOutcome.cancelled.scanned)
         #expect(!ScanOutcome.failed.scanned)
+        #expect(!ScanOutcome.notSaved.scanned)
     }
 }

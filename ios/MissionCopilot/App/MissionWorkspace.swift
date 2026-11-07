@@ -28,7 +28,7 @@ struct MissionWorkspaceScreen: View {
                                      onDownload: { model.download(row.id) },
                                      onTestModel: { Task { await readiness.testModel() } },
                                      scan: scan,
-                                     onScan: { Task { scan = await DocumentScanner.shared.scan().outcome } })
+                                     onScan: { Task { scan = await Self.scanAndSave(row, store: model.openStore) } })
                 }
                 .refreshable { await readiness.refresh(row) }
                 .task(id: row) { await readiness.refresh(row) }

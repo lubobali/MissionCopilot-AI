@@ -31,3 +31,17 @@ struct DocumentsCard: View {
         .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 22))
     }
 }
+
+extension MissionWorkspaceScreen {
+    /// Scans with Apple's document camera and saves each page as signed evidence of this mission (#138).
+    static func scanAndSave(_ row: MissionRow, store: MissionStore?) async -> ScanOutcome {
+        let (outcome, pages) = await DocumentScanner.shared.scan()
+        guard outcome.scanned, let store else { return store == nil && outcome.scanned ? .notSaved : outcome }
+        do {
+            try store.addScan(pages, to: row.id, signer: SecureEnclaveEvidenceSigner(user: AppSession.localProfile))
+            return outcome
+        } catch {
+            return .notSaved
+        }
+    }
+}

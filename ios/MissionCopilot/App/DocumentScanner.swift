@@ -1,12 +1,13 @@
 import UIKit
 import VisionKit
 
-/// What a document scan gave back (#138). For now only the count: storing the pages is step 6.5.2.
+/// What a document scan gave back (#138): the pages saved as signed evidence, or why not.
 enum ScanOutcome: Equatable, Sendable {
     case pages(Int)
     case cancelled
     case unavailable
     case failed
+    case notSaved
 
     var scanned: Bool {
         if case .pages(let count) = self { count > 0 } else { false }
@@ -14,10 +15,12 @@ enum ScanOutcome: Equatable, Sendable {
 
     var words: String {
         switch self {
-        case .pages(let count): count == 1 ? "1 page scanned" : "\(count) pages scanned"
+        case .pages(let count): count == 1 ? "1 page saved as signed evidence"
+            : "\(count) pages saved as signed evidence"
         case .cancelled: "No pages scanned"
         case .unavailable: "This iPhone cannot scan documents. Take a photo of each page instead."
         case .failed: "The scan did not finish. Try again."
+        case .notSaved: "The pages could not be saved. Try again."
         }
     }
 }
