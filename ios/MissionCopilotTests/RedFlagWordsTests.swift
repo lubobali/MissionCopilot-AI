@@ -20,7 +20,8 @@ struct RedFlagWordsTests {
         #expect(Self.english.summary(results) == "2 flags · 2 clear · 2 not checked")
         #expect(Self.french.summary(results) == "2 alertes · 2 sans alerte · 2 non vérifiées")
         #expect(Self.english.summary(Array(results[1...1])) == "1 flag")
-        #expect(Self.english.summary([]) == "No rules ran")
+        #expect(Self.english.summary([]) == "None stored")
+        #expect(Self.french.summary([]) == "Aucune enregistrée")
         #expect(Self.english.text(.finishedBefore)
                 == "This walk was finished before this version of the app checked red flags, so none were stored.")
     }
@@ -94,5 +95,15 @@ struct RedFlagWordsTests {
         for key in RedFlagWords.Key.allCases {
             #expect(!Self.english.text(key).isEmpty && Self.english.text(key) != Self.french.text(key), "\(key)")
         }
+    }
+
+    /// Found on the iPhone: a walk finished before red flags showed a green shield, which reads as all clear.
+    @Test func onlyRealResultsLookClearOrFlagged() throws {
+        let kandor = try Self.kandor()
+
+        #expect(RedFlagsLook(results: kandor) == RedFlagsLook(icon: "flag.fill", role: .danger))
+        #expect(RedFlagsLook(results: Array(kandor.prefix(1))) == RedFlagsLook(icon: "checkmark.shield.fill",
+                                                                               role: .success))
+        #expect(RedFlagsLook(results: []) == RedFlagsLook(icon: "minus.circle", role: .secondaryText))
     }
 }

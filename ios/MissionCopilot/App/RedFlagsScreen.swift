@@ -57,9 +57,9 @@ struct RedFlagsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 8) {
-                Label(words.summary(results), systemImage: flagged.isEmpty ? "checkmark.shield.fill" : "flag.fill")
+                Label(words.summary(results), systemImage: RedFlagsLook(results: results).icon)
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(Color(flagged.isEmpty ? .success : .danger))
+                    .foregroundStyle(Color(RedFlagsLook(results: results).role))
                 Text(words.text(stored ? (results.isEmpty ? .finishedBefore : .stored) : .live))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color(.secondaryText))
@@ -74,8 +74,6 @@ struct RedFlagsView: View {
         }
         .padding(16)
     }
-
-    private var flagged: [RedFlagResult] { results.filter { $0.outcome == .flag } }
 
     /// Flags first, then clear, then not checked; the rules file's order inside each.
     private var sorted: [RedFlagResult] {
@@ -162,19 +160,39 @@ struct RedFlagRow: View {
     }
 }
 
+/// The summary's icon and colour: red when any rule flags, green only when rules ran and none flags, grey
+/// when nothing was checked (a walk finished before red flags, found on the iPhone).
+struct RedFlagsLook: Equatable {
+    let icon: String
+    let role: ColorRole
+
+    init(icon: String, role: ColorRole) {
+        self.icon = icon
+        self.role = role
+    }
+
+    init(results: [RedFlagResult]) {
+        if results.contains(where: { $0.outcome == .flag }) {
+            self.init(icon: "flag.fill", role: .danger)
+        } else if results.isEmpty {
+            self.init(icon: "minus.circle", role: .secondaryText)
+        } else {
+            self.init(icon: "checkmark.shield.fill", role: .success)
+        }
+    }
+}
+
 /// The red flags on a card (the workspace and the top of the walk): the summary, in the flag colour when
 /// any rule flags.
 struct RedFlagsCard: View {
     let results: [RedFlagResult]
     let words: RedFlagWords
 
-    private var flagged: Bool { results.contains { $0.outcome == .flag } }
-
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: flagged ? "flag.fill" : "checkmark.shield.fill")
+            Image(systemName: RedFlagsLook(results: results).icon)
                 .font(.title2)
-                .foregroundStyle(Color(flagged ? .danger : .success))
+                .foregroundStyle(Color(RedFlagsLook(results: results).role))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(words.text(.redFlags))

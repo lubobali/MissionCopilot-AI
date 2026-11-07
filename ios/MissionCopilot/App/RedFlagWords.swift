@@ -39,7 +39,7 @@ struct RedFlagWords: Sendable {
     // MARK: counts
 
     func summary(_ results: [RedFlagResult]) -> String {
-        guard !results.isEmpty else { return french ? "Aucune règle exécutée" : "No rules ran" }
+        guard !results.isEmpty else { return french ? "Aucune enregistrée" : "None stored" }
         let flags = results.filter { $0.outcome == .flag }.count
         let clear = results.filter { $0.outcome == .clear }.count
         let open = results.count - flags - clear
