@@ -25,7 +25,10 @@ struct RedFlagWords: Sendable {
         .notChecked: ("Not checked", "Non vérifiée"),
         .computedFrom: ("Computed from", "Calculé à partir de"),
         .live: ("Live: these change as the walk goes.", "En direct : elles changent au fil de la visite."),
-        .stored: ("Stored when the walk was finished.", "Enregistrées à la fin de la visite."),
+        .stored: ("Stored when the walk was finished, and never changed. Invoices confirmed from a later scan are "
+                  + "added.",
+                  "Enregistrées à la fin de la visite, sans jamais changer. Les factures confirmées par un scan "
+                  + "ultérieur s'y ajoutent."),
         .finishedBefore: ("This walk was finished before this version of the app checked red flags, so none "
                           + "were stored.",
                           "Cette visite a été terminée avant que cette version de l'application vérifie les alertes : "
@@ -68,7 +71,20 @@ struct RedFlagWords: Sendable {
         "\(result.rule.id) v\(result.rule.version)" + (rules[result.rule.id].map { " · \($0.source)" } ?? "")
     }
 
+    /// One sentence for a result; a result from a scanned invoice says so first (#138).
     func sentence(_ result: RedFlagResult) -> String {
+        let said = plainSentence(result)
+        guard let invoice = result.subject, invoice.hasPrefix(Self.scannedPrefix), let first = said.first else {
+            return said
+        }
+        let number = invoice.dropFirst(Self.scannedPrefix.count)
+        return (french ? "Facture scannée \(number) : " : "Scanned invoice \(number): ") + first.lowercased()
+            + said.dropFirst()
+    }
+
+    private static let scannedPrefix = "Scanned invoice "
+
+    private func plainSentence(_ result: RedFlagResult) -> String {
         if case .notChecked(let why) = result.outcome { return reason(why) }
         let value = number(result.computed ?? 0)
         let flagged = result.outcome == .flag
@@ -162,8 +178,15 @@ struct RedFlagWords: Sendable {
         case .evidence(let photo):
             return french ? "Photo \(photo.seq), une autre mission sur ce téléphone"
                 : "Photo \(photo.seq), another mission on this phone"
+        case .fact(let fact):
+            return french ? "Facture scannée · \(Self.frenchFields[fact.name] ?? fact.name)"
+                : "Scanned invoice · \(InvoiceFacts.name(fact.name))"
         }
     }
+
+    /// The fields a red flag can cite, in French (#138).
+    static let frenchFields = ["cumulativePaid": "Payé à ce jour", "contractValue": "Montant du marché",
+                               "kmCompleted": "Route construite", "kmTotal": "Longueur de la route"]
 
     private func number(_ value: Double) -> String {
         value.formatted(.number.precision(.fractionLength(0...1))

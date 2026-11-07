@@ -153,6 +153,30 @@ struct ScreenshotTests {
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "documents")
     }
 
+    /// #138: the facts review, two facts decided and one the pages do not print (its problems in words).
+    @Test(arguments: [Look.light, .dark, .largestText])
+    func theFactsReviewIsOnTheThemeBackground(look: Look) async throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).sqlite")
+        let store = MissionStore(store: try EncryptedStore.open(at: file, key: DataKey.random()),
+                                 vault: SoftwareKeyVault())
+        try store.create(mission: "kandor-roads", title: "Kandor rural roads")
+        let scan = try store.addScan([try ScanStoreTests.page(), try ScanStoreTests.page()], to: "kandor-roads",
+                                     signer: SoftwareEvidenceSigner())
+        for (seq, reading) in zip(scan.pages, try FactGroundingTests.kandorPages()) {
+            _ = try await store.readPage(seq, in: "kandor-roads", read: { _ in reading })
+        }
+        let answer = ScanExtractionTests.answer.replacingOccurrences(of: #""kmCompleted":32"#,
+                                                                     with: #""kmCompleted":33"#)
+        let review = FactReviewModel(mission: "kandor-roads", store: store,
+                                     contracts: try InvoiceBankViewTests.kandor().contracts,
+                                     model: FieldModel(engine: FieldModelTests.FakeEngine(answer: answer)))
+        await review.read()
+        review.confirm("invoiceNumber")
+        review.correct("invoiceDate", to: "2026-10-12")
+        try check(FactReviewView(model: review).fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "facts")
+    }
+
     /// Fictional Kandor missions in the states a person meets most.
     static let sampleRows: [MissionRow] = {
         let nov3 = MissionWordsTests.nov3, nov10 = MissionWordsTests.nov10

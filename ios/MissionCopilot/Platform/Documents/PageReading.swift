@@ -63,13 +63,14 @@ extension MissionStore {
     struct NotAScan: Error {}
 
     /// The page's reading: read once with Vision from its sealed file and stored sealed, then kept.
-    func readPage(_ seq: Int, in mission: String, now: Date = Date()) async throws -> PageReading {
+    func readPage(_ seq: Int, in mission: String, now: Date = Date(),
+                  read: @Sendable (Data) async throws -> PageReading = PageReading.read) async throws -> PageReading {
         if let kept = try reading(of: seq, in: mission) { return kept }
         let payloads = try evidence(in: mission).compactMap { record in
             try? JSONDecoder().decode(EvidencePayload.self, from: record.payload)
         }
         guard payloads.contains(where: { $0.seq == seq && $0.kind == .scan }) else { throw NotAScan() }
-        let reading = try await PageReading.read(try evidenceFile(in: mission, seq: seq))
+        let reading = try await read(try evidenceFile(in: mission, seq: seq))
         let sealed = try MissionData.seal(try JSONEncoder().encode(reading), with: missionKey(for: mission))
         try store.write { database in
             try database.execute(sql: "INSERT INTO page_reading VALUES (?, ?, ?, ?, ?)",

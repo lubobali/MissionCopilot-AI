@@ -19,7 +19,8 @@ final class DocumentsModel {
                 let read = "Read: \(lines) line\(lines == 1 ? "" : "s")"
                 return tables == 0 ? read : read + " · \(tables) table\(tables == 1 ? "" : "s")"
             case .cropped:
-                return "This page looks cropped wrong: other text reaches its edge. Scan it again, or keep it."
+                return "This page looks cropped wrong: other text reaches its edge. It stays as evidence but is "
+                    + "not read for facts. Scan it again."
             case .unreadable: return "This page could not be read. Scan it again."
             }
         }
@@ -50,6 +51,8 @@ final class DocumentsModel {
 
     private(set) var scans: [Scan] = []
     private(set) var outcome: ScanOutcome?
+    /// Read pages whose facts are not saved yet: the review can read them (6.5.11).
+    private(set) var pagesForFacts = 0
     let mission: String
     private let store: MissionStore
     private let signer: any EvidenceSigner
@@ -82,6 +85,15 @@ final class DocumentsModel {
     func loadAndRead() async {
         load()
         await readWaitingPages()
+        countPagesForFacts()
+    }
+
+    private func countPagesForFacts() {
+        let confirmed = (try? store.confirmedPages(in: mission)) ?? []
+        // A cropped page stays as evidence, but its extra text is never given to the assistant (spike #15).
+        pagesForFacts = scans.flatMap(\.pages).filter { page in
+            if case .read = page.state { !confirmed.contains(page.seq) } else { false }
+        }.count
     }
 
     /// The camera, then every page saved as signed evidence and read.

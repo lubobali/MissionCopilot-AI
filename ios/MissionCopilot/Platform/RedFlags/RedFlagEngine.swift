@@ -9,10 +9,11 @@ struct RedFlagResult: Sendable, Equatable {
         case noContracts, noMilestones, zeroValue, needsScan, needsPhotos, unknownRule
     }
 
-    /// One input a result used, citable: a pack field or a signed photo.
+    /// One input a result used, citable: a pack field, a signed photo or a confirmed fact (#138).
     enum Input: Sendable, Equatable {
         case pack(PackCitation)
         case evidence(PhotoRef)
+        case fact(FactRef)
     }
 
     let rule: RuleRef
@@ -31,6 +32,8 @@ struct RedFlagInputs: Sendable {
     var contracts: PackContracts?
     var milestones: PackMilestones?
     var photos: PhotoReuseCheck?
+    /// Invoices the officer confirmed from scanned pages (#138): R068 and MC-01 run on each one too.
+    var scanned: [ScannedInvoice]?
 }
 
 /// Plain code, never the model (ADR 0005, 0010): the same inputs always give the same results, in the
@@ -112,6 +115,10 @@ private struct Context {
             }
             let paid = paid(pack, index, contract)
             return [judged(paid.percent, subject: contract.ocid, inputs: paid.inputs)]
+        } + (inputs.scanned ?? []).map { invoice in
+            guard invoice.contractValue > 0 else { return result(.notChecked(.zeroValue), subject: invoice.subject) }
+            return judged(Double(invoice.paid) * 100 / Double(invoice.contractValue), subject: invoice.subject,
+                          inputs: invoice.cite(["cumulativePaid", "contractValue"]))
         }
     }
 
@@ -126,6 +133,14 @@ private struct Context {
             let cited = ["kmBuilt", "kmTotal"].map { RedFlagResult.Input.pack(
                 pack.file.cite("/contracts/\(index)/physicalProgress/\($0)")) }
             return [judged(paid.percent - built, subject: contract.ocid, inputs: paid.inputs + cited)]
+        } + (inputs.scanned ?? []).map { invoice in
+            guard invoice.contractValue > 0, invoice.kmTotal > 0 else {
+                return result(.notChecked(.zeroValue), subject: invoice.subject)
+            }
+            let paid = Double(invoice.paid) * 100 / Double(invoice.contractValue)
+            let ahead = paid - invoice.kmBuilt * 100 / invoice.kmTotal
+            return judged(ahead, subject: invoice.subject,
+                          inputs: invoice.cite(["cumulativePaid", "contractValue", "kmCompleted", "kmTotal"]))
         }
     }
 

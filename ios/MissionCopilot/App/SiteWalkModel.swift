@@ -134,16 +134,23 @@ final class SiteWalkModel {
         flags = currentFlags()
     }
 
-    /// The flags as they are now: the pack's figures and this phone's photos, through the rules file.
+    /// The flags as they are now: the pack's figures, this phone's photos and the confirmed scanned invoices,
+    /// through the rules file.
     private func liveFlags() -> [RedFlagResult] {
         var inputs = figures
         inputs.photos = try? store.photoReuse(for: mission)
+        inputs.scanned = (try? store.facts(in: mission)).map(ScannedInvoice.all)  // #138: confirmed scans
         return RedFlagEngine(rules: rules).run(inputs, walk: now(), timeZone: timeZone)
     }
 
+    /// After the finish: the stored flags, then the results of invoices confirmed from documents scanned
+    /// later (found on the iPhone, #138: a scan is allowed after the finish). The stored ones never change.
     private func currentFlags() -> [RedFlagResult] {
-        if let stored = try? store.storedFlags(mission: mission) { return stored }
-        return liveFlags()
+        guard let stored = try? store.storedFlags(mission: mission) else { return liveFlags() }
+        let scanned = liveFlags().filter { result in
+            result.inputs.contains { input in if case .fact = input { true } else { false } }
+        }
+        return stored + scanned.filter { !stored.contains($0) }
     }
 
     private func rebuilt(answers: [String: String], checks: [String: ActionCheck]) -> SiteWalk {

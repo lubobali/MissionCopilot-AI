@@ -34,6 +34,21 @@ struct DocumentsModelTests {
         #expect(try store.reading(of: documents.scans[0].pages[0].seq, in: mission) != nil)
     }
 
+    /// 6.5.11: read pages wait for the facts review until their facts are saved.
+    @Test func readPagesWaitForTheFactsUntilTheyAreSaved() async throws {
+        let (documents, store) = try model(pages: [try PageReadingTests.demo("invoice-14"),
+                                                   try PageReadingTests.demo("progress-report-2026-09")])
+        await documents.scan()
+        #expect(documents.pagesForFacts == 2)  // a cropped page would not count (6.5.13)
+
+        let typed = Dictionary(uniqueKeysWithValues: InvoiceFacts.fields.map { ($0, FactDecision.correct("1")) })
+        try store.confirmFacts(FactReview(facts: .blank, printedAt: [:], problems: []), decisions: typed,
+                               pages: documents.scans[0].pages.map(\.seq), in: mission)
+        await documents.loadAndRead()
+
+        #expect(documents.pagesForFacts == 0)
+    }
+
     @Test func aPageWithTheScreenAroundItSaysRetake() async throws {
         let page = try PageReadingTests.demo("invoice-14")
         let size = CGSize(width: page.size.width * 2, height: page.size.height * 2)
@@ -52,6 +67,7 @@ struct DocumentsModelTests {
         await documents.scan()
 
         #expect(documents.scans[0].pages[0].state == .cropped)
+        #expect(documents.pagesForFacts == 0)  // kept as evidence, never read for facts (6.5.13)
     }
 
     @Test func aCancelledScanSavesNothing() async throws {
@@ -94,7 +110,8 @@ struct DocumentsModelTests {
         (.read(lines: 9, tables: 1), "Read: 9 lines · 1 table"),
         (.read(lines: 1, tables: 2), "Read: 1 line · 2 tables"),
         (.read(lines: 7, tables: 0), "Read: 7 lines"),
-        (.cropped, "This page looks cropped wrong: other text reaches its edge. Scan it again, or keep it."),
+        (.cropped, "This page looks cropped wrong: other text reaches its edge. It stays as evidence but is "
+         + "not read for facts. Scan it again."),
         (.unreadable, "This page could not be read. Scan it again.")
     ])
     func eachPageStateInWords(state: DocumentsModel.PageState, words: String) {
