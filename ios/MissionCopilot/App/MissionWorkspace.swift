@@ -16,6 +16,7 @@ struct MissionWorkspaceScreen: View {
     @State private var flags: [RedFlagResult]?  // the red flags, for theirs (#134)
     @State private var documents: String?  // the documents' summary, for their card (#138)
     @State private var debriefs: String?  // the debriefs' summary, for theirs (#142)
+    @State private var ask: String?  // the Ask card's summary (#145)
 
     var body: some View {
         Group {
@@ -28,7 +29,7 @@ struct MissionWorkspaceScreen: View {
                                      onInstall: { language in Task { await readiness.install(language, for: row) } },
                                      onDownload: { model.download(row.id) },
                                      onTestModel: { Task { await readiness.testModel() } },
-                                     documents: documents, debriefs: debriefs)
+                                     documents: documents, debriefs: debriefs, ask: ask)
                 }
                 .refreshable { await readiness.refresh(row) }
                 .task(id: row) { await readiness.refresh(row) }
@@ -36,6 +37,8 @@ struct MissionWorkspaceScreen: View {
                     (walk, flags) = Self.walkCards(row, store: model.openStore)
                     documents = Self.documentsSummary(row, store: model.openStore)
                     debriefs = Self.debriefsSummary(row, store: model.openStore)
+                    let canAsk = row.pack != nil && model.openStore != nil
+                    ask = canAsk ? "Questions answered from this mission's data" : nil
                 }
             } else {
                 Loading(text: "Loading the mission")
@@ -78,6 +81,7 @@ struct MissionWorkspace: View {
     var onTestModel: () -> Void = {}
     var documents: String?  // the documents' summary: their card shows with the pack (#138)
     var debriefs: String?  // the debriefs' summary: their card shows with the pack (#142)
+    var ask: String?  // the Ask card: it shows with the pack (#145)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -126,6 +130,11 @@ struct MissionWorkspace: View {
             }
             if let debriefs {
                 NavigationLink(value: DebriefLink(id: row.id)) { DebriefCard(summary: debriefs) }
+                    .buttonStyle(.plain)
+                    .accessibilityHint(row.title)
+            }
+            if let ask {
+                NavigationLink(value: AskLink(id: row.id)) { AskCard(summary: ask) }
                     .buttonStyle(.plain)
                     .accessibilityHint(row.title)
             }

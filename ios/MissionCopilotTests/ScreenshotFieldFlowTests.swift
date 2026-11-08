@@ -83,4 +83,17 @@ extension ScreenshotTests {
         try check(DebriefNotesView(model: review).fixedSize(horizontal: false, vertical: true)
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "debrief-notes")
     }
+
+    /// #145: the Ask chat, a clean one with its examples, and one after two questions (sources in words).
+    @Test(arguments: [Look.light, .dark, .largestText])
+    func theAskChatIsOnTheThemeBackground(look: Look) throws {
+        let fresh = AskModel(sources: MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files)))
+        try check(AskConversation(model: fresh).fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "ask-new")
+        let model = AskModel(sources: MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files)))
+        model.ask(example: "How much has been paid?")
+        model.ask(example: "Who won the election?")
+        try check(AskConversation(model: model).fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "ask")
+    }
 }
