@@ -84,13 +84,16 @@ extension ScreenshotTests {
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "debrief-notes")
     }
 
-    /// #145: the Ask page after a question, with the sources found.
+    /// #145: the Ask chat, a clean one with its examples, and one after two questions (sources in words).
     @Test(arguments: [Look.light, .dark, .largestText])
-    func theAskPageIsOnTheThemeBackground(look: Look) throws {
+    func theAskChatIsOnTheThemeBackground(look: Look) throws {
+        let fresh = AskModel(sources: MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files)))
+        try check(AskConversation(model: fresh).fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "ask-new")
         let model = AskModel(sources: MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files)))
-        model.question = "Was the Section 3 bridge started?"
-        model.ask()
-        try check(AskView(model: model).fixedSize(horizontal: false, vertical: true)
+        model.ask(example: "How much has been paid?")
+        model.ask(example: "Who won the election?")
+        try check(AskConversation(model: model).fixedSize(horizontal: false, vertical: true)
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "ask")
     }
 }

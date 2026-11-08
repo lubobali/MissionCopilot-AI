@@ -2,53 +2,64 @@ import Foundation
 import Testing
 @testable import MissionCopilot
 
-/// The Ask page, PR 1 (#145, step 6.7.3): a question finds the mission's sources, each shown with its title,
-/// its kind and where it came from in words. No model yet: the sources themselves are the answer for now.
+/// The Ask chat, PR 1 (#145, step 6.7.3, redone after Lubo's first look: "like a BIOS from 1996"): each question
+/// becomes a message with the sources found in words; the text clears after sending and with one tap; New chat
+/// starts clean; example questions start a conversation. No model yet: the sources are the reply for now.
 @MainActor
 struct AskModelTests {
     static func model() -> AskModel {
         AskModel(sources: MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files)))
     }
 
-    @Test func aQuestionShowsTheSourcesFoundBestFirst() throws {
+    @Test func aQuestionBecomesAMessageWithTheSourcesInWords() throws {
         let model = Self.model()
         model.question = "When was invoice 14 paid?"
 
         model.ask()
 
-        #expect(model.state == .found)
-        let first = try #require(model.results.first)
-        #expect(first.title == "Contracts › contracts 1 › payments 6")
-        #expect(first.kind == "Bank record")
-        #expect(first.place == "contracts.json · /contracts/0/payments/5")
-        #expect(first.text.contains("reference: Invoice 14"))
-        #expect(model.results.count <= 5)
+        let message = try #require(model.messages.last)
+        #expect(message.question == "When was invoice 14 paid?")
+        // Other payments match too, so they come grouped; the best match, invoice 14, is the first row.
+        #expect(message.cards.first?.title.hasPrefix("Payments (") == true)
+        #expect(message.cards.first?.lines.first == "Invoice 14 · USD 480,000 · 12 Oct 2026")
+        #expect(model.question.isEmpty)  // the field clears after sending
     }
 
-    @Test func eachKindOfSourceSaysWhereItCameFrom() {
-        let words = [
-            AskModel.place(.pack(PackCitation(path: "sections/contracts.json", sha256: "x", pointer: "/contracts/0"))),
-            AskModel.place(.document(path: "documents/aide-memoire-2026-05.md", paragraph: 3)),
-            AskModel.place(.fact(id: "f", sources: [FactSource(seq: 4, region: nil)])),
-            AskModel.place(.walk(question: "bridge_started")),
-            AskModel.place(.redFlag(rule: "MC-01"))
-        ]
-
-        #expect(words == ["contracts.json · /contracts/0", "aide-memoire-2026-05.md · paragraph 3",
-                          "Evidence 4, confirmed by the officer", "Site walk · bridge_started", "Red flag rule MC-01"])
-        #expect(MissionSource.Kind.allCases.map(AskModel.kindWords)
-                == ["Bank record", "Document", "Confirmed fact", "Debrief note", "Site walk", "Red flag"])
-    }
-
-    @Test func aQuestionTheMissionCannotAnswerSaysSo() {
+    @Test func theConversationKeepsEveryQuestionInOrder() {
         let model = Self.model()
-        model.question = "Who won the election?"
+        for question in ["Was the Section 3 bridge started?", "Who won the election?"] {
+            model.question = question
+            model.ask()
+        }
 
-        model.ask()
-
-        #expect(model.state == .nothingFound)
-        #expect(model.results.isEmpty)
+        #expect(model.messages.map(\.question) == ["Was the Section 3 bridge started?", "Who won the election?"])
+        #expect(model.messages.map(\.found) == [true, false])
+        #expect(Set(model.messages.map(\.id)).count == 2)
         #expect(AskModel.nothingFound == "Nothing in this mission's data matches this question.")
+    }
+
+    @Test func clearEmptiesTheTextAndNewChatStartsClean() {
+        let model = Self.model()
+        model.question = "How much has been paid?"
+        model.ask()
+        model.question = "half typed"
+
+        model.clear()
+        #expect(model.question.isEmpty)
+        #expect(model.messages.count == 1)
+
+        model.newChat()
+        #expect(model.messages.isEmpty)
+        #expect(!model.canAsk)
+    }
+
+    @Test func anExampleQuestionAsksAtOnce() {
+        let model = Self.model()
+
+        model.ask(example: AskModel.examples[0])
+
+        #expect(model.messages.map(\.question) == [AskModel.examples[0]])
+        #expect(AskModel.examples.count == 3)
     }
 
     @Test func anEmptyQuestionDoesNothing() {
@@ -57,11 +68,20 @@ struct AskModelTests {
 
         model.ask()
 
-        #expect(model.state == .waiting)
-        #expect(!model.canAsk)
+        #expect(model.messages.isEmpty)
     }
 
-    @Test func theCardSaysHowManySourcesTheMissionHas() {
+    @Test func eachKindOfSourceSaysWhereItCameFromInWords() {
+        let walk = MissionSource(id: "walk:x", kind: .walkAnswer, title: "Q?", text: "Q? no",
+                                 origin: .walk(question: "x"))
+        let flag = MissionSource(id: "flag:MC-01:0", kind: .redFlag, title: "T", text: "S",
+                                 origin: .redFlag(rule: "MC-01"))
+
+        #expect(SourceWords.card(walk).place == "Your site walk")
+        #expect(SourceWords.card(flag).place == "Red flag rule MC-01")
+    }
+
+    @Test func theIntroSaysHowManySourcesTheMissionHas() {
         #expect(Self.model().summary == "51 sources on this iPhone")
         #expect(AskModel(sources: []).summary == "No mission data on this iPhone yet")
     }
