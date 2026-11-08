@@ -29,6 +29,11 @@ enum SourceWords {
     }
 
     /// The best sources as cards, in order; two or more rows of one list (payments) become one card.
+    /// Kept sources as cards, grouped the same way (a kept answer has its sources, not their scores).
+    static func cards(_ sources: [MissionSource]) -> [SourceCardWords] {
+        group(sources.map { SearchHit(source: $0, score: 0) })
+    }
+
     static func group(_ hits: [SearchHit]) -> [SourceCardWords] {
         let keys = hits.map { listKey($0.source) }
         var cards: [SourceCardWords] = [], done: Set<String> = []

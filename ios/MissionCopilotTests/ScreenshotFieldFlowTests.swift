@@ -84,16 +84,25 @@ extension ScreenshotTests {
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "debrief-notes")
     }
 
-    /// #145: the Ask chat, a clean one with its examples, and one after two questions (sources in words).
+    /// #145: the Ask chat: a clean one with its examples; one with a checked answer (numbered source tags) and
+    /// a question the mission's data cannot answer; a kept answer from History with its time.
     @Test(arguments: [Look.light, .dark, .largestText])
-    func theAskChatIsOnTheThemeBackground(look: Look) throws {
-        let fresh = AskModel(sources: MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files)))
+    func theAskChatIsOnTheThemeBackground(look: Look) async throws {
+        let sources = MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files))
+        let fresh = AskModel(sources: sources, keeper: .memory())
         try check(AskConversation(model: fresh).fixedSize(horizontal: false, vertical: true)
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "ask-new")
-        let model = AskModel(sources: MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files)))
-        model.ask(example: "How much has been paid?")
-        model.ask(example: "Who won the election?")
+        let answer = MissionAnswerTests.answer([("Invoice 14 was paid on 12 October 2026.", ["S1"]),
+                                                ("It was for USD 480,000.", ["S1"])])
+        let model = AskModel(sources: sources, model: FieldModel(engine: FieldModelTests.FakeEngine(answer: answer)),
+                             keeper: .memory { Date(timeIntervalSince1970: 1_794_000_000) })
+        await model.send(example: "When was invoice 14 paid?")
+        await model.send(example: "Who won the election?")
+        #expect(model.messages.first?.record?.sentences.count == 2)
         try check(AskConversation(model: model).fixedSize(horizontal: false, vertical: true)
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "ask")
+        let kept = try #require(model.history.last)
+        try check(KeptAnswerView(record: kept, canAsk: true) {}.fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "ask-kept")
     }
 }
