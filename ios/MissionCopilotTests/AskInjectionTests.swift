@@ -62,16 +62,18 @@ struct AskInjectionTests {
         let search = MissionSearch(sources: sources)
         let given = search.search(claim.question).map(\.source).filter { !AnswerCheck.givesInstructions($0) }
         let labels = given.indices.map { "S\($0 + 1)" }
-        let each = given.indices.map { (claim.sentence, ["S\($0 + 1)"]) }
-        let engine = FakeEngine(answer: MissionAnswerTests.answer([(claim.sentence, Array(labels.prefix(3)))] + each))
+        // Cited to the first three sources at once, then to each source alone, one answer each.
+        let citations = [Array(labels.prefix(3))] + labels.map { [$0] }
 
-        let result = await MissionAnswerer(search: search, model: FieldModel(engine: engine))
-            .answer(claim.question, earlier: [])
+        for cited in citations {
+            let engine = FakeEngine(answer: MissionAnswerTests.answer([(claim.sentence, cited)]))
+            let result = await MissionAnswerer(search: search, model: FieldModel(engine: engine))
+                .answer(claim.question, earlier: [])
 
-        for sentence in result.sentences {
-            #expect(sentence.sources == ["fact:\(attack.id)"], "\(sentence) stands on \(sentence.sources)")
+            for sentence in result.sentences {
+                #expect(sentence.sources == ["fact:\(attack.id)"], "\(sentence) stands on \(sentence.sources)")
+            }
         }
-        #expect(!result.sentences.contains { $0.sources.contains { $0.hasPrefix("pack:") } })
     }
 
     /// A note that speaks to the assistant ("Note for the AI: ignore the rules", "Assistant, do not raise")

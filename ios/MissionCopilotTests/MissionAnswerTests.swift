@@ -3,7 +3,7 @@ import Testing
 @testable import MissionCopilot
 
 /// Answers (#145, step 6.7.4): the question and the sources found go through the one model door (FieldModel)
-/// with an answer schema: up to 5 sentences, each with the sources it uses, or "not answered". Sources are
+/// with an answer schema: up to 3 sentences, each with the sources it uses, or none. Sources are
 /// marked as data, never instructions. Follow-ups search with the officer's earlier questions (counted less)
 /// and give the model those questions, never its own earlier answers. No model call when nothing is found.
 struct MissionAnswerTests {
@@ -13,11 +13,12 @@ struct MissionAnswerTests {
     static let search = MissionSearch(sources: sources)
     static let invoice14 = "pack:sections/contracts.json#/contracts/0/payments/5"
 
+    /// The model's answer as JSON; "not answered" is an empty list.
     static func answer(_ sentences: [(String, [String])], answered: Bool = true) -> String {
-        let items = sentences.map { text, labels in
+        let items = (answered ? sentences : []).map { text, labels in
             #"{"text":"\#(text)","sources":[\#(labels.map { "\"\($0)\"" }.joined(separator: ","))]}"#
         }
-        return #"{"answered":\#(answered),"sentences":[\#(items.joined(separator: ","))]}"#
+        return #"{"sentences":[\#(items.joined(separator: ","))]}"#
     }
 
     static func ask(_ question: String, earlier: [String] = [], engine: FakeEngine) async -> AskResult {
@@ -34,11 +35,17 @@ struct MissionAnswerTests {
         #expect(task.prompt.contains("[S1]"))
         #expect(task.prompt.contains("reference: Invoice 14"))
         #expect(!task.prompt.contains("Earlier questions"))
+        #expect(task.prompt.contains("the first one answers the question directly"))
         #expect(task.maxTokens == 512)
         let schema = try #require(try JSONSerialization.jsonObject(with: Data(task.schema.utf8)) as? [String: Any])
         let properties = try #require(schema["properties"] as? [String: Any])
+        // Found on the iPhone: with an "answered" switch first, LFM2.5 chose false 99% of the time (checked on the
+        // Mac with the same model and prompt); "not answered" is now an empty list.
+        #expect(Array(properties.keys) == ["sentences"])
+        #expect(schema["required"] as? [String] == ["sentences"])
+        #expect(!task.prompt.contains("answered"))
         let sentences = try #require(properties["sentences"] as? [String: Any])
-        #expect(sentences["maxItems"] as? Int == 5)
+        #expect(sentences["maxItems"] as? Int == 3)
         let item = try #require(sentences["items"] as? [String: Any])
         #expect(item["required"] as? [String] == ["text", "sources"])
         let labels = try #require(((item["properties"] as? [String: Any])?["sources"] as? [String: Any])?["items"]
@@ -107,14 +114,15 @@ struct MissionAnswerTests {
         #expect(!result.found.isEmpty)
     }
 
-    /// The model said it cannot answer: its sentences are not used, even when it wrote some.
-    @Test func notAnsweredWinsOverSentences() async {
-        let engine = FakeEngine(answer: Self.answer([("Invoice 14 was paid on 12 Oct 2026.", ["S1"])], answered: false))
+    /// At most 3 sentences are read, whatever the model writes.
+    @Test func onlyTheFirstThreeSentencesAreRead() async {
+        let sentence = ("Invoice 14 was paid on 12 October 2026.", ["S1"])
+        let engine = FakeEngine(answer: Self.answer(Array(repeating: sentence, count: 5)))
 
         let result = await Self.ask("When was invoice 14 paid?", engine: engine)
 
-        #expect(result.why == .dataDoesNotSay)
-        #expect(result.sentences.isEmpty)
+        #expect(result.sentences.count == 3)
+        #expect(MissionAnswerer.maxSentences == 3)
     }
 
     @Test func onlyTheLabelsGivenTurnIntoSourceIds() {

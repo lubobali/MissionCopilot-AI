@@ -97,10 +97,10 @@ extension SourceWords {
     private static func pack(_ source: MissionSource, citation: PackCitation) -> SourceCardWords {
         let place = "Bank record · \(section(citation))"
         if source.id.hasSuffix("#paid") {
-            let parts = source.text.replacingOccurrences(of: "paid to date: ", with: "").components(separatedBy: " (")
-            let total = value(parts.first ?? "", key: "amount")
-            return SourceCardWords(title: "Paid to date",
-                                   lines: ["\(total), " + (parts.dropFirst().first?.dropLast() ?? "")], place: place)
+            let parts = source.text.components(separatedBy: ": ")
+            let total = value(parts.first?.components(separatedBy: " ").first ?? "", key: "amount")
+            let why = parts.dropFirst().joined(separator: ": ").replacingOccurrences(of: ".", with: "")
+            return SourceCardWords(title: "Paid to date", lines: ["\(total), \(why)"], place: place)
         }
         // The demo data's own "Fictional: ..." note is not an answer (found on the iPhone).
         let all = fields(source.text).filter { !$0.value.hasPrefix("Fictional:") }

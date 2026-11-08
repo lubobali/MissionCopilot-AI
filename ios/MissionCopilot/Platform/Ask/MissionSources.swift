@@ -137,8 +137,9 @@ private struct PackSourceReader {
         let total = Self.number(amounts.reduce(0, +))
         return [MissionSource(id: base.id + "#paid", kind: .pack,
                               title: base.title.replacingOccurrences(of: " › payments", with: " › paid to date"),
-                              text: "paid to date: \(total) (the sum of the pack's \(items.count) payments, "
-                                  + "added by the app)",
+                              // A sentence, not a field: the model copies what it reads (found on the iPhone).
+                              text: "\(total) has been paid to date on this contract: the sum of the pack's "
+                                  + "\(items.count) payments, added by the app.",
                               origin: base.origin)]
     }
 
