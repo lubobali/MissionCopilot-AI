@@ -11,7 +11,7 @@ enum SourceOrigin: Equatable, Sendable {
 
 /// One piece of the mission's data as a short text: what a question searches and an answer cites.
 struct MissionSource: Equatable, Sendable, Identifiable {
-    enum Kind: String, Sendable { case pack, document, fact, note, walkAnswer, redFlag }
+    enum Kind: String, Sendable, CaseIterable { case pack, document, fact, note, walkAnswer, redFlag }
 
     let id: String
     let kind: Kind

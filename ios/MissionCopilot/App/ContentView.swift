@@ -59,6 +59,9 @@ struct ContentView: View {
             .navigationDestination(for: DebriefLink.self) { link in
                 if let model = hub?.model { DebriefScreen(list: model, id: link.id) }
             }
+            .navigationDestination(for: AskLink.self) { link in
+                if let model = hub?.model { AskScreen(list: model, id: link.id) }
+            }
             .navigationDestination(for: DebriefNotesLink.self) { link in
                 if let model = hub?.model { DebriefNotesScreen(list: model, link: link) }
             }
