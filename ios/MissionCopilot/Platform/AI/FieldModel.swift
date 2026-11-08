@@ -10,7 +10,7 @@ struct ModelRequest: Sendable, Equatable {
 }
 
 /// Why the model cannot answer at all, in words the screens can say (6.4.5).
-enum ModelUnavailable: Error, Equatable, Sendable {
+enum ModelUnavailable: Error, Equatable, Sendable, Codable {
     /// Debug builds and builds made without the model (CI).
     case notInThisBuild
     /// The signature check refused it: never loaded (T46).

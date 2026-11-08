@@ -31,18 +31,30 @@ struct MissionSearch: Sendable {
     }
 
     /// The best sources for a question, best first: at most `limit`, and no more text than `budget` characters
-    /// in all (what the model will read). A question with no word the mission knows finds nothing.
-    func search(_ question: String, limit: Int = 5, budget: Int = 6_000) -> [SearchHit] {
-        let query = Array(Set(Self.terms(question).flatMap { [$0] + (Self.related[$0] ?? []) }))
+    /// in all (what the model will read). A question with no word the mission knows finds nothing. A follow-up
+    /// also searches with the officer's earlier questions in the chat (#145, 6.7.4), each word counted half,
+    /// so "And when was it paid?" finds the invoice asked about before, while the new question still leads.
+    func search(_ question: String, earlier: [String] = [], limit: Int = 5, budget: Int = 6_000) -> [SearchHit] {
+        var weights: [String: Double] = [:]
+        for text in earlier.suffix(Self.earlierKept) {
+            for term in Self.expanded(text) { weights[term] = max(weights[term] ?? 0, Self.earlierWeight) }
+        }
+        // The new question must itself match something: earlier questions only help to rank.
+        let own = Self.expanded(question)
+        guard own.contains(where: { frequency[$0] != nil }) else { return [] }
+        for term in own { weights[term] = 1 }
+        let order = weights.keys.sorted()
         // BM25 with its usual settings: how fast repeats stop counting (1.2), and how much a long source weighs (0.75).
         let (saturation, lengthWeight, count) = (1.2, 0.75, Double(entries.count))
         let ranked = entries.compactMap { entry -> SearchHit? in
-            let score = query.reduce(0.0) { total, term in
+            // Summed in a fixed order, so the same question always gives the same scores to the last digit.
+            let score = order.reduce(0.0) { total, term in
+                let weight = weights[term] ?? 0
                 guard let times = entry.counts[term].map(Double.init), let holding = frequency[term].map(Double.init)
                 else { return total }
                 let rarity = log((count - holding + 0.5) / (holding + 0.5) + 1)
                 let length = 1 - lengthWeight + lengthWeight * Double(entry.length) / averageLength
-                return total + rarity * times * (saturation + 1) / (times + saturation * length)
+                return total + weight * rarity * times * (saturation + 1) / (times + saturation * length)
             }
             return score > 0 ? SearchHit(source: entry.source, score: score) : nil
         }.sorted { ($0.score, $1.source.id) > ($1.score, $0.source.id) }
@@ -56,6 +68,15 @@ struct MissionSearch: Sendable {
 }
 
 extension MissionSearch {
+    /// How many earlier questions a follow-up uses, and how much each of their words counts.
+    static let earlierKept = 3
+    static let earlierWeight = 0.5
+
+    /// A text's terms with their mission synonyms and French glossary words.
+    static func expanded(_ text: String) -> Set<String> {
+        Set(terms(text).flatMap { [$0] + (related[$0] ?? []) })
+    }
+
     /// Text as search terms: lower case, letters and digits only, a letter next to a digit is two words,
     /// "480,000" is one number, number words are digits, common words dropped, word endings trimmed.
     static func terms(_ text: String) -> [String] {
