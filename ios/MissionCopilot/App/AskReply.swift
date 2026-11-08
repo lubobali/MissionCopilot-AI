@@ -37,7 +37,7 @@ struct AnswerView: View {
         VStack(alignment: .leading, spacing: 10) {
             if record.answered {
                 VStack(alignment: .leading, spacing: 12) {
-                    Label("From this mission's data, checked", systemImage: "checkmark.seal")
+                    Label(madeByWords, systemImage: "checkmark.seal")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Color(.secondaryText))
                     ForEach(Array(record.sentences.enumerated()), id: \.offset) { _, sentence in
@@ -98,6 +98,16 @@ struct AnswerView: View {
 
     private var numbers: [String: Int] {
         Dictionary(uniqueKeysWithValues: cited.enumerated().map { ($1.id, $0 + 1) })
+    }
+
+    /// How the answer was made (6.7.16): written by the app from the records, or a line the app wrote that the
+    /// assistant chose.
+    private var madeByWords: String {
+        switch record.madeBy {
+        case .code: "From the mission's records"
+        case .chosen: "From the mission's records · picked by the assistant"
+        case nil: "From this mission's data, checked"
+        }
     }
 
     /// The checks' reasons, each once, in order.

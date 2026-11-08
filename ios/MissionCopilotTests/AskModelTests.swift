@@ -12,7 +12,8 @@ struct AskModelTests {
     typealias FakeEngine = FieldModelTests.FakeEngine
 
     static let sources = MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files))
-    static let paidOn = MissionAnswerTests.answer([("Invoice 14 was paid on 12 October 2026.", ["S1"])])
+    static let paidOn = MissionAnswerTests.choice("O1")
+    static let late = MissionAnswerTests.late
 
     static func model(_ engine: FakeEngine = FakeEngine(answer: paidOn), keeper: AskKeeper = .memory()) -> AskModel {
         AskModel(sources: sources, model: FieldModel(engine: engine), keeper: keeper)
@@ -26,7 +27,8 @@ struct AskModelTests {
 
         let message = try #require(model.messages.last)
         #expect(message.question == "When was invoice 14 paid?")
-        #expect(message.record?.sentences.map(\.text) == ["Invoice 14 was paid on 12 October 2026."])
+        #expect(message.record?.sentences.map(\.text) == ["Invoice 14: USD 480,000, paid 12 Oct 2026."])
+        #expect(message.record?.madeBy == .code)
         #expect(message.record?.sentences.first?.sources == [MissionAnswerTests.invoice14])
         #expect(!message.thinking && !message.notKept)
         #expect(model.history.map(\.id) == [message.record?.id].compactMap { $0 })
@@ -36,7 +38,7 @@ struct AskModelTests {
     @Test func whileTheAssistantWorksTheMessageSaysSoAndSendingWaits() async throws {
         let engine = FakeEngine(answer: Self.paidOn, delay: .milliseconds(300))
         let model = Self.model(engine)
-        model.question = "When was invoice 14 paid?"
+        model.question = Self.late
 
         let asking = Task { await model.send() }
         while model.messages.isEmpty { await Task.yield() }
@@ -60,8 +62,8 @@ struct AskModelTests {
         await model.send(example: "And when was it paid?")
 
         let prompt = try #require(await engine.asked.last?.prompt)
-        #expect(prompt.contains("reference: Invoice 14"))
-        #expect(!prompt.contains("Invoice 14 was paid on 12 October 2026."))
+        #expect(prompt.contains("Invoice 14: USD 480,000"))  // found thanks to the earlier question
+        #expect(!prompt.contains("Tell me about invoice 14"))
     }
 
     @Test func newChatStartsCleanAndHistoryKeepsEveryQuestionNewestFirst() async throws {
@@ -75,11 +77,10 @@ struct AskModelTests {
         await model.send(example: "Who won the election?")
 
         model.newChat()
-        await model.send(example: "What is the contract value?")
+        await model.send(example: Self.late)
 
-        #expect(model.messages.map(\.question) == ["What is the contract value?"])
-        #expect(model.history.map(\.question) == ["What is the contract value?", "Who won the election?",
-                                                  "When was invoice 14 paid?"])
+        #expect(model.messages.map(\.question) == [Self.late])
+        #expect(model.history.map(\.question) == [Self.late, "Who won the election?", "When was invoice 14 paid?"])
         // After New chat, the earlier questions are no longer given to the model.
         let prompt = try #require(await engine.asked.last?.prompt)
         #expect(!prompt.contains("Earlier questions"))
@@ -100,8 +101,7 @@ struct AskModelTests {
         #expect(model.history.contains(old))
         #expect(model.messages.last?.question == old.question)
         #expect(model.messages.last?.record?.id != old.id)
-        let prompt = try #require(await engine.asked.last?.prompt)
-        #expect(!prompt.contains("Earlier questions"))
+        #expect(model.messages.last?.record?.sentences == old.sentences)  // the same records, answered again
     }
 
     @Test func aRefusedLogStillShowsTheAnswerButSaysItWasNotKept() async throws {
