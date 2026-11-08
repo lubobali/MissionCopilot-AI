@@ -169,4 +169,36 @@ struct CodeAnswersTests {
         #expect(!started.contains("walk:board_number"))
         #expect(started.contains(Self.action))
     }
+
+    /// Found on the iPhone: iOS Smart Punctuation types a curly apostrophe (’), and pasted text can bring curly
+    /// quotes; "What’s done?" missed its answer. They read as straight ones; "done" in its short form ("don")
+    /// is a status word, never a topic.
+    @Test func curlyApostrophesReadAsStraightOnes() throws {
+        let walk = Self.walk + [WordedLine(key: "board_number", title: "Number on the contractor's site board",
+                                           text: "KN-0042")]
+        let answers = CodeAnswers(sources: MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files,
+                                                                             walk: walk)))
+
+        for question in ["What\u{2019}s done?", "What\u{2018}s done?", "Qu\u{2019}est-ce qui est fait ?"] {
+            let cited = try #require(answers.direct(question), "\(question)").flatMap(\.sources)
+            #expect(cited.contains("pack:sections/milestones.json#/milestones/0"), "\(question)")
+            #expect(!cited.contains("walk:board_number"), "\(question)")
+        }
+        let open = try #require(answers.direct("Qu\u{2019}est-ce qui n\u{2019}est pas fait ?")).flatMap(\.sources)
+        #expect(open.contains(Self.action))
+        #expect(AnswerText.straight("\u{201C}done\u{201D} isn\u{2019}t") == "\"done\" isn't")
+        #expect(AnswerText.saysNotAnswered("Le montant n\u{2019}est pas pr\u{E9}cis\u{E9}."))
+    }
+
+    /// "Is the bridge done?" asks about the bridge: the short form of "done" is not a topic of its own.
+    @Test func theShortFormOfDoneIsNotATopic() throws {
+        let walk = Self.walk + [WordedLine(key: "seen_done", title: "Anything else seen done?", text: "Fencing done")]
+        let answers = CodeAnswers(sources: MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files,
+                                                                             walk: walk)))
+
+        let cited = try #require(answers.direct("Is the bridge done?")).flatMap(\.sources)
+
+        #expect(cited.contains(Self.action))
+        #expect(!cited.contains("walk:seen_done"))
+    }
 }
