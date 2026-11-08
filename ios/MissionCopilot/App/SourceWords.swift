@@ -21,7 +21,7 @@ enum SourceWords {
         case .walk:
             SourceCardWords(title: source.title, lines: [answer(source)], place: "Your site walk")
         case .fact:
-            SourceCardWords(title: source.title, lines: [source.text],
+            SourceCardWords(title: source.title, lines: [Self.codesInWords(source.text)],
                             place: source.kind == .note ? "Your confirmed debrief" : "Confirmed by you")
         case .redFlag(let rule):
             SourceCardWords(title: source.title, lines: [source.text], place: "Red flag rule \(rule)")
@@ -58,6 +58,11 @@ enum SourceWords {
         return moneyWords.contains { key.hasSuffix($0) } ? "\(currency) \(grouped)" : grouped
     }
 
+    /// A stored code as words ("not_started" as "Not started").
+    static func codesInWords(_ text: String) -> String {
+        InvoiceFacts.bridgeStates.reduce(text) { $0.replacingOccurrences(of: $1.key, with: $1.value) }
+    }
+
     private static let moneyWords = ["amount", "value", "cost", "disbursed", "budget", "original", "revised",
                                      "cancelled", "undisbursed"]
 }
@@ -92,7 +97,8 @@ extension SourceWords {
             return SourceCardWords(title: "Paid to date",
                                    lines: ["\(total), " + (parts.dropFirst().first?.dropLast() ?? "")], place: place)
         }
-        let all = fields(source.text)
+        // The demo data's own "Fictional: ..." note is not an answer (found on the iPhone).
+        let all = fields(source.text).filter { !$0.value.hasPrefix("Fictional:") }
         let components = path(citation)
         var title = section(citation).capitalized
         var shown = all

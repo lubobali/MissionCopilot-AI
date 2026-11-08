@@ -82,4 +82,15 @@ struct SourceWordsTests {
         #expect(SourceWords.value("KRRP-P1", key: "id") == "KRRP-P1")
         #expect(SourceWords.value("12000000", key: "budget") == "USD 12,000,000")
     }
+
+    /// Found on the iPhone: "Section 3 bridge: not_started" and the demo's fictional-data note in an answer.
+    @Test func codesBecomeWordsAndTheDemoNoteIsLeftOut() throws {
+        let bridge = Fact(id: "f", name: "bridgeStatus", value: "not_started", unit: nil, rule: MissionStore.scanRule,
+                          classification: .officialUseOnly, sources: [FactSource(seq: 1, region: nil)])
+        let project = SourceWords.card(try Self.source("pack:sections/project.json#"))
+
+        #expect(SourceWords.card(MissionSources.fact(bridge)).lines == ["Section 3 bridge: Not started"])
+        #expect(!project.lines.contains { $0.contains("Fictional") })
+        #expect(project.lines.contains("Budget: USD 12,000,000"))
+    }
 }
