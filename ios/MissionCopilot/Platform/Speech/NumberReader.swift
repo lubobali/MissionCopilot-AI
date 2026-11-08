@@ -17,7 +17,10 @@ struct NumberReader {
         var tokens: [Token] = []
         var start: Int?
         var current = ""
-        for (offset, character) in transcript.enumerated() + [(transcript.count, Character(" "))] {
+        // Every character, then one more space so the last word ends (plain for CI's older compiler).
+        let characters: [Character] = Array(transcript) + [" "]
+        for offset in characters.indices {
+            let character = characters[offset]
             if character.isWhitespace {
                 if let begin = start {
                     let trimmed = current.trimmingCharacters(in: CharacterSet(charactersIn: ",.;:!?\"“”()"))

@@ -129,8 +129,8 @@ private struct Words {
     private var wordSpans: [WordSpan] {
         var spans: [WordSpan] = []
         var from = 0
-        let space: Character = " "
-        for (index, character) in characters.enumerated() + [(characters.count, space)] where character == space {
+        // One pass with a space at the end, written plainly for CI's older compiler.
+        for index in 0...characters.count where index == characters.count || characters[index] == " " {
             if index > from {
                 spans.append(WordSpan(word: Self.canonical(String(characters[from..<index])), from: from, end: index))
             }
