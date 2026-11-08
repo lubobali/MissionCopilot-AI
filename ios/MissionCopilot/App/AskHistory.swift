@@ -14,9 +14,18 @@ struct AskHistoryScreen: View {
                     ContentUnavailableView("No questions yet", systemImage: "clock",
                                            description: Text("Questions you ask on this mission are kept here."))
                 } else {
+                    // The sheet has its own stack where every page opens by a closure, so the two kinds never mix
+                    // (scripts/test_navigation.py: value destinations live only at the app's root).
                     List(model.history) { record in
-                        NavigationLink(value: record.id) { HistoryRow(record: record) }
-                            .listRowBackground(Color(.surface))
+                        NavigationLink {
+                            KeptAnswerScreen(record: record, canAsk: !model.busy) {
+                                dismiss()
+                                onAskAgain(record)
+                            }
+                        } label: {
+                            HistoryRow(record: record)
+                        }
+                        .listRowBackground(Color(.surface))
                     }
                     .scrollContentBackground(.hidden)
                 }
@@ -24,14 +33,6 @@ struct AskHistoryScreen: View {
             .fieldScreen()
             .navigationTitle("Asked on this mission")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: String.self) { id in
-                if let record = model.history.first(where: { $0.id == id }) {
-                    KeptAnswerScreen(record: record, canAsk: !model.busy) {
-                        dismiss()
-                        onAskAgain(record)
-                    }
-                }
-            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } }
             }
