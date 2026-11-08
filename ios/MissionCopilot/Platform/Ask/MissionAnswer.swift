@@ -29,7 +29,7 @@ struct LeftOutSentence: Codable, Sendable, Equatable {
 /// is no answer when there is none.
 struct AskResult: Sendable, Equatable {
     enum Why: Codable, Sendable, Equatable {
-        case nothingFound, dataDoesNotSay, noneBacked, stopped, notUsable
+        case nothingFound, dataDoesNotSay, noneBacked, instructionsOnly, stopped, notUsable
         case tooLong(characters: Int)
         case unavailable(ModelUnavailable)
 
@@ -39,6 +39,9 @@ struct AskResult: Sendable, Equatable {
             case .dataDoesNotSay: "The mission's data does not answer this question. This is what was found."
             case .noneBacked:
                 "The assistant's answer is not backed by the mission's data, so it is not shown. "
+                    + "This is what was found."
+            case .instructionsOnly:
+                "The only sources found give the assistant instructions, so it does not answer. "
                     + "This is what was found."
             case .stopped: "The assistant did not answer within 20 s, so it stopped. This is what was found."
             case .notUsable: "The assistant answered in a shape the app cannot use. This is what was found."
@@ -65,18 +68,23 @@ struct AskResult: Sendable, Equatable {
 /// no model call.
 struct MissionAnswerer: Sendable {
     static let maxSentences = 5
+    /// The sources' text the model reads: about 1,000 tokens, so prefill and a 5-sentence answer fit the 20 s
+    /// limit on the iPhone 13 Pro Max (LFM2.5 1.2B, about 43 tokens a second, spike #12).
+    static let sourceBudget = 4_000
     static let maxSourcesPerSentence = 3
 
     let search: MissionSearch
     let model: FieldModel
 
     func answer(_ question: String, earlier: [String]) async -> AskResult {
-        let hits = search.search(question, earlier: earlier)
-        let found = hits.map(\.source)
+        let hits = search.search(question, earlier: earlier, budget: Self.sourceBudget)
         guard !hits.isEmpty else { return AskResult(question: question, found: [], why: .nothingFound) }
-        let result = AskResult(question: question, found: found)
-        switch await model.run(Self.task(question, earlier: earlier, hits: hits)) {
-        case .answered(let draft): return Self.checked(draft, result: result)
+        let result = AskResult(question: question, found: hits.map(\.source))
+        // A source that speaks to the assistant is shown to the officer but never given to the model (6.7.6).
+        let given = hits.filter { !AnswerCheck.givesInstructions($0.source) }
+        guard !given.isEmpty else { return result.because(.instructionsOnly) }
+        switch await model.run(Self.task(question, earlier: earlier, hits: given)) {
+        case .answered(let draft): return Self.checked(draft, result: result, given: given.map(\.source))
         case .stopped: return result.because(.stopped)
         case .refused(.inputTooLong(let characters)): return result.because(.tooLong(characters: characters))
         case .refused(.unavailable(let why)): return result.because(.unavailable(why))
@@ -84,15 +92,27 @@ struct MissionAnswerer: Sendable {
         }
     }
 
-    /// The model's sentences with their labels turned back into source ids.
-    static func checked(_ draft: DraftAnswer, result: AskResult) -> AskResult {
+    /// The model's sentences with their labels turned back into source ids, each checked by code (6.7.5): a
+    /// sentence that fails is left out with its reason; with none left, the data does not back an answer.
+    static func checked(_ draft: DraftAnswer, result: AskResult, given: [MissionSource]) -> AskResult {
         guard draft.answered, !draft.sentences.isEmpty else { return result.because(.dataDoesNotSay) }
         var result = result
         for sentence in draft.sentences.prefix(maxSentences) {
-            let ids = sentence.sources.compactMap { label(of: $0, in: result.found) }
-            result.sentences.append(AnswerSentence(text: sentence.text, sources: ids))
+            let ids = sentence.sources.compactMap { label(of: $0, in: given) }
+            let text = withoutLabels(sentence.text)
+            switch AnswerCheck.check(text, cites: ids, found: given) {
+            case .backed(let backing): result.sentences.append(AnswerSentence(text: text, sources: backing))
+            case .leftOut(let reason):
+                result.leftOut.append(LeftOutSentence(text: text, sources: ids, reason: reason))
+            }
         }
-        return result
+        return result.sentences.isEmpty ? result.because(.noneBacked) : result
+    }
+
+    /// "Paid on 12 October (S1) [S1]." as "Paid on 12 October.": the labels go in `sources`, not in the words.
+    static func withoutLabels(_ text: String) -> String {
+        text.replacingOccurrences(of: #"\s*[(\[]\s*S\d+(\s*,\s*S\d+)*\s*[)\]]"#, with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces)
     }
 
     /// "S2" as the id of the second source found; nil for a label that was not given.

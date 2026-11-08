@@ -72,6 +72,22 @@ struct MissionAnswerTests {
         #expect(await engine.asked.count == 1)
     }
 
+    @Test func theModelReadsAtMostTheSourceBudget() async throws {
+        let engine = FakeEngine(answer: Self.answer([], answered: false))
+
+        let long = (1...5).map { index in
+            MissionSource(id: "doc:long#\(index)", kind: .document, title: "Report · paragraph \(index)",
+                          text: "The bridge " + String(repeating: "works continue ", count: 100),
+                          origin: .document(path: "long", paragraph: index))
+        }
+
+        let result = await MissionAnswerer(search: MissionSearch(sources: long), model: FieldModel(engine: engine))
+            .answer("bridge", earlier: [])
+
+        #expect(result.found.count == 2)  // 1,511 characters each: a third would pass 4,000
+        #expect(result.found.reduce(0) { $0 + $1.text.count } <= MissionAnswerer.sourceBudget)
+    }
+
     @Test func nothingFoundAsksNoModel() async {
         let engine = FakeEngine(answer: Self.answer([("Someone won.", ["S1"])]))
 
