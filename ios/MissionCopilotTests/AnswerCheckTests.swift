@@ -161,4 +161,38 @@ struct AnswerCheckTests {
         #expect(!result.found.isEmpty)
         #expect(AskResult.Why.noneBacked.words.contains("not backed"))
     }
+
+    static let flags = [WordedLine(key: "MC-02", title: "The same invoice paid twice",
+                                   text: "No invoice reference or amount appears twice.")]
+
+    /// Found on the iPhone: "The invoice was paid twice." passed, citing the rule named "The same invoice paid
+    /// twice" whose finding is "No invoice reference or amount appears twice". A flag's name is not a finding.
+    @Test func aRedFlagsNameIsNotAFinding() throws {
+        let sources = MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files, flags: Self.flags))
+        let flag = try #require(sources.first { $0.kind == .redFlag })
+
+        #expect(Self.reason("The invoice was paid twice.", [flag.id], found: sources) != nil)
+        #expect(Self.reason("No invoice reference or amount appears twice.", [flag.id], found: sources) == nil)
+    }
+
+    /// The flag's name does not pull a question away from the payments it is about.
+    @Test func aRedFlagIsFoundByItsFindingNotItsName() {
+        let search = MissionSearch(sources: MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files,
+                                                                              flags: Self.flags)))
+
+        #expect(search.search("How much has been paid ?").first?.source.id == Self.paid)
+        #expect(search.search("When the invoice 14 was paid ?").first?.source.id == Self.invoice14)
+        #expect(search.search("Was an invoice paid twice?").contains { $0.source.kind == .redFlag })
+    }
+
+    /// Found on the iPhone: the model wrote the question back, and it passed. A question is not an answer.
+    @Test func theQuestionWrittenBackIsNotAnAnswer() async {
+        #expect(Self.reason("How much has been paid?", [Self.invoice14]) == AnswerCheck.notAnAnswer)
+        let engine = FakeEngine(answer: MissionAnswerTests.answer([("How much has been paid", ["S1"])]))
+
+        let result = await MissionAnswerTests.ask("How much has been paid?", engine: engine)
+
+        #expect(result.sentences.isEmpty)
+        #expect(result.why == .dataDoesNotSay)
+    }
 }

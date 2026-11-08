@@ -101,7 +101,8 @@ struct MissionAnswerer: Sendable {
         for sentence in draft.sentences.prefix(maxSentences) {
             let ids = sentence.sources.compactMap { label(of: $0, in: given) }
             let text = AnswerText.respaced(withoutLabels(sentence.text))
-            switch AnswerCheck.check(text, cites: ids, found: given) {
+            let echo = MissionSearch.terms(text) == MissionSearch.terms(result.question)
+            switch echo ? .leftOut(AnswerCheck.notAnAnswer) : AnswerCheck.check(text, cites: ids, found: given) {
             case .backed(let backing): result.sentences.append(AnswerSentence(text: text, sources: backing))
             case .leftOut(let reason):
                 result.leftOut.append(LeftOutSentence(text: text, sources: ids, reason: reason))

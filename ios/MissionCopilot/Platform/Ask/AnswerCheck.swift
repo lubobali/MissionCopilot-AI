@@ -16,16 +16,19 @@ enum AnswerCheck {
     static func check(_ text: String, cites ids: [String], found: [MissionSource]) -> Verdict {
         var cited = found.filter { ids.contains($0.id) }
         guard !cited.isEmpty else { return .leftOut("It cites no source that was found.") }
-        if AnswerText.saysNotAnswered(text) { return .leftOut(notAnAnswer) }
+        // Found on the iPhone: the model wrote the question back ("How much has been paid?").
+        if AnswerText.saysNotAnswered(text) || text.trimmingCharacters(in: .whitespaces).hasSuffix("?") {
+            return .leftOut(notAnAnswer)
+        }
         if cited.contains(where: givesInstructions) {
             return .leftOut("It cites a source that gives the assistant instructions.")
         }
         let sentence = AnswerEvidence([text])
         let holding = cited.filter { source in
-            !AnswerEvidence([source.title + "\n" + source.text]).numbers.isDisjoint(with: sentence.numbers)
+            !AnswerEvidence([evidenceText(source)]).numbers.isDisjoint(with: sentence.numbers)
         }
         if !holding.isEmpty { cited = holding }
-        let evidence = AnswerEvidence(cited.map { $0.title + "\n" + $0.text }, statusTexts: cited.map(statusText))
+        let evidence = AnswerEvidence(cited.map(evidenceText), statusTexts: cited.map(statusText))
         if let number = sentence.numbers.sorted().first(where: { !evidence.numbers.contains($0) }) {
             return .leftOut("The number \(number) is not in the sources it cites.")
         }
@@ -46,13 +49,20 @@ enum AnswerCheck {
     /// What a source says about status: a pack record's labels ("title: Section 3 bridge complete", "indicator:
     /// Bridges completed") name a target, they do not say it was reached, so only its other fields count.
     static func statusText(_ source: MissionSource) -> String {
-        guard source.kind == .pack else { return source.title + "\n" + source.text }
+        guard source.kind == .pack else { return evidenceText(source) }
         return ([source.title] + source.text.split(separator: "\n").map(String.init).filter { line in
             !labelFields.contains { line.hasPrefix($0 + ":") }
         }).joined(separator: "\n")
     }
 
     static let labelFields = ["title", "indicator", "name", "description"]
+
+    /// What a source says, for the search and the checks: a red flag's title is its rule's name ("The same
+    /// invoice paid twice"), its sentence is the finding ("No invoice reference or amount appears twice"), so
+    /// only the sentence counts (found on the iPhone: "The invoice was paid twice" passed on the rule's name).
+    static func evidenceText(_ source: MissionSource) -> String {
+        source.kind == .redFlag ? source.text : source.title + "\n" + source.text
+    }
 
     static let notAnAnswer = "It says the sources do not answer, so it is not an answer."
 

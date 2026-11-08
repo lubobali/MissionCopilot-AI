@@ -22,7 +22,7 @@ struct MissionSearch: Sendable {
 
     init(sources: [MissionSource]) {
         entries = sources.map { source in
-            let terms = Self.terms(source.title + "\n" + source.text)
+            let terms = Self.terms(AnswerCheck.evidenceText(source))
             return Entry(source: source, counts: terms.reduce(into: [:]) { $0[$1, default: 0] += 1 },
                          length: terms.count)
         }
@@ -127,6 +127,7 @@ extension MissionSearch {
         "pont": ["bridg"], "commenc": ["start"], "factur": ["invoic"], "montant": ["valu", "amount"],
         "contrat": ["contract"], "pourquoi": ["reason", "delay"], "entrepris": ["contractor", "supplier"],
         "retard": ["delay", "late"], "rout": ["road"], "kilomètr": ["km"], "risqu": ["risk"],
-        "plaint": ["grievanc"], "achev": ["complet"], "délai": ["deadlin", "delay"], "promess": ["committ"]
+        "plaint": ["grievanc"], "achev": ["complet"],
+        "factura": ["invoic"], "délai": ["deadlin", "delay"], "promess": ["committ"]
     ]
 }
