@@ -91,9 +91,15 @@ struct NumberCard: View {
             } else if line.decision != nil {
                 Button("Change", systemImage: "arrow.uturn.backward", action: onUndo).buttonStyle(.fieldSecondary)
             } else {
-                HStack {
-                    Button("Confirm", systemImage: "checkmark", action: onConfirm)
-                    Button("Correct", systemImage: "pencil") { typed = "" }
+                // Found on the iPhone: a number the pack disagrees with was confirmed past its warning. The
+                // pack's value comes first, and keeping the heard one is said plainly.
+                if let suggestion = line.suggestion, let words = line.suggestionWords {
+                    Button(words, systemImage: "checkmark.seal") { _ = onCorrect(suggestion) }
+                        .buttonStyle(.fieldPrimary)
+                }
+                ViewThatFits(in: .horizontal) {
+                    HStack { numberButtons }
+                    VStack(alignment: .leading) { numberButtons }
                 }
                 .buttonStyle(.fieldSecondary)
                 .accessibilityHint(line.heard)
@@ -102,6 +108,15 @@ struct NumberCard: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 22))
+    }
+}
+
+extension NumberCard {
+    @ViewBuilder var numberButtons: some View {
+        Button(line.problems.isEmpty ? "Confirm" : "Keep as heard", systemImage: "checkmark", action: onConfirm)
+            .lineLimit(1)
+        Button("Correct", systemImage: "pencil") { typed = "" }
+            .lineLimit(1)
     }
 }
 

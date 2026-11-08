@@ -18,6 +18,8 @@ struct HeardNumber: Sendable, Equatable {
     /// Said right after "paid".
     var paid = false
     var problems: [String] = []
+    /// The pack's value when the pack disagrees with what was heard, offered to the officer in one tap.
+    var expected: String?
 }
 
 /// Finds and checks the numbers in a transcript. Pure code, no model.
@@ -37,6 +39,7 @@ enum SpokenNumbers {
             if let invoice = number.invoice, number.kind == .amount {
                 if let payment = contract.payments.first(where: { $0.reference == "Invoice \(invoice)" }) {
                     if Double(payment.amount) != value {
+                        checked.expected = String(payment.amount)
                         checked.problems.append("The pack's invoice \(invoice) is \(money(payment.amount)), "
                                                 + "not \(money(Int(value))).")
                     }
@@ -46,6 +49,7 @@ enum SpokenNumbers {
             }
             let paid = contract.payments.map(\.amount).reduce(0, +)
             if number.paid, number.kind == .amount, Double(paid) != value {
+                checked.expected = String(paid)
                 checked.problems.append("The bank's payments add up to \(money(paid)), not \(money(Int(value))).")
             }
             let road = contract.physicalProgress.kmTotal

@@ -30,6 +30,12 @@ final class DebriefReviewModel {
         let context: String
         let problems: [String]
         let decision: String?
+        /// The pack's value, when the pack disagrees with what was heard.
+        var suggestion: String?
+
+        var suggestionWords: String? {
+            suggestion.flatMap(Int.init).map { "Use \(InvoiceChecks.money($0)) (from the pack)" }
+        }
     }
 
     let debrief: Debrief
@@ -144,14 +150,19 @@ final class DebriefReviewModel {
 
     var numbers: [NumberLine] {
         review.numbers.enumerated().map { index, number in
-            let decision: String? = switch decisions.numbers[index] {
-            case .confirm: "Confirmed"
-            case .correct(let value): "Corrected to \(value)"
-            case nil: nil
-            }
-            return NumberLine(id: index, heard: number.words + (number.unit.map { " \($0)" } ?? ""),
-                              context: number.context, problems: number.problems, decision: decision)
+            Self.line(number, index: index, decision: decisions.numbers[index])
         }
+    }
+
+    static func line(_ number: HeardNumber, index: Int, decision: NumberDecision?) -> NumberLine {
+        let words: String? = switch decision {
+        case .confirm: number.problems.isEmpty ? "Confirmed" : "Kept as heard"
+        case .correct(let value): "Corrected to \(value)"
+        case nil: nil
+        }
+        return NumberLine(id: index, heard: number.words + (number.unit.map { " \($0)" } ?? ""),
+                          context: number.context, problems: number.problems, decision: words,
+                          suggestion: number.expected)
     }
 
     var summary: String {

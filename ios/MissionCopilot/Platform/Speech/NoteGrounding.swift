@@ -79,19 +79,43 @@ private struct Words {
         (self.characters, self.origin, self.text) = (characters, origin, String(characters))
     }
 
-    /// The original position of `words` (already plain), starting and ending on whole words.
+    /// The original position of `words` (already plain), whole words only; a number word and its digits are
+    /// the same word ("two" and "2": the engine writes digits, the model may write words).
     func find(_ words: String) -> TextSpan? {
-        let needle = Array(words)
-        guard !needle.isEmpty, needle.count <= characters.count else { return nil }
-        for start in 0...(characters.count - needle.count)
-        where Array(characters[start..<start + needle.count]) == needle {
-            let end = start + needle.count
-            guard start == 0 || characters[start - 1] == " ", end == characters.count || characters[end] == " " else {
-                continue
-            }
-            return TextSpan(offset: origin[start], length: origin[end - 1] - origin[start] + 1)
+        let needle = words.split(separator: " ").map { Self.canonical(String($0)) }
+        let spans = wordSpans
+        guard !needle.isEmpty, needle.count <= spans.count else { return nil }
+        for start in 0...(spans.count - needle.count)
+        where spans[start..<start + needle.count].map(\.word) == needle {
+            let first = origin[spans[start].from], last = origin[spans[start + needle.count - 1].end - 1]
+            return TextSpan(offset: first, length: last - first + 1)
         }
         return nil
+    }
+
+    /// Each plain word with where its characters are.
+    private struct WordSpan {
+        let word: String
+        let from: Int
+        let end: Int
+    }
+
+    private var wordSpans: [WordSpan] {
+        var spans: [WordSpan] = []
+        var from = 0
+        let space: Character = " "
+        for (index, character) in characters.enumerated() + [(characters.count, space)] where character == space {
+            if index > from {
+                spans.append(WordSpan(word: Self.canonical(String(characters[from..<index])), from: from, end: index))
+            }
+            from = index + 1
+        }
+        return spans
+    }
+
+    /// A small number word as its digits; any other word as it is.
+    static func canonical(_ word: String) -> String {
+        numberWords[word].map(String.init) ?? word
     }
 
     private var tokens: [String] { text.split(separator: " ").map(String.init) }

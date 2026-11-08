@@ -72,6 +72,9 @@ struct SpokenNumbersTests {
 
         #expect(right.flatMap(\.problems) == [])
         #expect(wrong.first { $0.value == "48000" }?.problems == ["The pack's invoice 14 is 480,000, not 48,000."])
+        // Found on the iPhone: the engine wrote "$180,000" for "480,000"; the pack's value is offered.
+        #expect(wrong.first { $0.value == "48000" }?.expected == "480000")
+        #expect(right.first { $0.value == "480000" }?.expected == nil)
         #expect(unknown.first { $0.value == "5000" }?.problems == ["Invoice 22 is not in the pack."])
     }
 
@@ -82,6 +85,7 @@ struct SpokenNumbersTests {
         let right = SpokenNumbers.check(SpokenNumbers.find("paid 8.5 million so far"), contracts: contracts)
 
         #expect(wrong.first?.problems == ["The bank's payments add up to 8,500,000, not 85,000,000."])
+        #expect(wrong.first?.expected == "8500000")
         #expect(right.first?.problems == [])
     }
 

@@ -67,6 +67,21 @@ struct DebriefReviewModelTests {
         #expect(try store.confirmedDebriefs(in: mission).count == 1)
     }
 
+    /// Found on the iPhone: a number the pack disagrees with was confirmed past its warning. The pack's value
+    /// is offered in one tap, and keeping the heard one is said plainly.
+    @Test func aNumberThePackDisagreesWithOffersThePacksValue() async throws {
+        let (model, store) = try await model()
+        await model.draft()
+        let misheard = SpokenNumbers.check(SpokenNumbers.find("Invoice 14 for $180,000."),
+                                           contracts: try InvoiceBankViewTests.kandor().contracts)
+        let line = DebriefReviewModel.line(misheard[1], index: 0, decision: nil)
+
+        #expect(line.suggestion == "480000")
+        #expect(line.suggestionWords == "Use 480,000 (from the pack)")
+        #expect(model.numbers.allSatisfy { $0.suggestion == nil })
+        _ = store
+    }
+
     @Test func aNoteNotSaidCannotBeConfirmed() async throws {
         let made = #"{"notes":[{"kind":"decision","text":"Approved.","who":"","byWhen":"","#
             + #""quote":"the minister approved it"}]}"#

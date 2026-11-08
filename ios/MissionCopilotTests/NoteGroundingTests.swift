@@ -80,6 +80,18 @@ struct NoteGroundingTests {
         #expect(transcript[start...].hasPrefix("extend the contractor deadline to March 15th"))
     }
 
+    /// Found on the iPhone: the officer said "two weeks", the engine wrote "2 weeks", the model quoted "two".
+    @Test func numberWordsAndDigitsMatchInAQuote() throws {
+        let transcript = "only if the contractor shows a new work plan into 2 weeks. Section 3 bridge."
+        let checked = NoteGrounding.check([Self.note("New work plan into two weeks"),
+                                           Self.note("section three bridge")], transcript: transcript)
+
+        #expect(checked.allSatisfy { $0.found != nil }, "\(checked.map(\.problems))")
+        let found = try #require(checked[0].found)
+        let start = transcript.index(transcript.startIndex, offsetBy: found.offset)
+        #expect(transcript[start...].hasPrefix("new work plan into 2 weeks"))
+    }
+
     @Test func aNumberOrMonthThatWasNeverSaidIsAProblem() {
         // The bakeoff's made-up dates: "14 Feb" and "15 Feb" were never in the debrief.
         let made = Self.note("extend the contractor deadline to March 15", text: "Deadline moved to 15 Feb 2027.",
