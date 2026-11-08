@@ -16,6 +16,7 @@ enum AnswerCheck {
     static func check(_ text: String, cites ids: [String], found: [MissionSource]) -> Verdict {
         var cited = found.filter { ids.contains($0.id) }
         guard !cited.isEmpty else { return .leftOut("It cites no source that was found.") }
+        if AnswerText.saysNotAnswered(text) { return .leftOut(notAnAnswer) }
         if cited.contains(where: givesInstructions) {
             return .leftOut("It cites a source that gives the assistant instructions.")
         }
@@ -52,6 +53,8 @@ enum AnswerCheck {
     }
 
     static let labelFields = ["title", "indicator", "name", "description"]
+
+    static let notAnAnswer = "It says the sources do not answer, so it is not an answer."
 
     /// Why the sentence cannot be shown, or nil when its sources back it.
     static func reason(_ text: String, cites ids: [String], found: [MissionSource]) -> String? {

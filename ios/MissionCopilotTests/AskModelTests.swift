@@ -51,7 +51,8 @@ struct AskModelTests {
     }
 
     /// The model sees the officer's earlier questions in this chat, never its own earlier answers.
-    @Test func aFollowUpGivesTheModelTheEarlierQuestionsOnly() async throws {
+    /// A follow-up searches with the earlier questions; the model never sees the earlier answers.
+    @Test func aFollowUpFindsWhatTheEarlierQuestionAskedAbout() async throws {
         let engine = FakeEngine(answer: Self.paidOn)
         let model = Self.model(engine)
 
@@ -59,7 +60,7 @@ struct AskModelTests {
         await model.send(example: "And when was it paid?")
 
         let prompt = try #require(await engine.asked.last?.prompt)
-        #expect(prompt.contains("Tell me about invoice 14"))
+        #expect(prompt.contains("reference: Invoice 14"))
         #expect(!prompt.contains("Invoice 14 was paid on 12 October 2026."))
     }
 

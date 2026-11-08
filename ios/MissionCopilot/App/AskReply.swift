@@ -57,9 +57,19 @@ struct AnswerView: View {
                         .buttonStyle(.plain)
                 }
             } else {
-                Label(record.why?.words ?? AskResult.Why.dataDoesNotSay.words, systemImage: "questionmark.circle")
-                    .font(.body)
-                    .foregroundStyle(Color(.text))
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(record.why?.words ?? AskResult.Why.dataDoesNotSay.words, systemImage: "questionmark.circle")
+                        .font(.body)
+                        .foregroundStyle(Color(.text))
+                    // Why the checks held the answer back (found on the iPhone: nobody could tell).
+                    if record.why == .noneBacked {
+                        ForEach(reasons, id: \.self) { reason in
+                            Label(reason, systemImage: "xmark.seal")
+                                .font(.caption)
+                                .foregroundStyle(Color(.secondaryText))
+                        }
+                    }
+                }
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 20))
@@ -88,6 +98,11 @@ struct AnswerView: View {
 
     private var numbers: [String: Int] {
         Dictionary(uniqueKeysWithValues: cited.enumerated().map { ($1.id, $0 + 1) })
+    }
+
+    /// The checks' reasons, each once, in order.
+    private var reasons: [String] {
+        record.leftOut.map(\.reason).reduce(into: []) { all, reason in if !all.contains(reason) { all.append(reason) } }
     }
 
     private var leftOutWords: String {
