@@ -28,6 +28,8 @@ struct CodeAnswers: Sendable {
             lines = write(sources.filter { $0.id.hasSuffix("#paid") })
         } else if has(asked, Self.openWords) {
             lines = write(open)
+        } else if has(asked, Self.doneWords) {
+            lines = write(done)
         } else if has(asked, Self.statusWords) {
             lines = status(question, language: language)
         } else if has(asked, Self.promiseWords) {
@@ -66,10 +68,19 @@ struct CodeAnswers: Sendable {
             + milestones.filter { !["met", "complete"].contains(field("status", $0).lowercased()) }
     }
 
+    /// Milestones met, completed actions, and what the walk saw done.
+    private var done: [MissionSource] {
+        milestones.filter { ["met", "complete"].contains(field("status", $0).lowercased()) }
+            + actions.filter { field("status", $0).lowercased().contains("completed") }
+            + sources.filter { $0.kind == .walkAnswer && $0.text.lowercased().contains("seen: done") }
+    }
+
     /// "Was the Section 3 bridge started?": the bank's actions and milestones and the walk's answers about the
     /// same thing; when the walk says done and the bank says not, a first line says they disagree.
     private func status(_ question: String, language: AnswerLanguage) -> [CodeLine] {
+        // A lone letter ("s" of "what's") is not a topic: it matched "contractor's" (found on the iPhone).
         let topic = Set(MissionSearch.expanded(question)).subtracting(Self.statusStems)
+            .filter { $0.count > 1 || $0.allSatisfy(\.isNumber) }
         guard !topic.isEmpty else { return [] }
         let about = { (source: MissionSource) -> Bool in
             let shared = topic.intersection(MissionSearch.expanded(source.title + " " + source.text)).count
@@ -123,6 +134,8 @@ struct CodeAnswers: Sendable {
     private static let openWords = "not (yet )?done|still open|what is open|open items|pending|outstanding|"
         + "what('s| is) next|next steps?|left to do|remaining|overdue|pas (encore )?fait|reste à faire|"
         + "prochaine? étape|en retard"
+    private static let doneWords = "what('s| is| has been| was) (already )?(done|completed?|finished)|"
+        + "qu'est-ce qui est (fait|terminé)|ce qui est fait"
     private static let statusWords = "start|begun|began|finish|complet|done|commenc|démarr|achev|termin|fini"
     private static let promiseWords = "promis|commit|agreed|engag|convenu"
     private static let contractWords = "contract value|value of the contract|contract amount|montant du contrat|"

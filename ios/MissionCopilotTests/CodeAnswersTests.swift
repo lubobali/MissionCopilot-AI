@@ -144,5 +144,29 @@ struct CodeAnswersTests {
 
         #expect(!lines.contains { $0.sources == [done.id] })
         #expect(answers.direct("What did the contractor promise?")?.contains { $0.sources == [done.id] } == true)
+        #expect(answers.direct("What is done?")?.contains { $0.sources == [done.id] } == true)
+    }
+
+    /// Found on the iPhone: "What's done?" listed the site board's number ("contractor's" matched the "s" of
+    /// "what's"). What is done: milestones met, completed actions, and what the walk saw done.
+    @Test func whatIsDoneListsWhatIsDone() throws {
+        let walk = Self.walk + [WordedLine(key: "board_number", title: "Number on the contractor's site board",
+                                           text: "KN-0042")]
+        let answers = CodeAnswers(sources: MissionSources.build(SourceInputs(packFiles: PackSectionsTests.files,
+                                                                             walk: walk)))
+
+        for question in ["What's done?", "What is done ?", "Qu'est-ce qui est fait ?"] {
+            let lines = try #require(answers.direct(question), "\(question)")
+            let cited = lines.flatMap(\.sources)
+
+            #expect(cited.contains("pack:sections/milestones.json#/milestones/0"), "\(question)")
+            #expect(cited.contains("walk:action-53f6e638bcf6"), "\(question)")
+            #expect(!cited.contains("walk:board_number"), "\(question)")
+            #expect(!cited.contains(Self.action), "\(question)")
+        }
+        // A lone letter is not a topic: "what's" does not match "contractor's".
+        let started = try #require(answers.direct("What's started on the bridge?")).flatMap(\.sources)
+        #expect(!started.contains("walk:board_number"))
+        #expect(started.contains(Self.action))
     }
 }
