@@ -50,5 +50,20 @@ Option 3.
 - **Added rule:** a number from speech is "heard", not evidence. The app reads it back; it becomes evidence
   only after the speaker confirms it, and code cross-checks it against the documents and the other facts.
 
+## Evidence (#145: Ask the mission, on Lubo's iPhone, offline, Nov 8 2026)
+- The model writing answers from found sources, even checked sentence by sentence, failed on the basics in
+  four iPhone tests: an "answered" switch it set to false 99% of the time, the question written back, "not
+  specified" while the total was on screen, a red flag's name taken for its finding. The checks held every
+  wrong sentence back, so the officer saw no wrong answer, but saw no answer either.
+- Checked on the Mac with the same model and the app's prompts: as a **chooser** (pick the line that
+  answers, or none, from lines code wrote; a grammar of the labels) it chose right on every test question,
+  and chose none for an off-topic one. Small models choose reliably and write badly
+  ([schemas adapted to small models](https://arxiv.org/pdf/2510.07248)); constrained decoding fixes the
+  format, not the meaning ([semantic gap](https://arxiv.org/pdf/2609.23742)).
+- **Added rule:** answers are written by code. Code answers the questions it knows from the pack's records
+  (a payment by invoice number, the total, what is not done, whether something started, with both sides
+  when the walk and the bank disagree); for any other question code writes one line from each record
+  found and the model only chooses among them. The model never writes an answer.
+
 ## Revisit when
 - Never for arithmetic. Revisit the extraction split if document types multiply beyond what rules handle.
