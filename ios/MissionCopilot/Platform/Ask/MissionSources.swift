@@ -116,12 +116,30 @@ private struct PackSourceReader {
                 fields[key].flatMap(plain).map { "\(words(key)): \($0)" }
             }
             let here = lines.isEmpty ? [] : [source(path: path, text: lines.joined(separator: "\n"))]
-            return here + fields.keys.sorted().flatMap { key in walk(fields[key] ?? .null, path: path + [key]) }
+            return here + paidToDate(fields["payments"], path: path + ["payments"])
+                + fields.keys.sorted().flatMap { key in walk(fields[key] ?? .null, path: path + [key]) }
         case .array(let items):
             return items.enumerated().flatMap { index, item in walk(item, path: path + [String(index)]) }
         default:
             return []
         }
+    }
+
+    /// A contract's payments added up by code (ADR 0005: the model never does arithmetic), citing the list.
+    private func paidToDate(_ payments: JSONValue?, path: [String]) -> [MissionSource] {
+        guard case .array(let items)? = payments, !items.isEmpty else { return [] }
+        let amounts = items.compactMap { item -> Double? in
+            if case .object(let fields) = item, case .number(let amount)? = fields["amount"] { return amount }
+            return nil
+        }
+        guard amounts.count == items.count else { return [] }
+        let base = source(path: path, text: "")
+        let total = Self.number(amounts.reduce(0, +))
+        return [MissionSource(id: base.id + "#paid", kind: .pack,
+                              title: base.title.replacingOccurrences(of: " › payments", with: " › paid to date"),
+                              text: "paid to date: \(total) (the sum of the pack's \(items.count) payments, "
+                                  + "added by the app)",
+                              origin: base.origin)]
     }
 
     /// A field's value when it is plain (a word, a number, yes or no, or a list of those).
