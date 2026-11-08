@@ -38,7 +38,8 @@ struct MissionSourcesTests {
         let paid = try #require(Self.sources().first { $0.id == id })
 
         #expect(paid.title == "Contracts › contracts 1 › paid to date")
-        #expect(paid.text == "paid to date: 8500000 (the sum of the pack's 6 payments, added by the app)")
+        #expect(paid.text == "8500000 has been paid to date on this contract: the sum of the pack's 6 payments, "
+                + "added by the app.")
         guard case .pack(let citation) = paid.origin else {
             Issue.record("not a pack source")
             return

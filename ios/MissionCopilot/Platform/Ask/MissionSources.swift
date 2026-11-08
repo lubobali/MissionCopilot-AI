@@ -1,7 +1,7 @@
 import Foundation
 
 /// Where a source came from, so an answer can show exactly what it cites (#145).
-enum SourceOrigin: Equatable, Sendable {
+enum SourceOrigin: Codable, Equatable, Sendable {
     case pack(PackCitation)
     case document(path: String, paragraph: Int)
     case fact(id: String, sources: [FactSource])
@@ -10,8 +10,8 @@ enum SourceOrigin: Equatable, Sendable {
 }
 
 /// One piece of the mission's data as a short text: what a question searches and an answer cites.
-struct MissionSource: Equatable, Sendable, Identifiable {
-    enum Kind: String, Sendable, CaseIterable { case pack, document, fact, note, walkAnswer, redFlag }
+struct MissionSource: Codable, Equatable, Sendable, Identifiable {
+    enum Kind: String, Codable, Sendable, CaseIterable { case pack, document, fact, note, walkAnswer, redFlag }
 
     let id: String
     let kind: Kind
@@ -137,8 +137,9 @@ private struct PackSourceReader {
         let total = Self.number(amounts.reduce(0, +))
         return [MissionSource(id: base.id + "#paid", kind: .pack,
                               title: base.title.replacingOccurrences(of: " › payments", with: " › paid to date"),
-                              text: "paid to date: \(total) (the sum of the pack's \(items.count) payments, "
-                                  + "added by the app)",
+                              // A sentence, not a field: the model copies what it reads (found on the iPhone).
+                              text: "\(total) has been paid to date on this contract: the sum of the pack's "
+                                  + "\(items.count) payments, added by the app.",
                               origin: base.origin)]
     }
 

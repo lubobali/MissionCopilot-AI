@@ -78,5 +78,6 @@ struct MissionSearchTests {
         #expect(MissionSearch.terms("two weeks") == ["2", "week"])
         #expect(MissionSearch.terms("Was the bridge started?") == ["bridg", "start"])
         #expect(MissionSearch.terms("Le pont a-t-il commencé ?") == ["pont", "commenc"])
+        #expect(MissionSearch.expanded("factura").contains("invoic"))  // found on the iPhone: typed without the e
     }
 }

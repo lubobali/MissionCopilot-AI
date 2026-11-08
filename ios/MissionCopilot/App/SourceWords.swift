@@ -29,6 +29,11 @@ enum SourceWords {
     }
 
     /// The best sources as cards, in order; two or more rows of one list (payments) become one card.
+    /// Kept sources as cards, grouped the same way (a kept answer has its sources, not their scores).
+    static func cards(_ sources: [MissionSource]) -> [SourceCardWords] {
+        group(sources.map { SearchHit(source: $0, score: 0) })
+    }
+
     static func group(_ hits: [SearchHit]) -> [SourceCardWords] {
         let keys = hits.map { listKey($0.source) }
         var cards: [SourceCardWords] = [], done: Set<String> = []
@@ -92,10 +97,10 @@ extension SourceWords {
     private static func pack(_ source: MissionSource, citation: PackCitation) -> SourceCardWords {
         let place = "Bank record · \(section(citation))"
         if source.id.hasSuffix("#paid") {
-            let parts = source.text.replacingOccurrences(of: "paid to date: ", with: "").components(separatedBy: " (")
-            let total = value(parts.first ?? "", key: "amount")
-            return SourceCardWords(title: "Paid to date",
-                                   lines: ["\(total), " + (parts.dropFirst().first?.dropLast() ?? "")], place: place)
+            let parts = source.text.components(separatedBy: ": ")
+            let total = value(parts.first?.components(separatedBy: " ").first ?? "", key: "amount")
+            let why = parts.dropFirst().joined(separator: ": ").replacingOccurrences(of: ".", with: "")
+            return SourceCardWords(title: "Paid to date", lines: ["\(total), \(why)"], place: place)
         }
         // The demo data's own "Fictional: ..." note is not an answer (found on the iPhone).
         let all = fields(source.text).filter { !$0.value.hasPrefix("Fictional:") }

@@ -1,11 +1,13 @@
 import GRDB
 
 extension StoreSchema {
-    /// Phase 6's field flows, in the order they were added: v13 red flags, v14 and v15 documents, v16 debriefs.
+    /// Phase 6's field flows, in the order they were added: v13 red flags, v14 and v15 documents, v16 and v17
+    /// debriefs, v18 kept questions and answers.
     static func registerFieldFlows(in migrator: inout DatabaseMigrator) {
         registerRedFlags(in: &migrator)
         registerDocuments(in: &migrator)
         registerDebriefs(in: &migrator)
+        registerAskLog(in: &migrator)
     }
 
     static func registerDebriefs(in migrator: inout DatabaseMigrator) {

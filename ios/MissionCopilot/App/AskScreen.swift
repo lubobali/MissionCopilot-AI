@@ -37,12 +37,13 @@ struct AskCard: View {
 
 /// The Ask chat: the conversation scrolls, the glass input bar stays at the bottom (checked on the web: a
 /// composer attached with safeAreaInset, not inside a stack), the newest message comes into view, and the
-/// keyboard hides after sending. New chat starts clean.
+/// keyboard hides after sending. New chat starts clean; History opens every kept question.
 struct AskScreen: View {
     let list: MissionListModel
     let id: String
     @State private var model: AskModel?
     @State private var cannotOpen = false
+    @State private var showsHistory = false
     @FocusState private var typing: Bool
 
     var body: some View {
@@ -54,7 +55,7 @@ struct AskScreen: View {
                         .safeAreaInset(edge: .bottom) {
                             AskComposer(model: model, typing: $typing) {
                                 typing = false
-                                model.ask()
+                                Task { await model.send() }
                             }
                         }
                         .onChange(of: model.messages.count) {
@@ -62,10 +63,14 @@ struct AskScreen: View {
                         }
                 }
                 .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItemGroup(placement: .topBarTrailing) {
+                        Button("History", systemImage: "clock.arrow.circlepath") { showsHistory = true }
                         Button("New chat", systemImage: "square.and.pencil", action: model.newChat)
-                            .disabled(model.messages.isEmpty)
+                            .disabled(model.messages.isEmpty || model.busy)
                     }
+                }
+                .sheet(isPresented: $showsHistory) {
+                    AskHistoryScreen(model: model) { record in Task { await model.askAgain(record) } }
                 }
             } else if cannotOpen {
                 Text("The mission cannot open. Unlock the app and try again.")
@@ -84,7 +89,8 @@ struct AskScreen: View {
                 cannotOpen = true
                 return
             }
-            model = AskModel(sources: MissionSources.load(mission: id, store: store))
+            model = AskModel(sources: MissionSources.load(mission: id, store: store),
+                             keeper: .store(store, mission: id))
         }
     }
 }
@@ -123,11 +129,12 @@ struct AskIntro: View {
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(Color(.text))
             Text("Answers come only from this mission's own data on this iPhone, offline: the bank's records, the "
-                 + "reports, and what you confirmed. \(model.summary).")
+                 + "reports, and what you confirmed. Every sentence is checked against its sources. "
+                 + "\(model.summary).")
                 .font(.subheadline)
                 .foregroundStyle(Color(.secondaryText))
             ForEach(AskModel.examples, id: \.self) { example in
-                Button { model.ask(example: example) } label: {
+                Button { Task { await model.send(example: example) } } label: {
                     Label(example, systemImage: "arrow.up.right")
                         .font(.subheadline)
                         .multilineTextAlignment(.leading)
@@ -159,55 +166,6 @@ struct QuestionBubble: View {
                 .background(Color(.accent), in: .rect(cornerRadius: 20))
         }
         .accessibilityLabel("You asked: \(text)")
-    }
-}
-
-/// The reply, on the left: the sources found in words (PR 2 turns them into a checked answer).
-struct ReplyBubble: View {
-    let message: AskModel.Message
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if message.found {
-                Label("Found in this mission's data", systemImage: "sparkles")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color(.secondaryText))
-                ForEach(Array(message.cards.enumerated()), id: \.offset) { _, card in SourceCard(card: card) }
-            } else {
-                Label(AskModel.nothingFound, systemImage: "questionmark.circle")
-                    .font(.body)
-                    .foregroundStyle(Color(.text))
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 20))
-            }
-        }
-        .padding(.trailing, 24)
-    }
-}
-
-/// One source on glass: its title, a few lines, and where it came from.
-struct SourceCard: View {
-    let card: SourceCardWords
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(card.title)
-                .font(.headline)
-                .foregroundStyle(Color(.text))
-            ForEach(card.lines, id: \.self) { line in
-                Text(line)
-                    .font(.subheadline)
-                    .foregroundStyle(Color(.text))
-            }
-            Label(card.place, systemImage: "checkmark.seal")
-                .font(.caption)
-                .foregroundStyle(Color(.secondaryText))
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 20))
-        .accessibilityElement(children: .combine)
     }
 }
 
