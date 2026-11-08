@@ -58,14 +58,18 @@ final class SiteWalkModel {
         flags = currentFlags()
     }
 
-    /// The walk for a mission whose pack is on the phone: its checklist and agreed actions.
-    static func load(mission: String, store: MissionStore) throws -> SiteWalkModel {
-        let form = try ChecklistForm.read(try store.packFile("forms/road-checklist.json", in: mission))
-        let actions = try AgreedActions.read(try store.packFile(AgreedActions.path, in: mission))
+    /// The walk for a mission whose pack is on the phone: its checklist and agreed actions. Files already
+    /// opened (Ask, #150) are used as they are instead of unwrapping the mission key again for each.
+    static func load(mission: String, store: MissionStore, files: [String: Data] = [:]) throws -> SiteWalkModel {
+        let file = { (path: String) throws -> Data in
+            if let opened = files[path] { return opened }
+            return try store.packFile(path, in: mission)
+        }
+        let form = try ChecklistForm.read(try file("forms/road-checklist.json"))
+        let actions = try AgreedActions.read(try file(AgreedActions.path))
         // A pack without a section leaves that input empty: its rules say "not checked", never clear.
-        let figures = RedFlagInputs(
-            contracts: try? PackContracts.read(try store.packFile(PackContracts.path, in: mission)),
-            milestones: try? PackMilestones.read(try store.packFile(PackMilestones.path, in: mission)))
+        let figures = RedFlagInputs(contracts: try? PackContracts.read(try file(PackContracts.path)),
+                                    milestones: try? PackMilestones.read(try file(PackMilestones.path)))
         return try SiteWalkModel(form: form, actions: actions, mission: mission, store: store, figures: figures)
     }
 

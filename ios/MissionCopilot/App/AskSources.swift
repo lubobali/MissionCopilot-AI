@@ -4,19 +4,36 @@ import Foundation
 /// the confirmed facts and notes, and (when the pack has its walk) the walk's answers, the agreed actions'
 /// checks and the red flags, each in the officer's words. Opened in memory only.
 extension MissionSources {
+    /// The most Secure Enclave unwraps opening the chat may cost (the pack's files once, the facts, the walk;
+    /// it was 23).
+    static let unwrapsWhenOpening = 6
+
     @MainActor
     static func load(mission: String, store: MissionStore) -> [MissionSource] {
-        var inputs = SourceInputs()
-        if let pack = try? store.storedPack(for: mission) {
-            for file in pack.files {
-                inputs.packFiles[file.path] = try? store.packFile(file.path, in: mission)
-            }
-        }
-        inputs.facts = (try? store.facts(in: mission)) ?? []
-        if let walk = try? SiteWalkModel.load(mission: mission, store: store) {
+        var inputs = records(mission: mission, store: store)
+        if let walk = try? SiteWalkModel.load(mission: mission, store: store, files: inputs.packFiles) {
             (inputs.walk, inputs.flags) = worded(walk)
         }
         return build(inputs)
+    }
+
+    /// The chat's opening (#150, 6.8.1b, found on the iPhone: the screen froze for about 3 s): the pack's files
+    /// and the facts are read off the main thread, the walk (a few reads) on it.
+    @MainActor
+    static func open(mission: String, store: MissionStore) async -> [MissionSource] {
+        var inputs = await Task.detached(priority: .userInitiated) { records(mission: mission, store: store) }.value
+        if let walk = try? SiteWalkModel.load(mission: mission, store: store, files: inputs.packFiles) {
+            (inputs.walk, inputs.flags) = worded(walk)
+        }
+        return build(inputs)
+    }
+
+    /// The pack's files (the mission key unwrapped once) and the confirmed facts.
+    nonisolated static func records(mission: String, store: MissionStore) -> SourceInputs {
+        var inputs = SourceInputs()
+        inputs.packFiles = (try? store.packFiles(in: mission)) ?? [:]
+        inputs.facts = (try? store.facts(in: mission)) ?? []
+        return inputs
     }
 
     /// The walk's answers with their questions, each agreed action's check, and the red flags' sentences.
