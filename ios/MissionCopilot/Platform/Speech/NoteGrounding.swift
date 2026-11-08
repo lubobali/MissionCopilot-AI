@@ -19,7 +19,9 @@ enum NoteGrounding {
     static func check(_ notes: [DebriefNote], transcript: String) -> [NoteCheck] {
         let spoken = Words(transcript)
         return notes.map { note in
-            let quote = Words(note.quote).text
+            // Found on the iPhone: the model copied a "Debrief:" label into a quote.
+            var quote = Words(note.quote).text
+            if quote.hasPrefix("debrief ") { quote = String(quote.dropFirst("debrief ".count)) }
             var problems: [String] = []
             var found: TextSpan?
             if quote.isEmpty {
@@ -42,11 +44,35 @@ enum NoteGrounding {
                 .map { "The number \($0) was not said in the debrief." }
             problems += written.months.filter { !spoken.months.contains($0) }
                 .map { "The month \($0) was not said in the debrief." }
+            if found != nil { problems += matching(note, quote: Words(quote), spoken: spoken) }
             let kept = DebriefNote(kind: note.kind, text: note.text, who: said(note.who) ? note.who : "",
                                    byWhen: said(note.byWhen) ? note.byWhen : "", quote: note.quote)
             return NoteCheck(note: kept, found: found, problems: problems)
         }
     }
+}
+
+extension NoteGrounding {
+    /// Found on the iPhone: a note said "Section 5 bridges is still not started" but quoted "Invoice 36 for
+    /// $360,000". The quote was said, yet it does not back the note: its numbers must be in the quote, and at
+    /// least half of its main words (four letters or more, compared by their first five letters).
+    fileprivate static func matching(_ note: DebriefNote, quote: Words, spoken: Words) -> [String] {
+        let text = Words(note.text)
+        var problems = text.numbers.filter { spoken.numbers.contains($0) && !quote.numbers.contains($0) }
+            .map { "The number \($0) is not in the words quoted." }
+        let stem = { (word: String) in String(word.prefix(5)) }
+        let quoted = Set(quote.text.split(separator: " ").map { stem(String($0)) })
+        let main = text.text.split(separator: " ").map(String.init)
+            .filter { $0.count >= 4 && !$0.allSatisfy(\.isNumber) && !commonWords.contains($0) }
+            .filter { Words.monthNames[$0] == nil }  // months have their own check above
+        if main.count >= 2, Double(main.filter { quoted.contains(stem($0)) }.count) < Double(main.count) / 2 {
+            problems.append("This note does not match the words quoted.")
+        }
+        return problems
+    }
+
+    private static let commonWords: Set = ["that", "this", "with", "will", "have", "from", "they", "were", "been",
+                                           "their", "there", "would", "should", "about", "pour", "dans", "avec"]
 }
 
 /// Text as plain words: lower case, letters and digits only, one space between words; each character remembers

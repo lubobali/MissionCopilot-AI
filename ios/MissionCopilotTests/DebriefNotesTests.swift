@@ -29,7 +29,9 @@ struct DebriefNotesTests {
     @Test func theTaskAsksForQuotedNotesWithTheNotesSchema() throws {
         let task = DebriefExtraction.task("TRANSCRIPT")
 
-        #expect(task.prompt.hasSuffix("\n\nDebrief: TRANSCRIPT"))
+        // Found on the iPhone: with a "Debrief:" label the model copied it into a quote; the text comes alone.
+        #expect(task.prompt.hasSuffix("\n\nTRANSCRIPT"))
+        #expect(!task.prompt.contains("Debrief:"))
         #expect(task.prompt.contains("exact words"))
         #expect(task.schema == DebriefNote.schema)
         #expect(task.maxTokens == 512)

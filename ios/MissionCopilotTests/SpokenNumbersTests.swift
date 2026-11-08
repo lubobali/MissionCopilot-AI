@@ -75,7 +75,9 @@ struct SpokenNumbersTests {
         // Found on the iPhone: the engine wrote "$180,000" for "480,000"; the pack's value is offered.
         #expect(wrong.first { $0.value == "48000" }?.expected == "480000")
         #expect(right.first { $0.value == "480000" }?.expected == nil)
-        #expect(unknown.first { $0.value == "5000" }?.problems == ["Invoice 22 is not in the pack."])
+        // Found on the iPhone: "invoice 14" was heard as "invoice 36"; the pack's invoices help the officer see it.
+        #expect(unknown.first { $0.value == "5000" }?.problems
+                == ["Invoice 22 is not in the pack. The pack has invoices 6, 9, 11, 13 and 14."])
     }
 
     @Test func aPaidAmountIsCheckedAgainstTheBanksPayments() throws {

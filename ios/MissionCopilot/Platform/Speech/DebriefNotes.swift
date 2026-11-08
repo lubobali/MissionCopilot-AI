@@ -61,9 +61,10 @@ enum DebriefExtraction {
         ModelTask(prompt: """
             Turn this voice debrief into short mission notes as JSON. Each note is a decision, an action (who does \
             what, by when) or a risk. In quote, copy the exact words of the debrief the note comes from. Use only \
-            what was said: leave who or byWhen empty when it was not said, and never add a date. At most 10 notes.
+            what was said: leave who or byWhen empty when it was not said, and never add a date. At most 10 notes. \
+            The debrief follows.
 
-            Debrief: \(transcript)
+            \(transcript)
             """, schema: DebriefNote.schema, maxTokens: 512)
     }
 

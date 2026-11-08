@@ -92,6 +92,31 @@ struct NoteGroundingTests {
         #expect(transcript[start...].hasPrefix("new work plan into 2 weeks"))
     }
 
+    /// Found on the iPhone: "Section 5 bridges is still not started" quoted "Invoice 36 for $360,000." The quote
+    /// was said, but it does not back the note.
+    @Test func aNoteMustMatchTheWordsItQuotes() {
+        let transcript = "Section 5 bridges is still not started. Invoice 36 for $360,000. The contractor will send "
+            + "a new work plan in 2 weeks."
+        let checked = NoteGrounding.check([
+            Self.note("Invoice 36 for $360,000.", text: "Section 5 bridges is still not started.", kind: .decision),
+            Self.note("Section 5 bridges is still not started", text: "The Section 5 bridge has not started.",
+                      kind: .risk)
+        ], transcript: transcript)
+
+        #expect(checked[0].found != nil)
+        #expect(checked[0].problems == ["The number 5 is not in the words quoted.",
+                                        "This note does not match the words quoted."])
+        #expect(checked[1].problems == [])
+    }
+
+    @Test func aDebriefLabelTheModelCopiedIsNotPartOfTheQuote() {
+        let checked = NoteGrounding.check([Self.note("Debrief: Section 3 bridge still not started")],
+                                          transcript: Self.transcript)
+
+        #expect(checked[0].found != nil)
+        #expect(checked[0].problems == [])
+    }
+
     @Test func aNumberOrMonthThatWasNeverSaidIsAProblem() {
         // The bakeoff's made-up dates: "14 Feb" and "15 Feb" were never in the debrief.
         let made = Self.note("extend the contractor deadline to March 15", text: "Deadline moved to 15 Feb 2027.",

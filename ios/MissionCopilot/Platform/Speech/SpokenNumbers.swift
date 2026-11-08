@@ -44,7 +44,14 @@ enum SpokenNumbers {
                                                 + "not \(money(Int(value))).")
                     }
                 } else {
-                    checked.problems.append("Invoice \(invoice) is not in the pack.")
+                    // Found on the iPhone: "invoice 14" was heard as "invoice 36"; the pack's own invoices help.
+                    let known = contract.payments.compactMap { payment in
+                        payment.reference.hasPrefix("Invoice ") ? String(payment.reference.dropFirst(8)) : nil
+                    }
+                    let list = known.count > 1 ? known.dropLast().joined(separator: ", ") + " and " + (known.last ?? "")
+                        : known.joined()
+                    checked.problems.append("Invoice \(invoice) is not in the pack."
+                                            + (known.isEmpty ? "" : " The pack has invoices \(list)."))
                 }
             }
             let paid = contract.payments.map(\.amount).reduce(0, +)
