@@ -55,8 +55,8 @@ Key names: **MK** = the mission key (one per mission, wrapped by a Secure Enclav
 | Mission pack (budget, payments, milestones, last report, site checklist) | Organization | Official Use Only | Phone store; org database | DK + MK; TK | Arrives from server; not re-sent | No |
 | Mission list (mission ids, titles, pack versions and dates) | Organization | Official Use Only | Phone store (the last list, for use without a connection); org database | DK; TK | Arrives from server; not re-sent | No |
 | Mission pack while it downloads (half-done and checked files) | Organization | Official Use Only | Phone, download folder (not the store) | iOS file protection until first unlock; signed by the server, checked by hash | No | No |
-| Voice debrief audio | Field officer | Official Use Only | Phone store | DK + MK | **Never** | No |
-| Debrief transcript and notes | Field officer | Official Use Only (or Strictly Confidential if marked) | Phone store | DK + MK | Only inside an approved report | No |
+| Voice debrief audio (signed evidence, decided Nov 7, #142) | Field officer | Official Use Only | Phone store | DK + MK, signed with SE | **Never** unapproved | No |
+| Debrief transcript and notes (notes and heard numbers confirmed by the officer, #142) | Field officer | Official Use Only (or Strictly Confidential if marked) | Phone store | DK + MK | Only inside an approved report | No |
 | Photo or scanned page (evidence) | Field officer | Official Use Only | Phone store; org database after approval | DK + MK, signed with SE | After approval, with signature and hash chain | Only if a person labels it Public |
 | Page reading (the text and tables Apple Vision read from a scanned page, #138) | System (Vision, on the phone) | Inherited from its page | Phone store | DK + MK | No: the page itself is the evidence; the reading is read again from it if needed | No |
 | Extracted fact (from a scanned invoice: the officer confirms or corrects each one, #138) | System (rule engine); the officer when corrected | Inherited from its source | Phone store; org database after approval | DK + MK; TK | After approval | Only if inherited label is Public |
