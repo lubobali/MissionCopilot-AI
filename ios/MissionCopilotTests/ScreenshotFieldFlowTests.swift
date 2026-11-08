@@ -92,13 +92,12 @@ extension ScreenshotTests {
         let fresh = AskModel(sources: sources, keeper: .memory())
         try check(AskConversation(model: fresh).fixedSize(horizontal: false, vertical: true)
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "ask-new")
-        let answer = MissionAnswerTests.answer([("Invoice 14 was paid on 12 October 2026.", ["S1"]),
-                                                ("It was for USD 480,000.", ["S1"])])
+        let answer = MissionAnswerTests.choice("O1")
         let model = AskModel(sources: sources, model: FieldModel(engine: FieldModelTests.FakeEngine(answer: answer)),
                              keeper: .memory { Date(timeIntervalSince1970: 1_794_000_000) })
-        await model.send(example: "When was invoice 14 paid?")
+        await model.send(example: "Was the Section 3 bridge started?")
         await model.send(example: "Who won the election?")
-        #expect(model.messages.first?.record?.sentences.count == 2)
+        #expect(model.messages.first?.record?.sentences.isEmpty == false)
         try check(AskConversation(model: model).fixedSize(horizontal: false, vertical: true)
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "ask")
         let kept = try #require(model.history.last)

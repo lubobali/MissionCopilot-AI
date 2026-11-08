@@ -126,42 +126,6 @@ struct AnswerCheckTests {
                             + "says work has started.", [Self.action, yes.id], found: found) == nil)
     }
 
-    /// Small models often write the label in the text too: it is taken out before the checks and the screen.
-    @Test func labelsWrittenInTheTextAreTakenOut() async {
-        let engine = FakeEngine(answer: MissionAnswerTests.answer([("Invoice 14 was paid on 12 October 2026 (S1) [S1].",
-                                                                    ["S1"])]))
-
-        let result = await MissionAnswerTests.ask("When was invoice 14 paid?", engine: engine)
-
-        #expect(result.sentences.map(\.text) == ["Invoice 14 was paid on 12 October 2026."])
-    }
-
-    @Test func failedSentencesAreLeftOutWithTheirReason() async {
-        let engine = FakeEngine(answer: MissionAnswerTests.answer([
-            ("Invoice 14 was paid on 12 October 2026.", ["S1"]),
-            ("Invoice 14 was for USD 48,000.", ["S1"])
-        ]))
-
-        let result = await MissionAnswerTests.ask("When was invoice 14 paid?", engine: engine)
-
-        #expect(result.sentences.map(\.text) == ["Invoice 14 was paid on 12 October 2026."])
-        #expect(result.leftOut == [LeftOutSentence(text: "Invoice 14 was for USD 48,000.", sources: [Self.invoice14],
-                                                   reason: "The number 48000 is not in the sources it cites.")])
-        #expect(result.why == nil)
-    }
-
-    @Test func withNoSentenceLeftTheDataDoesNotAnswer() async {
-        let engine = FakeEngine(answer: MissionAnswerTests.answer([("Invoice 14 was for USD 48,000.", ["S1"])]))
-
-        let result = await MissionAnswerTests.ask("When was invoice 14 paid?", engine: engine)
-
-        #expect(result.sentences.isEmpty)
-        #expect(result.leftOut.count == 1)
-        #expect(result.why == .noneBacked)
-        #expect(!result.found.isEmpty)
-        #expect(AskResult.Why.noneBacked.words.contains("not backed"))
-    }
-
     static let flags = [WordedLine(key: "MC-02", title: "The same invoice paid twice",
                                    text: "No invoice reference or amount appears twice.")]
 
@@ -186,13 +150,7 @@ struct AnswerCheckTests {
     }
 
     /// Found on the iPhone: the model wrote the question back, and it passed. A question is not an answer.
-    @Test func theQuestionWrittenBackIsNotAnAnswer() async {
+    @Test func theQuestionWrittenBackIsNotAnAnswer() {
         #expect(Self.reason("How much has been paid?", [Self.invoice14]) == AnswerCheck.notAnAnswer)
-        let engine = FakeEngine(answer: MissionAnswerTests.answer([("How much has been paid", ["S1"])]))
-
-        let result = await MissionAnswerTests.ask("How much has been paid?", engine: engine)
-
-        #expect(result.sentences.isEmpty)
-        #expect(result.why == .dataDoesNotSay)
     }
 }

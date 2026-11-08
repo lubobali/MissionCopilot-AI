@@ -16,11 +16,14 @@ struct MissionSearch: Sendable {
         let length: Int
     }
 
+    /// Every source searched, in order.
+    let sources: [MissionSource]
     private let entries: [Entry]
     private let frequency: [String: Int]
     private let averageLength: Double
 
     init(sources: [MissionSource]) {
+        self.sources = sources
         entries = sources.map { source in
             let terms = Self.terms(AnswerCheck.evidenceText(source))
             return Entry(source: source, counts: terms.reduce(into: [:]) { $0[$1, default: 0] += 1 },

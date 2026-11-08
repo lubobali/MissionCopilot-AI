@@ -129,4 +129,17 @@ struct AskLogTests {
         #expect(after.map(\.id) == before.map(\.id))
         #expect(try store.facts(in: mission).isEmpty)
     }
+
+    /// How the answer was made is kept with it (6.7.16); answers kept before 6.7.15 read as nil.
+    @Test func howTheAnswerWasMadeIsKept() throws {
+        let store = try store()
+        var result = try Self.answered()
+        result.madeBy = .code
+
+        try store.keepAnswer(result, in: mission)
+
+        #expect(try store.askHistory(in: mission).first?.madeBy == .code)
+        let old = #"{"id":"x","question":"Q?","language":"en","askedAt":0,"found":[],"sentences":[],"leftOut":[]}"#
+        #expect(try JSONDecoder().decode(AskRecord.self, from: Data(old.utf8)).madeBy == nil)
+    }
 }

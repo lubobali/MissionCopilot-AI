@@ -17,12 +17,15 @@ struct AskRecord: Codable, Sendable, Equatable, Identifiable {
     let sentences: [AnswerSentence]
     let leftOut: [LeftOutSentence]
     let why: AskResult.Why?
+    /// Written by code or chosen by the model; nil in answers kept before 6.7.15.
+    var madeBy: AnswerMaker?
 
     var answered: Bool { !sentences.isEmpty }
 
     init(_ result: AskResult, id: String = UUID().uuidString, language: String, askedAt: Date) {
         (self.id, self.question, self.language, self.askedAt) = (id, result.question, language, askedAt)
         (found, sentences, leftOut, why) = (result.found, result.sentences, result.leftOut, result.why)
+        madeBy = result.madeBy
     }
 
     /// The question's language, recognized on the phone (English or French), or "und".

@@ -15,6 +15,7 @@ started, and at km 18 the road is narrower than specified.
 |---|---|---|
 | Prepare online, then go offline | `mission`, `pack` | Mission pack downloaded; "Ready for offline" |
 | "What was promised last mission?" | `pack.lastReportSummary` | Answer with its source: bridge start by July, revised work plan |
+| Ask the mission, offline (#145) | the pack's records, the walk, flags | "When was invoice 14 paid?" → "Invoice 14: USD 480,000, paid 12 Oct 2026." with its tag, written by code; "Was the Section 3 bridge started?" → the bank and the walk disagree, both shown; "Why is the contractor late?" → the model picks the progress report's line; "Who won the election?" → nothing matches |
 | Scan invoice 14 | `documents[invoice]` | Facts: invoice 14, $480,000, cumulative $8.5M of $10M |
 | Scan the progress report | `documents[progress_report]` | Facts: 32 of 64 km built, bridge not started |
 | Payment ahead of progress | `pack.payments`, `pack.physicalProgress` | **MC-01 raised**: 85% paid vs 50% built (35 points) |
