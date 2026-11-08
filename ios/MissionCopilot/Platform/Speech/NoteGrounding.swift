@@ -29,17 +29,22 @@ enum NoteGrounding {
             } else {
                 problems.append("These words are not in the debrief: “\(note.quote)”.")
             }
-            for part in [note.who, note.byWhen] where !Words(part).text.isEmpty {
-                if !" \(quote) ".contains(" \(Words(part).text) ") {
-                    problems.append("“\(part)” is not in the words quoted.")
-                }
+            // Who and by-when must be words of the quote; what the model added is left out (found on the iPhone:
+            // "Immediate", "Ongoing", "Finance Team" were never said).
+            let said = { (part: String) -> Bool in
+                Words(part).text.isEmpty || " \(quote) ".contains(" \(Words(part).text) ")
+            }
+            for part in [note.who, note.byWhen] where !said(part) {
+                problems.append("“\(part)” was not said here, so it is left out.")
             }
             let written = Words([note.text, note.who, note.byWhen].joined(separator: " "))
             problems += written.numbers.filter { !spoken.numbers.contains($0) }
                 .map { "The number \($0) was not said in the debrief." }
             problems += written.months.filter { !spoken.months.contains($0) }
                 .map { "The month \($0) was not said in the debrief." }
-            return NoteCheck(note: note, found: found, problems: problems)
+            let kept = DebriefNote(kind: note.kind, text: note.text, who: said(note.who) ? note.who : "",
+                                   byWhen: said(note.byWhen) ? note.byWhen : "", quote: note.quote)
+            return NoteCheck(note: kept, found: found, problems: problems)
         }
     }
 }
@@ -55,6 +60,11 @@ private struct Words {
         var characters: [Character] = [], origin: [Int] = []
         for (offset, character) in original.enumerated() {
             if character.isLetter || character.isNumber {
+                // A letter next to a digit is two words: the model writes "March15th" for "March 15th".
+                if let last = characters.last, last != " ", last.isNumber != character.isNumber {
+                    characters.append(" ")
+                    origin.append(offset)
+                }
                 characters.append(contentsOf: character.lowercased())
                 origin.append(contentsOf: Array(repeating: offset, count: character.lowercased().count))
             } else if characters.last.map({ $0 != " " }) ?? false {

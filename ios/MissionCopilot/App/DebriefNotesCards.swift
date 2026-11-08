@@ -38,12 +38,10 @@ struct NoteCard: View {
             } else if line.decision != nil {
                 Button("Change", systemImage: "arrow.uturn.backward", action: onUndo).buttonStyle(.fieldSecondary)
             } else {
-                HStack {
-                    Button("Confirm", systemImage: "checkmark") { onDecide(.confirm) }
-                        .disabled(!line.canConfirm)
-                        .accessibilityHint(line.canConfirm ? line.text : "Not said in the debrief: edit or remove it.")
-                    Button("Edit", systemImage: "pencil") { typed = line.text }
-                    Button("Remove", systemImage: "trash") { onDecide(.remove) }
+                // One row when it fits, otherwise stacked (found on the iPhone: "Con-firm", "Re-mov e").
+                ViewThatFits(in: .horizontal) {
+                    HStack { noteButtons }
+                    VStack(alignment: .leading) { noteButtons }
                 }
                 .buttonStyle(.fieldSecondary)
             }
@@ -51,6 +49,19 @@ struct NoteCard: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 22))
+    }
+}
+
+extension NoteCard {
+    @ViewBuilder var noteButtons: some View {
+        Button("Confirm", systemImage: "checkmark") { onDecide(.confirm) }
+            .lineLimit(1)
+            .disabled(!line.canConfirm)
+            .accessibilityHint(line.canConfirm ? line.text : "Not said in the debrief: edit or remove it.")
+        Button("Edit", systemImage: "pencil") { typed = line.text }
+            .lineLimit(1)
+        Button("Remove", systemImage: "trash") { onDecide(.remove) }
+            .lineLimit(1)
     }
 }
 

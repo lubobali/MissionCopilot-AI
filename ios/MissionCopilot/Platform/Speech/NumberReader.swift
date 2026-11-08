@@ -55,11 +55,11 @@ struct NumberReader {
     private func date(at index: Int) -> (HeardNumber, Int)? {
         let token = tokens[index]
         if Self.weekdays.contains(token.word) { return (make(index, index, value: token.text, kind: .date), index + 1) }
-        if NumberWords.month(token.word) != nil, index + 1 < tokens.count, let day = Int(tokens[index + 1].word),
+        if NumberWords.month(token.word) != nil, index + 1 < tokens.count, let day = Self.day(tokens[index + 1].word),
            (1...31).contains(day) {
             return (make(index, index + 1, value: "\(token.text) \(day)", kind: .date), index + 2)
         }
-        if let day = Int(token.word), (1...31).contains(day), index + 1 < tokens.count,
+        if let day = Self.day(token.word), (1...31).contains(day), index + 1 < tokens.count,
            NumberWords.month(tokens[index + 1].word) != nil {
             return (make(index, index + 1, value: "\(day) \(tokens[index + 1].text)", kind: .date), index + 2)
         }
@@ -78,10 +78,11 @@ struct NumberReader {
         if unitIndex == nil, last + 2 < tokens.count, tokens[last + 1].word == "pour", tokens[last + 2].word == "cent" {
             unitIndex = last + 2
         }
-        let unit = unitIndex.map { tokens[$0].text }
+        let dollarSign = tokens[index].word.hasPrefix("$")
+        let unit = unitIndex.map { tokens[$0].text } ?? (dollarSign ? "dollars" : nil)
         if last == index, value == 1, unit == nil, ["un", "une", "one"].contains(tokens[index].word) { return nil }
         let kind = unitIndex.flatMap { Self.units[tokens[$0].word] }
-            ?? (tokens[index].word.hasSuffix("%") ? .percent : value >= 1_000 ? .amount : .count)
+            ?? (dollarSign ? .amount : tokens[index].word.hasSuffix("%") ? .percent : value >= 1_000 ? .amount : .count)
         var heard = make(index, last, value: Self.format(value), kind: kind, unit: unit)
         let before = tokens[max(0, index - 3)..<index].map(\.word)
         // An amount said without "dollars" still counts when it follows an invoice ("invoice 22 for 5,000").
@@ -104,8 +105,15 @@ struct NumberReader {
         return nil
     }
 
+    /// A day of the month, with or without its ordinal ending ("15", "15th", "1st").
+    static func day(_ word: String) -> Int? {
+        Int(word.replacingOccurrences(of: #"(st|nd|rd|th)$"#, with: "", options: .regularExpression))
+    }
+
     private func digits(at index: Int) -> (Double, Int)? {
-        let word = tokens[index].word.replacingOccurrences(of: "%", with: "")
+        // "$480,000" and "15th" are numbers too (found on the iPhone).
+        let word = tokens[index].word.replacingOccurrences(of: "%", with: "").replacingOccurrences(of: "$", with: "")
+            .replacingOccurrences(of: #"(st|nd|rd|th)$"#, with: "", options: .regularExpression)
         guard word.range(of: #"^(\d{1,3}(,\d{3})+|\d+)(\.\d+)?$"#, options: .regularExpression) != nil,
               let value = Double(word.replacingOccurrences(of: ",", with: "")) else { return nil }
         return (value, index)

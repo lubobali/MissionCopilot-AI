@@ -53,13 +53,31 @@ struct NoteGroundingTests {
         #expect(checked.map(\.found) == [nil, nil])
     }
 
-    @Test func whoAndByWhenMustBeWordsOfTheQuote() {
+    @Test func whoAndByWhenNotSaidAreLeftOut() {
+        // Found on the iPhone: the model filled "Immediate", "Ongoing", "Finance Team" that were never said.
         let checked = NoteGrounding.check([Self.note("the contractor shows a new work plan in two weeks",
                                                      who: "the road agency", byWhen: "by Friday")],
                                           transcript: Self.transcript)
 
-        #expect(checked[0].problems == ["“the road agency” is not in the words quoted.",
-                                        "“by Friday” is not in the words quoted."])
+        #expect(checked[0].problems == ["“the road agency” was not said here, so it is left out.",
+                                        "“by Friday” was not said here, so it is left out."])
+        #expect(checked[0].note.who.isEmpty && checked[0].note.byWhen.isEmpty)
+        #expect(checked[0].found != nil)  // the quote itself is still found and can be confirmed
+    }
+
+    @Test func wordsTheModelGluedToNumbersStillMatch() throws {
+        // Found on the iPhone: the model wrote "March15th", "Section3" and "voice14" without the space.
+        let transcript = "They agreed to extend the contractor deadline to March 15th. Section 3 bridge still "
+            + "not started. In voice 14, for $480,000, payments look high."
+        let checked = NoteGrounding.check([Self.note("extend the contractor deadline to March15th"),
+                                           Self.note("Section3 bridge still not started."),
+                                           Self.note("In voice14, for $480,000, payments look high.")],
+                                          transcript: transcript)
+
+        #expect(checked.allSatisfy { $0.found != nil && $0.problems.isEmpty }, "\(checked.map(\.problems))")
+        let found = try #require(checked[0].found)
+        let start = transcript.index(transcript.startIndex, offsetBy: found.offset)
+        #expect(transcript[start...].hasPrefix("extend the contractor deadline to March 15th"))
     }
 
     @Test func aNumberOrMonthThatWasNeverSaidIsAProblem() {

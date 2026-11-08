@@ -44,6 +44,18 @@ struct SpokenNumbersTests {
         #expect(Self.values("soixante-quatre kilomètres") == ["64"])
     }
 
+    /// Found on the iPhone: "March 15th" and "$480,000" were missed.
+    @Test func ordinalsAndDollarSignsAreRead() throws {
+        let heard = SpokenNumbers.find("extend the deadline to March 15th, but only if. In voice 14, for $480,000, "
+                                       + "payments look high. Due on the 3rd.")
+
+        #expect(heard.map(\.value) == ["March 15", "14", "480000", "3"])
+        let amount = try #require(heard.first { $0.value == "480000" })
+        #expect(amount.kind == .amount)
+        #expect(amount.words == "$480,000")
+        #expect(amount.unit == "dollars")
+    }
+
     @Test func datesAndPercentsKeepTheirMeaning() throws {
         let heard = SpokenNumbers.find("extend the deadline to March 15, paid 85 percent, le 15 mars, by Friday")
 
