@@ -28,6 +28,12 @@ struct Trace: Sendable, Equatable {
     let evidence: [Evidence]
 }
 
+/// A sentence checked and sealed, not yet written.
+struct PreparedSentence: Sendable {
+    let sentence: Sentence
+    let sealed: Data
+}
+
 enum SentenceError: Error, Equatable {
     case noFact
     case unknownFact(id: String)
@@ -38,29 +44,43 @@ extension MissionStore {
     /// A sentence needs at least one fact of this mission; it is as sensitive as its most sensitive fact.
     @discardableResult
     func addSentence(_ input: SentenceInput, to mission: String, now: Date = Date()) throws -> Sentence {
-        guard let first = input.factIds.first else { throw SentenceError.noFact }
-        let byId = Dictionary(uniqueKeysWithValues: try facts(in: mission).map { ($0.id, $0) })
-        let labels = try input.factIds.map { id in
-            guard let fact = byId[id] else { throw SentenceError.unknownFact(id: id) }
-            return fact.classification
-        }
-        let sentence = Sentence(id: UUID().uuidString.lowercased(), section: input.section, text: input.text,
-                                classification: Classification.strictest(labels), factIds: input.factIds)
-        let sealed = try MissionData.seal(Data(input.text.utf8), with: missionKey(for: mission))
+        let prepared = try prepare([input], in: mission)
         try store.write { database in
-            try database.execute(sql: """
-                INSERT INTO sentence (id, mission_id, section, sealed_text, classification, created_at, first_fact_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, arguments: [sentence.id, mission, sentence.section, sealed, sentence.classification.rawValue,
-                                 now.timeIntervalSince1970, first])
-            for (position, factId) in input.factIds.enumerated() {
-                try database.execute(sql: "INSERT INTO sentence_fact VALUES (?, ?, ?, ?)",
-                                     arguments: [sentence.id, mission, factId, position])
-            }
-            try EncryptedStore.appendAudit(AuditEntry(action: .sentenceAdded, actor: actor, mission: mission,
-                                                      target: sentence.id, time: now), in: database)
+            for item in prepared { try insert(item, mission: mission, now: now, in: database) }
         }
-        return sentence
+        return prepared[0].sentence
+    }
+
+    /// Sentences checked against the mission's facts and sealed, ready to be written (#161: a draft writes
+    /// several in one transaction).
+    func prepare(_ inputs: [SentenceInput], in mission: String) throws -> [PreparedSentence] {
+        let byId = Dictionary(uniqueKeysWithValues: try facts(in: mission).map { ($0.id, $0) })
+        let key = try missionKey(for: mission)
+        return try inputs.map { input in
+            guard input.factIds.first != nil else { throw SentenceError.noFact }
+            let labels = try input.factIds.map { id in
+                guard let fact = byId[id] else { throw SentenceError.unknownFact(id: id) }
+                return fact.classification
+            }
+            let sentence = Sentence(id: UUID().uuidString.lowercased(), section: input.section, text: input.text,
+                                    classification: Classification.strictest(labels), factIds: input.factIds)
+            return PreparedSentence(sentence: sentence, sealed: try MissionData.seal(Data(input.text.utf8), with: key))
+        }
+    }
+
+    func insert(_ prepared: PreparedSentence, mission: String, now: Date, in database: Database) throws {
+        let sentence = prepared.sentence
+        try database.execute(sql: """
+            INSERT INTO sentence (id, mission_id, section, sealed_text, classification, created_at, first_fact_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, arguments: [sentence.id, mission, sentence.section, prepared.sealed, sentence.classification.rawValue,
+                             now.timeIntervalSince1970, sentence.factIds[0]])
+        for (position, factId) in sentence.factIds.enumerated() {
+            try database.execute(sql: "INSERT INTO sentence_fact VALUES (?, ?, ?, ?)",
+                                 arguments: [sentence.id, mission, factId, position])
+        }
+        try EncryptedStore.appendAudit(AuditEntry(action: .sentenceAdded, actor: actor, mission: mission,
+                                                  target: sentence.id, time: now), in: database)
     }
 
     func sentences(in mission: String) throws -> [Sentence] {

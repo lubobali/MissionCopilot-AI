@@ -17,6 +17,7 @@ struct MissionWorkspaceScreen: View {
     @State private var documents: String?  // the documents' summary, for their card (#138)
     @State private var debriefs: String?  // the debriefs' summary, for theirs (#142)
     @State private var ask: String?  // the Ask card's summary (#145)
+    @State private var report: String?  // the report card's summary (#161)
 
     var body: some View {
         Group {
@@ -29,7 +30,7 @@ struct MissionWorkspaceScreen: View {
                                      onInstall: { language in Task { await readiness.install(language, for: row) } },
                                      onDownload: { model.download(row.id) },
                                      onTestModel: { Task { await readiness.testModel() } },
-                                     documents: documents, debriefs: debriefs, ask: ask)
+                                     documents: documents, debriefs: debriefs, ask: ask, report: report)
                 }
                 .refreshable { await readiness.refresh(row) }
                 .task(id: row) { await readiness.refresh(row) }
@@ -39,6 +40,7 @@ struct MissionWorkspaceScreen: View {
                     debriefs = Self.debriefsSummary(row, store: model.openStore)
                     let canAsk = row.pack != nil && model.openStore != nil
                     ask = canAsk ? "Questions answered from this mission's data" : nil
+                    report = canAsk ? "The aide-memoire, every sentence with its proof" : nil
                 }
             } else {
                 Loading(text: "Loading the mission")
@@ -82,6 +84,7 @@ struct MissionWorkspace: View {
     var documents: String?  // the documents' summary: their card shows with the pack (#138)
     var debriefs: String?  // the debriefs' summary: their card shows with the pack (#142)
     var ask: String?  // the Ask card: it shows with the pack (#145)
+    var report: String?  // the report card: it shows with the pack (#161)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -135,6 +138,11 @@ struct MissionWorkspace: View {
             }
             if let ask {
                 NavigationLink(value: AskLink(id: row.id)) { AskCard(summary: ask) }
+                    .buttonStyle(.plain)
+                    .accessibilityHint(row.title)
+            }
+            if let report {
+                NavigationLink(value: ReportLink(id: row.id)) { ReportCard(summary: report) }
                     .buttonStyle(.plain)
                     .accessibilityHint(row.title)
             }

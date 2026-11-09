@@ -39,7 +39,9 @@ enum AnswerLines {
                 let action = String(source.title.dropFirst(checkPrefix.count))
                 return language.pick("Your site walk: ", "Votre visite : ") + "\(action), \(seen)."
             }
-            return language.pick("Your site walk: ", "Votre visite : ") + "\(source.title) \(card.lines.first ?? "")."
+            let colon = source.title.hasSuffix("?") ? "" : language.pick(":", " :")  // #161, 7.2.8
+            return language.pick("Your site walk: ", "Votre visite : ")
+                + "\(source.title)\(colon) \(card.lines.first ?? "")."
         case .fact:
             let line = card.lines.first ?? source.text
             if source.kind == .note {
@@ -91,6 +93,15 @@ enum AnswerLines {
             }
             let due = field("Due date").map { language.pick(", due \($0)", ", prévu le \($0)") } ?? ""
             return "\(name)\(colon) \(statusWords(status, language))\(due)."
+        }
+        // #161, 7.2.7 (found on the iPhone): any rating and any physical progress, in plain words.
+        if let now = field("Current"), let before = field("Previous") {
+            return "\(name)\(colon) \(now) " + language.pick("(\(before) before).", "(avant : \(before)).")
+        }
+        if let built = field("Km built"), let total = field("Km total"), let unit = field("Unit"),
+           let asOf = field("As of") {
+            return "\(name)\(colon) " + language.pick("\(built) of \(total) \(unit) built, as of \(asOf).",
+                                                     "\(built) sur \(total) \(unit) réalisés, au \(asOf).")
         }
         return "\(card.title)\(colon) \(card.lines.prefix(4).joined(separator: "; "))."
     }

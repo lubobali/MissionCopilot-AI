@@ -54,7 +54,8 @@ struct EncryptedStoreTests {
             == ["v1-store-info", "v2-missions", "v3-leases-and-shreds", "v4-evidence", "v5-facts", "v6-sentences",
                 "v7-append-only", "v8-audit", "v9-pack-files", "v10-mission-lives", "v11-site-walk",
                 "v12-action-photo", "v13-red-flags", "v14-scans", "v15-page-readings",
-                "v16-debriefs", "v17-debrief-transcripts", "v18-ask-answers", "v19-pack-signature"])
+                "v16-debriefs", "v17-debrief-transcripts", "v18-ask-answers", "v19-pack-signature",
+                "v20-report-drafts"])
     }
 
     @Test func aShredFromBeforeMissionLivesStaysAShredAfterTheUpgrade() throws {
