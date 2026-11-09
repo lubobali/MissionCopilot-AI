@@ -10,7 +10,7 @@ code or test behind it, and most can be checked with one command from the reposi
 | Min | Read | What it shows | Check it yourself |
 |---|---|---|---|
 | 1 | [security.md](security.md) | How data is protected on the phone and the server, and what is **not** protected | |
-| 2 | [threat-model.md](threat-model.md) | Every threat and privacy risk (78 on Nov 5), each built, spike, planned or accepted, with its proof | `python3 scripts/check_threat_model.py` |
+| 2 | [threat-model.md](threat-model.md) | Every threat and privacy risk (86 on Nov 8: 78 threats, 8 privacy risks), each built, spike, planned or accepted, with its proof | `python3 scripts/check_threat_model.py` |
 | 1 | [masvs.md](masvs.md) | All 24 OWASP MASVS v2.1 controls with their official wording and status | `python3 scripts/check_masvs.py` |
 | 1 | [data-handling.md](data-handling.md) | Every data item: where it lives, how long, encryption, who sees it, how it ends | `python3 scripts/check_data_handling.py` |
 | 1 | [ADR 0012](adr/0012-lost-seized-or-coerced-phone.md) | A lost, seized or forced phone: expiring keys, signed shred order, no hidden wipe, staff card | `uv run --directory backend pytest tests/unit/test_shred_order.py` |
@@ -36,8 +36,10 @@ Backend controls, each with its test: [backend/README.md](../backend/README.md).
   connecting with a one-time code and a chip key, signed mission packs checked file by file, a download that
   survives a cut signal, the phone lock and a server restart, a shred order judged by the server's time, a
   phone that connects again after its shred. The phone found 11 bugs the simulator hid, all fixed.
-- **Proven on the iPhone in lab code, rebuilt in the app in Phase 6:** document checks and the
-  prompt-injection results. Raw results are in [spikes/results](spikes/results).
+- **Built in the app and proven on the iPhone offline** ([field proof](field-proof.md)): scanned facts
+  checked on their pages, corrections checked the same way, red flags by cited rules, voice debriefs with
+  notes written by code and every number read back, Ask answered by code from the mission's records, the
+  model only choosing. Raw spike results are in [spikes/results](spikes/results).
 
 ## Honest limits
 - **Not audited.** No external penetration test or audit yet; that is an open item before any real use.

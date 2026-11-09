@@ -7,7 +7,7 @@ Small, offline AI for evidence-first field supervision. It runs on the iPhone in
 keeps sensitive notes on the phone, links every fact to its evidence, and only shares a report
 after a human approves it. **An untraceable claim cannot be approved.**
 
-> Status: in development. Iterations 0 to 5 done (Nov 5 2026): the encrypted store and the mission pack are built and proven on a real iPhone; field flows (Iteration 6) are next. Portfolio project. Synthetic data only.
+> Status: in development. Iterations 0 to 6 done (Nov 8 2026): the encrypted store, the mission pack and the offline field flows (site walk, red flags, document scan, voice debrief, Ask the mission) are built and proven on a real iPhone; the report (Iteration 7) is next. Portfolio project. Synthetic data only.
 
 ## How this project is run
 

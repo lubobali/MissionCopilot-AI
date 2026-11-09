@@ -7,7 +7,8 @@ evidence (#71), facts and sentences that trace back to evidence with an append-o
 log (#72), and the app lock (#73). The whole store was run on the iPhone, lock included
 ([store proof, #74](store-proof.md)). Phase 5 added signed mission packs, one database per organization on
 the server and the phone's signed requests and shred orders, run on the iPhone against the real staging
-server ([pack proof, #94](pack-proof.md)). Not independently audited.** Every threat and its status: [threat model](threat-model.md).
+server ([pack proof, #94](pack-proof.md)). Phase 6 added the offline field flows, run on the iPhone in
+airplane mode ([field proof, #150](field-proof.md)). Not independently audited.** Every threat and its status: [threat model](threat-model.md).
 Decision record: [ADR 0008](adr/0008-data-storage-isolation-encryption.md). Evidence and how to repeat it:
 [spike #16](spikes/03-encryption.md).
 
@@ -225,6 +226,6 @@ and in the app's tests, and was done on a copy from the iPhone ([store proof](st
   count checked on every commit: [masvs.md](masvs.md).
 - Feasibility proven on a real iPhone (October 31, 2026). The store, keys, evidence and app lock were built
   test-first in Phase 4 and proven on the iPhone (November 2, 2026); the mission pack and the server in
-  Phase 5, proven on the iPhone against the staging server (November 5, 2026); documents, speech and the
-  model's checks are rebuilt in the app in Phase 6.
+  Phase 5, proven on the iPhone against the staging server (November 5, 2026); the field flows (documents,
+  speech, the model's checks, red flags, Ask) in Phase 6, proven on the iPhone offline (November 8, 2026).
 - **Not independently audited** and no bug bounty. Treat this as a portfolio project, not certified software.
