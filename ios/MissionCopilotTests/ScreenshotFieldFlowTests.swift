@@ -64,6 +64,15 @@ extension ScreenshotTests {
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "debriefs")
     }
 
+    /// #161: the report, written by code, sentences with proof tags, one officer sentence with no proof.
+    @Test(arguments: [Look.light, .dark, .largestText])
+    func theReportIsOnTheThemeBackground(look: Look) async throws {
+        let (model, _) = try await ReportModelTests.loaded()
+        model.add(section: .findings, text: "The road is in good condition.", factIds: [])
+        try check(ReportView(model: model).fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "report")
+    }
+
     /// #142, #152: the notes review, a sentence note confirmed, a sentence left to tag, and the heard numbers.
     @Test(arguments: [Look.light, .dark, .largestText])
     func theDebriefNotesAreOnTheThemeBackground(look: Look) async throws {

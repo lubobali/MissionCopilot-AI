@@ -111,11 +111,12 @@ struct ReportSourcesTests {
     /// The finished Kandor walk, with the red flags of its pack.
     static func finished() async throws -> (MissionStore, [RedFlagResult]) {
         let (store, _) = try await AskOpeningTests.store()
-        try store.finishWalk(form: SiteWalkStoreTests.form, version: "1", mission: mission)
         let flags = RedFlagEngine(rules: RedFlagEngineTests.rules).run(RedFlagInputs(
             contracts: try PackContracts.read(store.packFile(PackContracts.path, in: mission)),
             milestones: try PackMilestones.read(store.packFile(PackMilestones.path, in: mission))),
             walk: RedFlagEngineTests.walkDay, timeZone: .gmt)
+        // As the app finishes a walk: its red flags are stored in the same transaction (#134).
+        try store.finishWalk(form: SiteWalkStoreTests.form, version: "1", mission: mission, flags: flags)
         return (store, flags)
     }
 
