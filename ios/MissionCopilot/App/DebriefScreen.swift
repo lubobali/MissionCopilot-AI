@@ -60,7 +60,12 @@ struct DebriefScreen: View {
         .navigationTitle("Debrief")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            guard model == nil else { return }
+            // Found on the iPhone (#152): back from the notes, the list still said "Draft the notes". Each time
+            // the page shows again it reads which debriefs have saved notes.
+            if let model {
+                model.load()
+                return
+            }
             guard let store = list.openStore else {
                 cannotOpen = true
                 return
