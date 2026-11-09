@@ -85,5 +85,14 @@ Option 3.
   for word. The officer changes a label, tags a sentence code left, edits or removes. The word lists describe
   how people speak, never a mission's topic; a new language is one more list.
 
+## Evidence (#161: the mission report, Nov 9 2026)
+- The report (an aide-memoire: mission, project information, main findings, agreed actions since the last
+  mission, next steps, from a real 2025 World Bank aide-memoire) is written by code: each fact becomes one
+  sentence in Ask's checked words. Research agrees: rule and template systems make the fewest semantic errors
+  in data-to-text, LLM systems add content that is not in the data ([INLG 2024](https://aclanthology.org/2024.inlg-main.47.pdf)).
+- Code's own lines hold no number or month their record does not; the officer's added or edited sentences get
+  Ask's full check against the facts they pick. A sentence with no proof is shown with its reason and is never
+  stored (the store refuses the draft).
+
 ## Revisit when
 - Never for arithmetic. Revisit the extraction split if document types multiply beyond what rules handle.
