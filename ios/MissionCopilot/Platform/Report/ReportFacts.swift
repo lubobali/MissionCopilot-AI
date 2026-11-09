@@ -23,7 +23,7 @@ extension MissionStore {
         let known = try facts(in: mission)
         let inputs = try packRecords(in: mission, seq: pack) + (try walk.map { try walkAnswers(in: mission, form: form,
                                                                                                seq: $0) } ?? [])
-            + flags.compactMap { flagFact($0, pack: pack, known: known) }
+            + Self.numbered(flags).compactMap { flagFact($0.flag, name: $0.name, pack: pack, known: known) }
         let written = Set(known.filter { ReportRules.ids.contains($0.rule.id) }.map(Self.key))
         let fresh = inputs.filter { !written.contains(Self.key($0)) }
         if !fresh.isEmpty { try addFacts(fresh, to: mission, now: now) }
@@ -64,7 +64,8 @@ extension MissionStore {
         let checks = try checks(mission: mission).sorted { $0.key < $1.key }.map { action, check in
             let words = ["seen: \(check.seen.rawValue)", check.note.map { "note: \($0)" }].compactMap { $0 }
             let photo = check.photo.map { [FactSource(seq: $0, region: nil)] } ?? []
-            return FactInput(name: "walk:action-\(action)", value: words.joined(separator: "; "), unit: nil,
+            // Named like Ask's source for it (#161: the report reuses Ask's checked wording).
+            return FactInput(name: "walk:action-\(action.prefix(12))", value: words.joined(separator: "; "), unit: nil,
                              sources: [FactSource(seq: seq, region: "action:\(action)")] + photo,
                              rule: ReportRules.walkAnswer)
         }
@@ -73,7 +74,17 @@ extension MissionStore {
 
     /// A red flag with inputs, citing them: a pack field through the pack's evidence, a photo, or a confirmed
     /// fact's own sources; strictly confidential like the stored flags. A flag with no input makes no fact.
-    private func flagFact(_ flag: RedFlagResult, pack: Int, known: [Fact]) -> FactInput? {
+    /// Each flag named like Ask's source for it: its rule and its place among that rule's results.
+    static func numbered(_ flags: [RedFlagResult]) -> [(flag: RedFlagResult, name: String)] {
+        var seen: [String: Int] = [:]
+        return flags.map { flag in
+            let count = seen[flag.rule.id, default: 0]
+            seen[flag.rule.id] = count + 1
+            return (flag, "flag:\(flag.rule.id):\(count)")
+        }
+    }
+
+    private func flagFact(_ flag: RedFlagResult, name: String, pack: Int, known: [Fact]) -> FactInput? {
         let byId = Dictionary(uniqueKeysWithValues: known.map { ($0.id, $0) })
         var sources: [FactSource] = []
         for input in flag.inputs {
@@ -106,7 +117,7 @@ extension MissionStore {
         case .notChecked(let why): "notChecked \(why.rawValue)"
         }
         let computed = flag.computed.map { " computed \($0)" } ?? ""
-        return FactInput(name: "flag:\(flag.rule.id):\(flag.subject ?? "")", value: outcome + computed, unit: nil,
+        return FactInput(name: name, value: outcome + computed, unit: nil,
                          sources: sources, rule: ReportRules.redFlag, floor: .strictlyConfidential)
     }
 

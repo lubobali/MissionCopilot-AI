@@ -60,8 +60,11 @@ enum AnswerCheck {
     /// What a source says, for the search and the checks: a red flag's title is its rule's name ("The same
     /// invoice paid twice"), its sentence is the finding ("No invoice reference or amount appears twice"), so
     /// only the sentence counts (found on the iPhone: "The invoice was paid twice" passed on the rule's name).
+    /// The rule's code ("MC-01", "R067") is part of the record (#161: a report line names it).
     static func evidenceText(_ source: MissionSource) -> String {
-        source.kind == .redFlag ? source.text : source.title + "\n" + source.text
+        guard source.kind == .redFlag else { return source.title + "\n" + source.text }
+        if case .redFlag(let rule) = source.origin { return rule + "\n" + source.text }
+        return source.text
     }
 
     static let notAnAnswer = "It says the sources do not answer, so it is not an answer."
