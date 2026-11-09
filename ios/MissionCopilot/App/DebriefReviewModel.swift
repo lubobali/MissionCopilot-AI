@@ -49,6 +49,9 @@ final class DebriefReviewModel {
     /// The notes and numbers saved from this debrief, as cards (found on the iPhone, #152: once saved they were
     /// shown nowhere but in Ask).
     private(set) var saved: [SourceCardWords] = []
+    /// Heard words that sound like one of the mission's names ("Condor" for "Kandor"), offered after the
+    /// recording (#153); the transcript stays as heard.
+    private(set) var suggestions: [CloseNames.Suggestion] = []
     /// The sentences code gave no label, for the officer to tag (#152).
     private(set) var untagged: [DebriefSentence] = []
     private var written: Set<Int> = []
@@ -84,7 +87,20 @@ final class DebriefReviewModel {
         self.transcript = transcript.text
         review = DebriefReview(debrief: debrief, notes: drafted.notes, numbers: numbers)
         untagged = drafted.untagged
+        let names = MissionNames.from(packFiles: (try? store.packFiles(in: mission)) ?? [:])
+        suggestions = CloseNames.suggestions(in: transcript.text, names: names)
         stage = .review
+    }
+
+    /// The officer accepts a name: each undecided note holding the heard word becomes their edit with the name.
+    func accept(_ suggestion: CloseNames.Suggestion) {
+        let heard = "\\b" + NSRegularExpression.escapedPattern(for: suggestion.heard) + "\\b"
+        for (index, check) in review.notes.enumerated() where decisions.notes[index] == nil {
+            let fixed = check.note.text.replacingOccurrences(of: heard, with: suggestion.name,
+                                                             options: .regularExpression)
+            if fixed != check.note.text { decisions.notes[index] = .edit(fixed) }
+        }
+        suggestions.removeAll { $0 == suggestion }
     }
 
     /// A sentence code left without a label becomes a note of the kind the officer chose, word for word.

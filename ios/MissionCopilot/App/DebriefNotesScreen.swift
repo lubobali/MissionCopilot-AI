@@ -81,6 +81,13 @@ struct DebriefNotesView: View {
                 .foregroundStyle(Color(.secondaryText))
         }
         .accessibilityElement(children: .combine)
+        // #153: after the recording, a heard word that sounds like one of the mission's names.
+        ForEach(model.suggestions, id: \.heard) { suggestion in
+            Button("Heard “\(suggestion.heard)”: use “\(suggestion.name)”", systemImage: "character.cursor.ibeam") {
+                model.accept(suggestion)
+            }
+            .buttonStyle(.fieldPrimary)
+        }
         ForEach(model.notes) { line in
             NoteCard(line: line, onDecide: { model.decide(note: line.id, $0) }, onUndo: { model.undo(note: line.id) },
                      onRelabel: { model.relabel(note: line.id, as: $0) })

@@ -13,7 +13,11 @@ struct MissionNamesTests {
 
         #expect(names.contains("Kandor"), "\(names)")
         #expect(names.contains("KRRP"), "\(names)")
-        for word in ["Section", "contractor", "French", "Invoice", "bridge", "Pont", "Status"] {
+        // Found on the pack: lowercase words ("geopoint", "ocds"), British spellings ("metres") and a second
+        // spelling of the same name are not names.
+        #expect(names.filter { $0.lowercased() == "kandor" } == ["Kandor"])
+        for word in ["Section", "contractor", "French", "Invoice", "bridge", "Pont", "Status", "metres", "geopoint",
+                     "ocds", "krrp"] {
             #expect(!names.contains(word), "\(word) is a dictionary word")
         }
         #expect(names.count <= MissionNames.maxNames)
@@ -39,7 +43,7 @@ struct MissionNamesTests {
 
     /// JSON keys and file paths are not names: only the values people read.
     @Test func onlyValuesNotKeys() throws {
-        let file = try JSONSerialization.data(withJSONObject: ["zqxkeyname": "Okafor met the team"])
+        let file = try JSONSerialization.data(withJSONObject: ["zqxkeyname": "Okafor met the Colour team"])
 
         #expect(MissionNames.from(packFiles: ["sections/zqxfile.json": file]) == ["Okafor"])
     }
@@ -51,6 +55,8 @@ struct MissionNamesTests {
                 == [CloseNames.Suggestion(heard: "Counter", name: "Kandor")])
         #expect(CloseNames.suggestions(in: "We met Mr. Okafur today.", names: names)
                 == [CloseNames.Suggestion(heard: "Okafur", name: "Okafor")])
+        // A plain word that sounds like a name is not offered: "send" sounds like "Kando".
+        #expect(CloseNames.suggestions(in: "the contractor will send a plan", names: ["Kando"]).isEmpty)
         // Already right, a dictionary word that sounds different, or nothing close: nothing is offered.
         #expect(CloseNames.suggestions(in: "Kandor road visit.", names: names).isEmpty)
         #expect(CloseNames.suggestions(in: "The bridge works have not started.", names: names).isEmpty)

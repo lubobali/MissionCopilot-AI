@@ -8,7 +8,7 @@ import UIKit
 /// keys or file paths.
 enum MissionNames {
     static let maxNames = 100
-    static let dictionaries = ["en_US", "fr_FR"]
+    static let dictionaries = ["en_US", "en_GB", "fr_FR"]
 
     static func from(packFiles: [String: Data]) -> [String] {
         var counts: [String: Int] = [:], order: [String] = []
@@ -19,11 +19,19 @@ enum MissionNames {
                 counts[word, default: 0] += 1
             }
         }
-        let checker = UITextChecker()
-        // An acronym ("KRRP") is a name: the spell checker passes words in capitals.
-        let unknown = order.filter { word in
-            word.allSatisfy(\.isUppercase) || !dictionaries.contains { known(word, language: $0, checker: checker) }
+        // A name starts with a capital ("Kandor"; found on the pack: "geopoint", "ocds" are not names); an acronym
+        // ("KRRP") is one, though the spell checker passes words in capitals. One spelling per name, counted together.
+        var merged: [String: Int] = [:], spelling: [String: String] = [:]
+        for word in order {
+            let key = word.lowercased()
+            merged[key, default: 0] += counts[word] ?? 0
+            if word.first?.isUppercase == true, spelling[key] == nil { spelling[key] = word }
         }
+        let firstSeen = order.compactMap { spelling[$0.lowercased()] }.reduce(into: [String]()) {
+            if !$0.contains($1) { $0.append($1) }
+        }
+        let unknown = firstSeen.filter { $0.allSatisfy(\.isUppercase) || !isKnown($0) }
+        counts = Dictionary(uniqueKeysWithValues: unknown.map { ($0, merged[$0.lowercased()] ?? 0) })
         let ranked = unknown.enumerated().sorted { first, second in
             let (one, two) = (counts[first.element] ?? 0, counts[second.element] ?? 0)
             return one == two ? first.offset < second.offset : one > two
@@ -43,6 +51,12 @@ enum MissionNames {
     /// Words of three letters or more, letters only ("KRRP-P1" gives "KRRP").
     private static func words(_ text: String) -> [String] {
         text.split { !$0.isLetter }.map(String.init).filter { $0.count >= 3 }
+    }
+
+    /// A word one of the phone's dictionaries knows (English, British English or French).
+    static func isKnown(_ word: String) -> Bool {
+        let checker = UITextChecker()
+        return dictionaries.contains { known(word, language: $0, checker: checker) }
     }
 
     private static func known(_ word: String, language: String, checker: UITextChecker) -> Bool {
@@ -67,7 +81,10 @@ enum CloseNames {
         var seen: Set<String> = []
         return text.split { !$0.isLetter }.map(String.init).compactMap { heard in
             let code = sound(heard)
+            // Only a word the engine wrote as a name (a capital) or one no dictionary knows: "send" sounds like
+            // "Kando" but is a plain word (found in a test on the Kandor pack).
             guard heard.count >= 3, let name = sounds[code], name.lowercased() != heard.lowercased(),
+                  heard.first?.isUppercase == true || !MissionNames.isKnown(heard),
                   seen.insert(heard.lowercased()).inserted else { return nil }
             return Suggestion(heard: heard, name: name)
         }

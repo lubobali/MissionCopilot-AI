@@ -33,7 +33,7 @@ protocol SpeechFiles: Sendable {
 /// iOS may remove them when unused, so the app asks before every mission (spike #14).
 struct AppleSpeechFiles: SpeechFiles {
     func status(of language: SpeechLanguage) async -> SpeechFileStatus {
-        guard SpeechTranscriber.isAvailable else { return .notSupported }
+        // DictationTranscriber has no isAvailable: the asset inventory says unsupported on a phone without it.
         return Self.status(from: await AssetInventory.status(forModules: [Self.transcriber(language)]))
     }
 
@@ -54,7 +54,11 @@ struct AppleSpeechFiles: SpeechFiles {
         }
     }
 
-    static func transcriber(_ language: SpeechLanguage) -> SpeechTranscriber {
-        SpeechTranscriber(locale: language.locale, preset: .transcription)
+    /// DictationTranscriber (#153): it takes the mission's names, and gives each word's confidence.
+    static func transcriber(_ language: SpeechLanguage) -> DictationTranscriber {
+        DictationTranscriber(locale: language.locale, contentHints: [],
+                             transcriptionOptions: DictationTranscriber.Preset.longDictation.transcriptionOptions,
+                             reportingOptions: DictationTranscriber.Preset.longDictation.reportingOptions,
+                             attributeOptions: [.transcriptionConfidence])
     }
 }
