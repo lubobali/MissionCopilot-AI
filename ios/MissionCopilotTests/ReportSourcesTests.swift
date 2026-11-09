@@ -106,6 +106,110 @@ struct ReportSourcesTests {
             + #""seen":"done"}},"finishedAt":1700000000,"formId":"f","formVersion":"1"}"#)
     }
 
+    // MARK: 7.1.5 facts from the pack, the walk and the red flags
+
+    /// The finished Kandor walk, with the red flags of its pack.
+    static func finished() async throws -> (MissionStore, [RedFlagResult]) {
+        let (store, _) = try await AskOpeningTests.store()
+        try store.finishWalk(form: SiteWalkStoreTests.form, version: "1", mission: mission)
+        let flags = RedFlagEngine(rules: RedFlagEngineTests.rules).run(RedFlagInputs(
+            contracts: try PackContracts.read(store.packFile(PackContracts.path, in: mission)),
+            milestones: try PackMilestones.read(store.packFile(PackMilestones.path, in: mission))),
+            walk: RedFlagEngineTests.walkDay, timeZone: .gmt)
+        return (store, flags)
+    }
+
+    static func write(_ store: MissionStore, _ flags: [RedFlagResult]) throws -> [Fact] {
+        try store.reportFacts(in: mission, form: SiteWalkStoreTests.form, flags: flags,
+                              signer: SoftwareEvidenceSigner())
+    }
+
+    /// Bank records the report uses become pack-record facts citing the pack's evidence, the file and pointer.
+    @Test func bankRecordsBecomeFactsCitingThePack() async throws {
+        let (store, flags) = try await Self.finished()
+
+        let facts = try Self.write(store, flags)
+
+        let pack = try store.packEvidence(in: Self.mission, signer: SoftwareEvidenceSigner())
+        let records = facts.filter { $0.rule == ReportRules.packRecord }
+        let milestone = try #require(records.first { $0.name == "pack:sections/milestones.json#/milestones/2" })
+        #expect(milestone.value.contains("status: notMet"), "\(milestone.value)")
+        #expect(milestone.sources.count == 1 && milestone.sources[0].seq == pack)
+        let file = try #require(try store.storedPack(for: Self.mission)?.files.first {
+            $0.path == "sections/milestones.json"
+        })
+        #expect(milestone.sources[0].region == "sections/milestones.json#/milestones/2 sha256:\(file.sha256)")
+        for name in ["pack:sections/contracts.json#/contracts/0", "pack:sections/agreed-actions.json#/actions/0",
+                     "pack:sections/contracts.json#/contracts/0/payments/5",
+                     "pack:sections/contracts.json#/contracts/0/payments#paid",
+                     "pack:sections/ratings.json#/overallRisk"] {
+            #expect(records.contains { $0.name == name }, "\(name)")
+        }
+        #expect(!records.contains { $0.name.contains("indicators") }, "only what a report uses")
+    }
+
+    /// Each walk answer and action check becomes a walk-answer fact citing the walk's evidence and the question.
+    @Test func walkAnswersBecomeFactsCitingTheWalk() async throws {
+        let (store, flags) = try await Self.finished()
+
+        let facts = try Self.write(store, flags)
+
+        let walk = try store.walkEvidence(form: SiteWalkStoreTests.form, in: Self.mission,
+                                          signer: SoftwareEvidenceSigner())
+        let answer = try #require(facts.first { $0.rule == ReportRules.walkAnswer && $0.name == "walk:bridge_started" })
+        #expect(answer.value == "no")
+        #expect(answer.sources == [FactSource(seq: walk, region: "question:bridge_started")])
+    }
+
+    /// Each red flag with inputs becomes a red-flag fact citing its inputs' evidence, strictly confidential.
+    @Test func redFlagsBecomeFactsCitingTheirInputs() async throws {
+        let (store, flags) = try await Self.finished()
+
+        let facts = try Self.write(store, flags)
+
+        let pack = try store.packEvidence(in: Self.mission, signer: SoftwareEvidenceSigner())
+        let ahead = try #require(facts.first { $0.rule == ReportRules.redFlag && $0.name.hasPrefix("flag:MC-01") })
+        #expect(ahead.value.hasPrefix("flag"), "\(ahead.value)")
+        // One link to the pack's evidence (a fact cites each item once), naming every field the flag used.
+        #expect(ahead.sources.count == 1 && ahead.sources[0].seq == pack)
+        let fields = ahead.sources[0].region?.components(separatedBy: " | ") ?? []
+        #expect(fields.count > 1 && fields.allSatisfy { $0.contains("sha256:") }, "\(fields)")
+        #expect(ahead.classification == .strictlyConfidential)
+        #expect(facts.filter { $0.rule == ReportRules.redFlag }.count
+                == flags.filter { !$0.inputs.isEmpty }.count)
+    }
+
+    /// Writing again adds nothing; the facts are the same.
+    @Test func reportFactsAreWrittenOnce() async throws {
+        let (store, flags) = try await Self.finished()
+
+        let first = try Self.write(store, flags)
+        let again = try Self.write(store, flags)
+
+        #expect(first.map(\.id) == again.map(\.id))
+        #expect(try store.facts(in: Self.mission).count == first.count)
+    }
+
+    /// Before the walk is finished there is no walk evidence: pack and flag facts only.
+    @Test func beforeTheFinishThereAreNoWalkFacts() async throws {
+        let (store, _) = try await AskOpeningTests.store()
+
+        let facts = try Self.write(store, [])
+
+        #expect(!facts.isEmpty && facts.allSatisfy { $0.rule == ReportRules.packRecord })
+    }
+
+    /// Ask reads the pack, walk and flags directly: these facts never show there twice.
+    @Test func reportFactsStayOutOfAsk() async throws {
+        let (store, flags) = try await Self.finished()
+        _ = try Self.write(store, flags)
+
+        let inputs = MissionSources.records(mission: Self.mission, store: store)
+
+        #expect(!inputs.facts.contains { ReportRules.ids.contains($0.rule.id) })
+        #expect(ScannedInvoice.all(from: try store.facts(in: Self.mission)).isEmpty)
+    }
+
     static func payload(_ store: MissionStore, _ seq: Int) throws -> EvidencePayload {
         try JSONDecoder().decode(EvidencePayload.self, from: store.evidence(in: mission)[seq - 1].payload)
     }
