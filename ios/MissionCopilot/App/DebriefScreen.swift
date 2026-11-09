@@ -104,6 +104,7 @@ struct DebriefView: View {
             status
             ForEach(model.debriefs.reversed()) { debrief in
                 DebriefRow(debrief: debrief, transcript: model.transcripts[debrief.seq] ?? .reading,
+                           unsure: model.unsure[debrief.seq] ?? [],
                            notesSaved: model.confirmed.contains(debrief.seq), mission: model.mission) {
                     Task { await model.retry(debrief.seq) }
                 }
@@ -185,6 +186,8 @@ struct VoiceBars: View {
 struct DebriefRow: View {
     let debrief: Debrief
     var transcript = DebriefModel.TranscriptState.reading
+    /// The words the engine was not sure of (#153).
+    var unsure: [TextSpan] = []
     var notesSaved = false
     var mission = ""
     var onRetry: () -> Void = {}
@@ -212,10 +215,15 @@ struct DebriefRow: View {
                     .font(.subheadline)
                     .foregroundStyle(Color(.secondaryText))
             case .heard(let text):
-                Text(text)
+                Text(Self.underlined(text, unsure))
                     .font(.body)
                     .foregroundStyle(Color(.text))
                     .textSelection(.enabled)
+                if !unsure.isEmpty {
+                    Label(Self.unsureWords, systemImage: "ear.badge.waveform")
+                        .font(.footnote)
+                        .foregroundStyle(Color(.warning))
+                }
                 if notesSaved {
                     // #152: the saved notes open, read only.
                     NavigationLink(value: DebriefNotesLink(id: mission, seq: debrief.seq)) {
@@ -249,5 +257,25 @@ extension MissionWorkspaceScreen {
     static func debriefsSummary(_ row: MissionRow, store: MissionStore?) -> String? {
         guard row.pack != nil, let store, let debriefs = try? store.debriefs(in: row.id) else { return nil }
         return DebriefModel.summary(debriefs)
+    }
+}
+
+extension DebriefRow {
+    static let unsureWords = "Underlined: the phone was not sure of these words. Check them."
+
+    /// The transcript with the unsure words underlined; a span outside the text is skipped.
+    static func underlined(_ text: String, _ unsure: [TextSpan]) -> AttributedString {
+        var words = AttributedString(text)
+        let characters = Array(text)
+        for span in unsure where span.offset >= 0 && span.offset + span.length <= characters.count {
+            let before = String(characters[..<span.offset])
+            let word = String(characters[span.offset..<(span.offset + span.length)])
+            let start = words.index(words.startIndex, offsetByCharacters: before.count)
+            guard let end = words.characters.index(start, offsetBy: word.count, limitedBy: words.endIndex) else {
+                continue
+            }
+            words[start..<end].underlineStyle = .single
+        }
+        return words
     }
 }

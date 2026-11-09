@@ -17,6 +17,16 @@ struct SpeechView: View {
                 recordButton(round: "noisy", title: "Record: noisy (TV or kitchen)")
                 Text(model.englishScript).font(.callout)
             }
+            Section("Names test #153: read a script aloud, then compare") {
+                namesButton(.en, title: "Record: names script, English")
+                Text(SpeechLabModel.namesScripts[.en] ?? "").font(.callout)
+                namesButton(.fr, title: "Record: names script, French")
+                Text(SpeechLabModel.namesScripts[.fr] ?? "").font(.callout)
+                Button("8. Install the dictation engine (online, once)") { model.installDictation() }
+                Button("9. Compare both engines on the names recordings") { model.compareNames() }
+                    .disabled(model.isRecording)
+            }
+            .disabled(model.running)
             Section("Real voice (Documents/voice, English)") {
                 Button("6. Run Apple on voice files") { model.runAppleOnVoice() }
                 #if canImport(WhisperKit)
@@ -36,6 +46,12 @@ struct SpeechView: View {
             }
         }
         .navigationTitle("Speech #14")
+    }
+
+    private func namesButton(_ language: SpeechLabModel.Language, title: String) -> some View {
+        let mine = model.recordingRound == "names\(language.rawValue)"
+        return Button(mine ? "Stop recording" : title) { model.toggleNamesRecording(language) }
+            .disabled(model.isRecording && !mine)
     }
 
     /// One recording at a time: while one round records, only its own button (now "Stop") is active.

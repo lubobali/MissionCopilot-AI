@@ -41,6 +41,8 @@ final class DebriefModel {
     var language = SpeechLanguage.english
     private(set) var debriefs: [Debrief] = []
     private(set) var transcripts: [Int: TranscriptState] = [:]
+    /// Each read debrief's words the engine was not sure of (#153), underlined on its card.
+    private(set) var unsure: [Int: [TextSpan]] = [:]
     /// Debriefs whose notes are saved (6.6.8).
     private(set) var confirmed: Set<Int> = []
     private(set) var levels = Array(repeating: 0.0, count: DebriefModel.bars)
@@ -65,6 +67,7 @@ final class DebriefModel {
         for debrief in debriefs where transcripts[debrief.seq] == nil {
             if let kept = (try? store.transcript(of: debrief.seq, in: mission)).flatMap({ $0 }) {
                 transcripts[debrief.seq] = .heard(kept.text)
+                unsure[debrief.seq] = kept.unsure
             }
         }
     }
@@ -92,6 +95,7 @@ final class DebriefModel {
         do {
             let transcript = try await store.transcribe(debrief, in: mission, engine: transcriber)
             transcripts[debrief.seq] = .heard(transcript.text)
+            unsure[debrief.seq] = transcript.unsure
         } catch let problem as TranscriptionProblem {
             transcripts[debrief.seq] = .problem(problem)
         } catch {

@@ -80,3 +80,20 @@ a read-back the speaker confirms, and code cross-checks against the documents ("
 3. **Offline readiness check** before a mission: Apple language files installed (`AssetInventory.status`),
    or the Whisper model folder present and loaded once.
 4. **Audio is mission data:** encrypted with the mission key (#16), never sent unapproved.
+
+## Follow-up #153: the mission's names, on a real accent (Nov 8 2026, Lubo's iPhone 13 Pro Max, offline)
+Found in the Phase 6 proof: "Kandor road visit" was written "Counter route visit". Apple's docs: contextual
+strings (up to 100 short phrases) bias recognition toward an app's names, but only with DictationTranscriber
+([contextualStrings](https://developer.apple.com/documentation/speech/analysiscontext/contextualstrings),
+[DictationTranscriber](https://developer.apple.com/documentation/speech/dictationtranscriber)). One take of a
+names script read by Lubo (accented English), both engines on the same file (AI Lab, "Names test #153"):
+
+| Engine | Names right | Word errors | Invoice amount | Time |
+|---|---|---|---|---|
+| SpeechTranscriber | 2 of 4 ("Okafur", "Condor") | 29.0% | "180,000 hours" (wrong) | 0.7 s |
+| DictationTranscriber + the mission's names | 2 of 4 ("Candor", "Condor"; Okafor right) | 19.4% | "$480,000" (right) | 1.8 s |
+
+**Decided (Lubo):** DictationTranscriber with the mission's names (`MissionNames`: the pack's capitalized words
+and acronyms no phone dictionary knows, at most 100), each word's confidence kept so unsure words are underlined,
+and "Condor -> Kandor?" offered after the recording for any mission's names (`CloseNames`, a sound code). One take
+only: enough to choose, not a study; more voices in #39.

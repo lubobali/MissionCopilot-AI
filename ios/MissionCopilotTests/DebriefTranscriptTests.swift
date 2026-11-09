@@ -14,15 +14,18 @@ struct DebriefTranscriptTests {
     /// An engine that answers what it is told to and counts its calls.
     final class FakeTranscriber: DebriefTranscriber, @unchecked Sendable {
         var answer: Result<String, TranscriptionProblem>
+        var unsure: [TextSpan] = []
         private(set) var calls: [SpeechLanguage] = []
+        private(set) var names: [[String]] = []
 
         init(_ answer: Result<String, TranscriptionProblem> = .success("Section 3 bridge not started.")) {
             self.answer = answer
         }
 
-        func transcribe(_ audio: Data, language: SpeechLanguage) async throws -> String {
+        func transcribe(_ audio: Data, language: SpeechLanguage, names: [String]) async throws -> HeardText {
             calls.append(language)
-            return try answer.get()
+            self.names.append(names)
+            return HeardText(text: try answer.get(), unsure: unsure)
         }
     }
 
