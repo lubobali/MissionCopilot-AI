@@ -39,10 +39,20 @@ struct AnswerLinesTests {
     }
 
     @Test func anyOtherPackRecordReadsAsItsTitleAndFields() throws {
-        #expect(try Self.line("pack:sections/ratings.json#/overallRisk")
-                == "Ratings · Overall risk: Current: High; Previous: Substantial.")
         #expect(try Self.line("pack:sections/contracts.json#/contracts/0/contractPeriod")
                 == "Contracts · Contract period: End: 31 Dec 2026; Start: 15 Jan 2025.")
+    }
+
+    /// #161, step 7.2.7 (found on the iPhone): a rating and the physical progress read as plain words, for any
+    /// rating with a current and a previous value and any progress in any unit.
+    @Test func ratingsAndProgressReadAsPlainWords() throws {
+        #expect(try Self.line("pack:sections/ratings.json#/overallRisk") == "Overall risk: High (Substantial before).")
+        #expect(try Self.line("pack:sections/ratings.json#/overallRisk", .french)
+                == "Overall risk : High (avant : Substantial).")
+        #expect(try Self.line("pack:sections/contracts.json#/contracts/0/physicalProgress")
+                == "Physical progress: 32 of 64 km of asphalt built, as of 30 Sep 2026.")
+        #expect(try Self.line("pack:sections/contracts.json#/contracts/0/physicalProgress", .french)
+                == "Physical progress : 32 sur 64 km of asphalt réalisés, au 30 Sep 2026.")
     }
 
     @Test func theWalkFlagsScansAndNotesSayWhoseTheyAre() {

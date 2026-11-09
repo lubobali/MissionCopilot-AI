@@ -45,7 +45,9 @@ struct ReportWriterTests {
         let project = Self.texts(lines, .project)
         #expect(project.contains("USD 8,500,000 paid to date (the sum of 6 payments)."), "\(project)")
         #expect(project.contains("Section 3 bridge complete: not met, due 30 Sep 2026."), "\(project)")
-        #expect(project.contains { $0.contains("Overall risk") }, "\(project)")
+        #expect(project.filter { $0.contains("risk") || $0.contains("Satisfactory") }
+                == ["Overall risk: High (Substantial before)."], "only the overall rating, \(project)")
+        #expect(project.contains("Physical progress: 32 of 64 km of asphalt built, as of 30 Sep 2026."), "\(project)")
         let findings = Self.texts(lines, .findings)
         #expect(findings.contains("Red flag MC-01: Payments are 35 points ahead of the work built."), "\(findings)")
         #expect(findings.contains { $0.hasPrefix("Red flag R067:") }, "\(findings)")

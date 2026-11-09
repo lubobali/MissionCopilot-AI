@@ -36,22 +36,78 @@ struct ReportLine: Equatable, Sendable, Identifiable {
 /// way to write from records (INLG 2024: rule and template systems make the fewest semantic errors).
 enum ReportWriter {
     /// `sources` are Ask's sources for the mission (pack, walk, flags, scanned and debrief facts); `facts` are the
-    /// mission's facts, report facts included; `flagged` the names of the red flags that are raised.
+    /// mission's facts, report facts included; `flagged` the names of the red flags that are raised. Short, like a
+    /// real aide-memoire (#161, 7.2.7, found on the iPhone: 77 sentences): a scanned invoice is one sentence, and
+    /// the same sentence twice is one citing both.
     static func write(sources: [MissionSource], facts: [Fact], flagged: Set<String>,
                       language: AnswerLanguage) -> [ReportLine] {
         let byName = Dictionary(facts.map { ($0.name, $0) }) { first, _ in first }
         let byId = Dictionary(uniqueKeysWithValues: facts.map { ($0.id, $0) })
-        let lines = sources.compactMap { source -> ReportLine? in
+        let scanOf = scans(facts)
+        var lines: [ReportLine] = []
+        var scanned: [Int: ScanLine] = [:]
+        for source in sources {
             guard let section = section(of: source, flagged: flagged, byId: byId),
-                  let fact = fact(for: source, byName: byName, byId: byId) else { return nil }
-            let text = AnswerLines.line(source, language: language).text
-            let reason = numberOrMonth(text, source: source)
-            return ReportLine(section: section, text: text, factIds: [fact.id], checked: reason == nil,
-                              reason: reason)
+                  let fact = fact(for: source, byName: byName, byId: byId) else { continue }
+            if let scan = scanOf[fact.id] {
+                if scanned[scan] == nil {
+                    scanned[scan] = ScanLine(position: lines.count)
+                    lines.append(ReportLine(section: section, text: "", factIds: [], checked: false))
+                }
+                scanned[scan]?.add(source, fact)
+                continue
+            }
+            lines.append(codeLine(section, AnswerLines.line(source, language: language).text, [source], [fact]))
         }
-        return lines.enumerated().sorted { first, second in
+        for scan in scanned.values {
+            lines[scan.position] = codeLine(.findings, scan.text(language), scan.sources, scan.facts)
+        }
+        return once(lines).enumerated().sorted { first, second in
             (first.element.section.order, first.offset) < (second.element.section.order, second.offset)
         }.map(\.element)
+    }
+
+    private static func codeLine(_ section: ReportSection, _ text: String, _ sources: [MissionSource],
+                                 _ facts: [Fact]) -> ReportLine {
+        let reason = numberOrMonth(text, sources: sources)
+        return ReportLine(section: section, text: text, factIds: facts.map(\.id), checked: reason == nil,
+                          reason: reason)
+    }
+
+    /// Which scanned invoice each scanned fact belongs to: an invoice's 8 facts are stored together, in order,
+    /// so a field seen again starts the next invoice.
+    static func scans(_ facts: [Fact]) -> [String: Int] {
+        var scan = 0
+        var seen: Set<String> = []
+        var out: [String: Int] = [:]
+        for fact in facts where InvoiceFacts.fields.contains(fact.name)
+            && (fact.rule == MissionStore.scanRule || fact.rule == MissionStore.officerRule) {
+            if seen.contains(fact.name) {
+                scan += 1
+                seen = []
+            }
+            seen.insert(fact.name)
+            out[fact.id] = scan
+        }
+        return out
+    }
+
+    /// The same sentence in the same section once, at its first place, citing every fact of each copy.
+    private static func once(_ lines: [ReportLine]) -> [ReportLine] {
+        var out: [ReportLine] = []
+        var place: [String: Int] = [:]
+        for line in lines {
+            guard let index = place[line.id] else {
+                place[line.id] = out.count
+                out.append(line)
+                continue
+            }
+            let kept = out[index]
+            let ids = kept.factIds + line.factIds.filter { !kept.factIds.contains($0) }
+            out[index] = ReportLine(section: kept.section, text: kept.text, factIds: ids,
+                                    checked: kept.checked && line.checked, reason: kept.reason ?? line.reason)
+        }
+        return out
     }
 
     /// The officer's own sentence (#161, step 7.2.3), checked in full by Ask's check (AnswerCheck: numbers,
@@ -81,7 +137,11 @@ enum ReportWriter {
     /// AnswerLinesTests); statuses come straight from the record's fields and names (a milestone named
     /// "Section 3 bridge complete" is a name, not a claim). The officer's sentences get the full check.
     static func numberOrMonth(_ text: String, source: MissionSource) -> String? {
-        guard case .leftOut(let why) = AnswerCheck.check(text, cites: [source.id], found: [source]),
+        numberOrMonth(text, sources: [source])
+    }
+
+    static func numberOrMonth(_ text: String, sources: [MissionSource]) -> String? {
+        guard case .leftOut(let why) = AnswerCheck.check(text, cites: sources.map(\.id), found: sources),
               why.hasPrefix("The number") || why.hasPrefix("The month") else { return nil }
         return why
     }
@@ -99,7 +159,8 @@ enum ReportWriter {
         switch source.kind {
         case .pack:
             if id.range(of: #"#/contracts/\d+$"#, options: .regularExpression) != nil { return .mission }
-            if id.hasSuffix("#paid") || id.contains("ratings.json#/") || id.hasSuffix("physicalProgress")
+            // Only the overall rating, which every pack has (pack-sections schema); the rest is in the pack.
+            if id.hasSuffix("#paid") || id.hasSuffix("ratings.json#/overallRisk") || id.hasSuffix("physicalProgress")
                 || id.range(of: #"#/milestones/\d+$"#, options: .regularExpression) != nil { return .project }
             if id.range(of: #"#/actions/\d+$"#, options: .regularExpression) != nil { return .agreedActions }
             return nil
@@ -116,5 +177,29 @@ enum ReportWriter {
         case .document:
             return nil
         }
+    }
+}
+
+/// One scanned invoice's facts, gathered into one sentence in the invoice's field order.
+private struct ScanLine {
+    let position: Int
+    var sources: [MissionSource] = []
+    var facts: [Fact] = []
+
+    mutating func add(_ source: MissionSource, _ fact: Fact) {
+        sources.append(source)
+        facts.append(fact)
+    }
+
+    /// "From your scanned invoice: Invoice number: 14; …; Road built: 32 km; …", a typed value marked as such.
+    func text(_ language: AnswerLanguage) -> String {
+        let order = { (fact: Fact) in InvoiceFacts.fields.firstIndex(of: fact.name) ?? 0 }
+        let parts = facts.sorted { order($0) < order($1) }.map { fact in
+            "\(InvoiceFacts.name(fact.name)): \(InvoiceFacts.words(fact.name, value: fact.value))"
+                + (fact.typedNotOnPage ? language.pick(" (typed by you, not on the page)",
+                                                       " (saisi par vous, pas sur la page)") : "")
+        }
+        return language.pick("From your scanned invoice: ", "Selon votre facture scannée : ")
+            + parts.joined(separator: "; ") + "."
     }
 }

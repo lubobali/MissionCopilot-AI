@@ -25,7 +25,8 @@ struct ReportModelTests {
 
         #expect(model.stage == .ready)
         #expect(model.walkFinished)
-        #expect(model.lines.count > 5)
+        #expect(model.lines.count > 5 && model.lines.count <= 25, "short, like a real aide-memoire (#161, 7.2.7)")
+        #expect(Set(model.lines.map(\.id)).count == model.lines.count, "each sentence once")
         #expect(model.unproven == 0 && model.canSave)
         #expect(model.summary == "\(model.lines.count) sentences, each with its proof")
         #expect(model.lines.contains { $0.text == "Your site walk: Has work on the Section 3 bridge started? No." })
