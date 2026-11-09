@@ -4,7 +4,10 @@ import GRDB
 /// The officer's decision on one scanned fact (#138, step 6.5.9).
 enum FactDecision: Equatable, Sendable {
     case confirm
+    /// A value typed by the officer that is not on the scanned pages (#151: only after a second tap).
     case correct(String)
+    /// A value typed by the officer and found on a scanned page, with where (#151).
+    case correctOnPage(String, PrintedAt)
 }
 
 extension PrintedAt {
@@ -67,6 +70,11 @@ extension MissionStore {
             return FactInput(name: field, value: value, unit: unit,
                              sources: [FactSource(seq: pages[printed.page], region: printed.region)],
                              rule: Self.scanRule)
+        case .correctOnPage(let value, let printed):
+            guard pages.indices.contains(printed.page) else { throw CannotConfirm(field: field) }
+            return FactInput(name: field, value: value, unit: unit,
+                             sources: [FactSource(seq: pages[printed.page], region: printed.region)],
+                             rule: Self.officerRule)
         case .correct(let typed):
             let value = typed.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !value.isEmpty, !pages.isEmpty else { throw CannotConfirm(field: field) }
@@ -76,7 +84,27 @@ extension MissionStore {
     }
 }
 
+extension Fact {
+    /// A scanned invoice's fact the officer typed and the pages do not show (#151): their word, not the page's.
+    var typedNotOnPage: Bool {
+        rule == MissionStore.officerRule && InvoiceFacts.fields.contains(name)
+            && sources.allSatisfy { $0.region == nil }
+    }
+}
+
 extension InvoiceFacts {
+    /// The same facts with one field's stored value replaced; nil when the value does not fit the field.
+    func replacing(_ field: String, with value: String) -> InvoiceFacts? {
+        var all = Dictionary(uniqueKeysWithValues: InvoiceFacts.fields.map { ($0, self.value($0) ?? "") })
+        all[field] = value
+        let number = { (name: String) in Int(all[name] ?? "") }
+        guard let due = number("amountDue"), let paid = number("cumulativePaid"), let total = number("contractValue"),
+              let built = number("kmCompleted"), let length = number("kmTotal") else { return nil }
+        return InvoiceFacts(invoiceNumber: all["invoiceNumber"] ?? "", invoiceDate: all["invoiceDate"] ?? "",
+                            amountDue: due, cumulativePaid: paid, contractValue: total, kmCompleted: built,
+                            kmTotal: length, bridgeStatus: all["bridgeStatus"] ?? "")
+    }
+
     /// A field's value as stored: whole numbers without commas, dates as YYYY-MM-DD.
     func value(_ field: String) -> String? {
         ["invoiceNumber": invoiceNumber, "invoiceDate": invoiceDate, "amountDue": String(amountDue),

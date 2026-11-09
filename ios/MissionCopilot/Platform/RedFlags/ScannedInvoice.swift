@@ -4,6 +4,8 @@ import Foundation
 struct FactRef: Codable, Sendable, Equatable {
     let id: String
     let name: String
+    /// True when the officer typed it and the pages do not show it (#151); nil otherwise.
+    var typed: Bool?
 }
 
 /// The numbers of one invoice the officer confirmed from scanned pages (#138, step 6.5.10), for the rules
@@ -39,7 +41,9 @@ struct ScannedInvoice: Sendable, Equatable {
         else { return nil }
         return ScannedInvoice(number: invoice, paid: paid, contractValue: value, kmBuilt: Double(built),
                               kmTotal: Double(total),
-                              facts: byName.mapValues { FactRef(id: $0.id, name: $0.name) })
+                              facts: byName.mapValues {
+                                  FactRef(id: $0.id, name: $0.name, typed: $0.typedNotOnPage ? true : nil)
+                              })
     }
 
     func cite(_ names: [String]) -> [RedFlagResult.Input] {

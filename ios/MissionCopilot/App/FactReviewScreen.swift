@@ -60,9 +60,12 @@ struct FactReviewView: View {
                 header
                 ForEach(model.lines) { line in
                     FactCard(line: line, onConfirm: { model.confirm(line.field) },
-                             onCorrect: { model.correct(line.field, to: $0) }, onUndo: { model.undo(line.field) })
+                             onCorrect: { model.correct(line.field, to: $0, anyway: $1) },
+                             onUndo: { model.undo(line.field) })
                 }
-                if let problem = model.problem { note(problem, icon: "exclamationmark.triangle.fill", role: .warning) }
+                if let problem = model.problem, model.problemField == nil {
+                    note(problem, icon: "exclamationmark.triangle.fill", role: .warning)
+                }
                 Button("Save the 8 facts", systemImage: "checkmark.seal", action: model.save)
                     .buttonStyle(.fieldPrimary)
                     .disabled(!model.canSave)
@@ -98,7 +101,8 @@ struct FactReviewView: View {
 struct FactCard: View {
     let line: FactReviewModel.Line
     var onConfirm: () -> Void = {}
-    var onCorrect: (String) -> Bool = { _ in false }
+    /// The typed value, and whether the officer keeps it although it is not on the pages (#151).
+    var onCorrect: (String, Bool) -> Bool = { _, _ in false }
     var onUndo: () -> Void = {}
     @State private var typed: String?
 
@@ -145,17 +149,35 @@ struct FactCard: View {
                 .background(Color(.surface), in: .rect(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.border)))
                 .accessibilityLabel("Correct \(line.name)")
+            if let warning = line.warning {
+                Label(warning, systemImage: "exclamationmark.triangle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(Color(.warning))
+            }
             HStack {
-                Button("Keep this value") { if onCorrect(text) { typed = nil } }
+                Button("Keep this value") { if onCorrect(text, false) { typed = nil } }
                     .buttonStyle(.fieldSecondary)
                 Button("Cancel") { typed = nil }
                     .buttonStyle(.fieldSecondary)
+            }
+            if line.notOnPage != nil {
+                Button("Keep it anyway, not on the page", systemImage: "hand.raised") {
+                    if onCorrect(text, true) { typed = nil }
+                }
+                .buttonStyle(.fieldSecondary)
             }
         } else if line.decision != nil {
             Button("Change", systemImage: "arrow.uturn.backward", action: onUndo)
                 .buttonStyle(.fieldSecondary)
                 .accessibilityHint(line.name)
         } else {
+            // #151: the values printed on the page come first, so the right one is one tap away.
+            ForEach(line.choices, id: \.self) { choice in
+                Button("Use \(choice.words), from the page", systemImage: "text.magnifyingglass") {
+                    _ = onCorrect(choice.value, false)
+                }
+                .buttonStyle(.fieldPrimary)
+            }
             HStack {
                 Button("Confirm", systemImage: "checkmark", action: onConfirm)
                     .buttonStyle(.fieldSecondary)

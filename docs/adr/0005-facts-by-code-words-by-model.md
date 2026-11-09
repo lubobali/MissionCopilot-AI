@@ -65,5 +65,13 @@ Option 3.
   when the walk and the bank disagree); for any other question code writes one line from each record
   found and the model only chooses among them. The model never writes an answer.
 
+## Evidence (#151: a correction must come from the page, Nov 8 2026)
+- In the Phase 6 proof the model invented three scanned values (1 km, 10000000 km, a finished bridge); code
+  locked Confirm, and the same three values were typed back in Correct and saved as the officer's.
+- **Added rule:** the officer's correction is checked like the model's value. The value the page check
+  rejected is refused; a typed value found on a page keeps its page and position; one not on the pages is
+  kept only with a second tap and is cited as "typed by you", never as the page. Code offers the values
+  printed on the page; the officer chooses.
+
 ## Revisit when
 - Never for arithmetic. Revisit the extraction split if document types multiply beyond what rules handle.

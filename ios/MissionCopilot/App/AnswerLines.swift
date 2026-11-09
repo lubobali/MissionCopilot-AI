@@ -45,6 +45,10 @@ enum AnswerLines {
             if source.kind == .note {
                 return language.pick("From your debrief: ", "Selon votre compte rendu : ") + line
             }
+            if source.title.hasPrefix(MissionSources.typedTitle) {
+                return language.pick("You typed this, it is not on the scanned page: ",
+                                     "Vous l'avez saisi, ce n'est pas sur la page scannée : ") + "\(line)."
+            }
             if source.title.hasPrefix("Heard") {
                 return language.pick("Heard in your debrief: ", "Entendu dans votre compte rendu : ") + "\(line)."
             }

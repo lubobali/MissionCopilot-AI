@@ -66,8 +66,9 @@ struct FactReviewModelTests {
 
         for field in InvoiceFacts.fields.dropLast() { model.confirm(field) }
         #expect(!model.canSave)
-        #expect(model.correct("bridgeStatus", to: "in progress"))
-        #expect(model.lines[7].decision == "Corrected to In progress")
+        #expect(!model.correct("bridgeStatus", to: "in progress"))  // #151: not on the pages, a second tap
+        #expect(model.correct("bridgeStatus", to: "in progress", anyway: true))
+        #expect(model.lines[7].decision == "Corrected to In progress, not on the page")
         #expect(model.canSave)
         model.save()
 
@@ -85,7 +86,7 @@ struct FactReviewModelTests {
         #expect(!model.correct("amountDue", to: "about half a million"))
         #expect(model.problem == "Enter a whole number, like 480000.")
         #expect(model.correct("amountDue", to: "480,000"))
-        #expect(model.lines[2].decision == "Corrected to USD 480,000")
+        #expect(model.lines[2].decision == "Corrected to USD 480,000, on page 1")
         #expect(model.problem == nil)
         #expect(!model.correct("invoiceDate", to: "12/10/2026"))
         #expect(model.problem == "Enter the date as year-month-day, like 2026-10-12.")
@@ -95,7 +96,8 @@ struct FactReviewModelTests {
         #expect(!model.correct("invoiceNumber", to: "  "))
         #expect(!model.correct("invoiceNumber", to: "abc"))  // found on the iPhone: a number needs a digit
         #expect(model.problem == "Enter the invoice number as printed, like 14.")
-        #expect(model.correct("invoiceNumber", to: "INV-14/A"))
+        #expect(!model.correct("invoiceNumber", to: "INV-14/A"))  // #151: it fits, but it is not on the pages
+        #expect(model.correct("invoiceNumber", to: "INV-14/A", anyway: true))
     }
 
     @Test func whenTheAssistantCannotAnswerTheOfficerEntersTheFacts() async throws {

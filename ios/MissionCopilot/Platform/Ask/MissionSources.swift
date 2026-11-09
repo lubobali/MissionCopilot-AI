@@ -78,6 +78,8 @@ enum MissionSources {
         }
     }
 
+    static let typedTitle = "Typed by you"
+
     /// A confirmed fact in words: a scanned invoice's field, a debrief note, or a number heard in a debrief.
     static func fact(_ fact: Fact) -> MissionSource {
         let origin = SourceOrigin.fact(id: fact.id, sources: fact.sources)
@@ -96,7 +98,8 @@ enum MissionSources {
                                  origin: origin)
         }
         let name = InvoiceFacts.name(fact.name)
-        return MissionSource(id: "fact:\(fact.id)", kind: .fact, title: "Scanned invoice · \(name)",
+        let whose = fact.typedNotOnPage ? typedTitle : "Scanned invoice"  // #151: the officer's word, not the page's
+        return MissionSource(id: "fact:\(fact.id)", kind: .fact, title: "\(whose) · \(name)",
                              text: "\(name): \(value)", origin: origin)
     }
 }

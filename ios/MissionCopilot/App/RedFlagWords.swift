@@ -179,8 +179,10 @@ struct RedFlagWords: Sendable {
             return french ? "Photo \(photo.seq), une autre mission sur ce téléphone"
                 : "Photo \(photo.seq), another mission on this phone"
         case .fact(let fact):
-            return french ? "Facture scannée · \(Self.frenchFields[fact.name] ?? fact.name)"
-                : "Scanned invoice · \(InvoiceFacts.name(fact.name))"
+            let typed = fact.typed == true
+                ? (french ? " (saisi par vous, absent de la page)" : " (you typed it, not on the page)") : ""
+            return (french ? "Facture scannée · \(Self.frenchFields[fact.name] ?? fact.name)"
+                : "Scanned invoice · \(InvoiceFacts.name(fact.name))") + typed
         }
     }
 
