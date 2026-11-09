@@ -36,6 +36,80 @@ struct ReportSourcesTests {
         #expect(try store.packSignature(in: "no-such-mission") == nil)
     }
 
+    // MARK: 7.1.3 and 7.1.4 the pack and the finished walk as evidence
+
+    /// The pack is evidence once per manifest: its exact manifest bytes and the server's signature, signed into
+    /// the phone's chain (kind pack); asking again gives the same item.
+    @Test func thePackBecomesEvidenceOnce() async throws {
+        let (store, _) = try await AskOpeningTests.store()
+        let before = try store.evidence(in: Self.mission).count
+
+        let seq = try store.packEvidence(in: Self.mission, signer: SoftwareEvidenceSigner())
+        let again = try store.packEvidence(in: Self.mission, signer: SoftwareEvidenceSigner())
+
+        #expect(seq == before + 1 && again == seq)
+        #expect(try store.evidence(in: Self.mission).count == before + 1)
+        let payload = try Self.payload(store, seq)
+        #expect(payload.kind == .pack)
+        let file = try JSONDecoder().decode(PackEvidenceFile.self, from: store.evidenceFile(in: Self.mission, seq: seq))
+        #expect(file.manifestSHA256 == (try store.storedPack(for: Self.mission))?.manifestSHA256)
+        #expect(PackAcceptance.hash(file.manifest) == file.manifestSHA256)
+        #expect(file.signature == FakePackServer.file("signature.json"))
+        #expect(payload.contentHash == SHA256.hash(data: try store.evidenceFile(in: Self.mission, seq: seq))
+            .map { String(format: "%02x", $0) }.joined())
+    }
+
+    /// A newer pack is a new manifest, so it becomes evidence of its own; the first item stays.
+    @Test func aNewerPackIsEvidenceOfItsOwn() async throws {
+        let rig = try PackDownloaderTests.Rig()
+        guard case .verified(let first) = await rig.run() else { throw CancellationError() }
+        let store = try Self.emptyStore()
+        _ = try PackImport.run(first, title: "Kandor", into: store, schema: PackSectionsTests.schema())
+        let one = try store.packEvidence(in: Self.mission, signer: SoftwareEvidenceSigner())
+
+        _ = try PackImport.run(try PackImportTests.republished(first, version: first.manifest.version + 1),
+                               title: "Kandor", into: store, schema: PackSectionsTests.schema())
+        let two = try store.packEvidence(in: Self.mission, signer: SoftwareEvidenceSigner())
+
+        #expect(two == one + 1)
+        #expect(try Self.payload(store, one).kind == .pack)
+    }
+
+    /// The walk is evidence only once it is finished, and once: its answers and checks as canonical JSON.
+    @Test func theFinishedWalkBecomesEvidenceOnce() async throws {
+        let (store, _) = try await AskOpeningTests.store()
+        let form = SiteWalkStoreTests.form
+
+        #expect(throws: MissionStore.WalkNotFinished.self) {
+            try store.walkEvidence(form: form, in: Self.mission, signer: SoftwareEvidenceSigner())
+        }
+        try store.finishWalk(form: form, version: "1", mission: Self.mission)
+        let seq = try store.walkEvidence(form: form, in: Self.mission, signer: SoftwareEvidenceSigner())
+        let again = try store.walkEvidence(form: form, in: Self.mission, signer: SoftwareEvidenceSigner())
+
+        #expect(again == seq)
+        #expect(try Self.payload(store, seq).kind == .walk)
+        let file = try JSONDecoder().decode(WalkEvidenceFile.self, from: store.evidenceFile(in: Self.mission, seq: seq))
+        #expect(file.formId == form && file.formVersion == "1")
+        #expect(file.answers["bridge_started"] == "no")
+    }
+
+    /// The same walk always gives the same bytes (sorted keys, whole seconds), so its hash can be checked.
+    @Test func theWalksEvidenceBytesAreCanonical() throws {
+        let walk = WalkEvidenceFile(formId: "f", formVersion: "1", finishedAt: 1_700_000_000,
+                                    answers: ["b": "2", "a": "1"],
+                                    checks: ["x": .init(seen: "done", note: nil, photo: 3)])
+
+        let bytes = try WalkEvidenceFile.encoder.encode(walk)
+
+        #expect(String(bytes: bytes, encoding: .utf8) == #"{"answers":{"a":"1","b":"2"},"checks":{"x":{"photo":3,"#
+            + #""seen":"done"}},"finishedAt":1700000000,"formId":"f","formVersion":"1"}"#)
+    }
+
+    static func payload(_ store: MissionStore, _ seq: Int) throws -> EvidencePayload {
+        try JSONDecoder().decode(EvidencePayload.self, from: store.evidence(in: mission)[seq - 1].payload)
+    }
+
     static func emptyStore() throws -> MissionStore {
         try MissionStore(store: EncryptedStore.open(
             at: FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).sqlite"),

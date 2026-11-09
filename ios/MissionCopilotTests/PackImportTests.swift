@@ -28,7 +28,7 @@ struct PackImportTests {
 
     /// The same files under another manifest: the version and the file list changed, as a new publish,
     /// in a download folder of their own (an import deletes the one it came from).
-    private func republished(_ ready: PackReady, version: Int, dropping path: String? = nil) throws -> PackReady {
+    static func republished(_ ready: PackReady, version: Int, dropping path: String? = nil) throws -> PackReady {
         let staging = try PackStaging(base: FileManager.default.temporaryDirectory.appendingPathComponent(
             UUID().uuidString), mission: ready.manifest.missionId)
         for file in ready.manifest.files {
@@ -111,7 +111,7 @@ struct PackImportTests {
         _ = try run(ready, into: rig.store)
         try rig.store.addNote("before the new pack", to: Self.mission)
 
-        let newer = try run(try republished(ready, version: 2, dropping: "documents/aide-memoire-2026-05.md"),
+        let newer = try run(try Self.republished(ready, version: 2, dropping: "documents/aide-memoire-2026-05.md"),
                             into: rig.store)
 
         #expect(newer.version == 2 && newer.files.count == 11)
@@ -137,7 +137,7 @@ struct PackImportTests {
         let (rig, ready) = try await downloaded()
 
         #expect(throws: PackRefusal.badSection) {
-            try run(try republished(ready, version: 1, dropping: "sections/ratings.json"), into: rig.store)
+            try run(try Self.republished(ready, version: 1, dropping: "sections/ratings.json"), into: rig.store)
         }
         #expect(try rowCount(rig.store, "mission") == 0 && rowCount(rig.store, "audit_event") == 0)
     }
@@ -191,7 +191,7 @@ struct PackImportTests {
         _ = try run(ready, into: rig.store)
         _ = try rig.store.shredAll(reason: .shredOrder, at: Date(), policy: FieldPolicy())
 
-        let stored = try run(try republished(ready, version: 2), into: rig.store)
+        let stored = try run(try Self.republished(ready, version: 2), into: rig.store)
 
         #expect(stored.version == 2)
         let project = try #require(ready.manifest.files.first { $0.path == "sections/project.json" })
@@ -208,7 +208,7 @@ struct PackImportTests {
         let (rig, ready) = try await downloaded()
         _ = try run(ready, into: rig.store)
         _ = try rig.store.shredAll(reason: .shredOrder, at: Date(), policy: FieldPolicy())
-        _ = try run(try republished(ready, version: 2), into: rig.store)
+        _ = try run(try Self.republished(ready, version: 2), into: rig.store)
 
         let again = try rig.store.shredAll(reason: .shredOrder, at: Date(), policy: FieldPolicy())
 
@@ -219,10 +219,10 @@ struct PackImportTests {
 
     @Test(.needsRepoFiles) func aPackOlderThanOneAcceptedBeforeTheShredIsStillRefused() async throws {
         let (rig, ready) = try await downloaded()
-        _ = try run(try republished(ready, version: 3), into: rig.store)
+        _ = try run(try Self.republished(ready, version: 3), into: rig.store)
         _ = try rig.store.shredAll(reason: .shredOrder, at: Date(), policy: FieldPolicy())
 
-        #expect(throws: PackRefusal.older) { try run(try republished(ready, version: 2), into: rig.store) }
+        #expect(throws: PackRefusal.older) { try run(try Self.republished(ready, version: 2), into: rig.store) }
         #expect(try rig.store.isShredded(Self.mission))  // refused before anything changed
         #expect(!(try rig.store.store.auditEvents().contains { $0.action == .missionPurged }))
     }

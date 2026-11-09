@@ -41,7 +41,7 @@ def test_each_signed_field_is_strict():
     assert fields["v"]["const"] == 2
     assert fields["seq"] == {"type": "integer", "minimum": 1}
     assert fields["prevHash"]["pattern"] == fields["contentHash"]["pattern"] == "^[0-9a-f]{64}$"
-    assert fields["kind"]["enum"] == ["photo", "scan", "audio"]
+    assert fields["kind"]["enum"] == ["photo", "scan", "audio", "pack", "walk"]
     assert fields["clockSource"]["enum"] == ["device", "gnss"]
     assert fields["capturedAt"]["pattern"] == r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$"
 
