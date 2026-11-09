@@ -17,7 +17,7 @@ struct ReportModelApprovalTests {
         let signer = FakeApprovalSigner(then)
         let model = ReportModel(mission: ReportModelTests.mission, store: store, signer: SoftwareEvidenceSigner(),
                                 approvalSigner: signer)
-        model.load()
+        await model.load()
         model.save()
         return Ready(model: model, store: store, signer: signer)
     }
@@ -79,7 +79,7 @@ struct ReportModelApprovalTests {
 
         let again = ReportModel(mission: ReportModelTests.mission, store: store, signer: SoftwareEvidenceSigner(),
                                 approvalSigner: FakeApprovalSigner())
-        again.load()
+        await again.load()
 
         #expect(again.state == .approved)
         #expect(again.lines.map(\.text) == approvedLines.map(\.text))

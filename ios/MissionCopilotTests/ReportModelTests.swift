@@ -16,8 +16,19 @@ struct ReportModelTests {
             store = try await AskOpeningTests.store().0
         }
         let model = ReportModel(mission: mission, store: store, signer: SoftwareEvidenceSigner())
-        model.load()
+        await model.load()
         return (model, store)
+    }
+
+    /// #163, 7.3.6: the page shows its spinner until the report is built (off the main thread), then the report.
+    @Test func theReportIsLoadingUntilItIsBuilt() async throws {
+        let (store, _) = try await ReportSourcesTests.finished()
+        let model = ReportModel(mission: Self.mission, store: store, signer: SoftwareEvidenceSigner())
+        #expect(model.stage == .loading && model.lines.isEmpty)
+
+        await model.load()
+
+        #expect(model.stage == .ready && !model.lines.isEmpty)
     }
 
     @Test func theKandorReportOpensWithEverySentenceProven() async throws {

@@ -22,7 +22,7 @@ struct ReportScreen: View {
                     .multilineTextAlignment(.center)
                     .padding(24)
             } else {
-                Loading(text: "Writing the report from this mission's records")
+                AskOpening(words: "Writing the report from this mission's records…")
             }
         }
         .fieldScreen()
@@ -36,7 +36,7 @@ struct ReportScreen: View {
             }
             let made = ReportModel(mission: id, store: store)
             model = made
-            made.load()
+            await made.load()
         }
     }
 }

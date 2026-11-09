@@ -68,7 +68,7 @@ struct ReportStateTests {
         model.save()
 
         let again = ReportModel(mission: ReportModelTests.mission, store: store, signer: SoftwareEvidenceSigner())
-        again.load()
+        await again.load()
 
         #expect(again.state == .ready)
     }

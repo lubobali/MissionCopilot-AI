@@ -29,28 +29,60 @@ final class ReportModel {
         (self.mission, self.store, self.signer, self.approvalSigner) = (mission, store, signer, approvalSigner)
     }
 
-    /// The walk and its flags, the report facts, Ask's sources, then the report by code.
-    func load() {
+    /// The walk and its flags, the report facts, Ask's sources, then the report by code. #163, 7.3.6 (found on the
+    /// iPhone: the page froze for over a second with no spinner): the pack's files and the report are read and
+    /// written off the main thread, like Ask (#150); only the walk (a few reads) on it.
+    func load() async {
+        let (mission, store, signer) = (mission, store, signer)
         do {
-            let walk = try SiteWalkModel.load(mission: mission, store: store)
-            let worded = MissionSources.worded(walk)
-            let report = try store.reportFacts(in: mission, form: walk.walk.form.formId, flags: walk.flags,
-                                               signer: signer)
-            let others = try store.facts(in: mission).filter { !ReportRules.ids.contains($0.rule.id) }
-            facts = report + others
-            sources = MissionSources.build(SourceInputs(packFiles: try store.packFiles(in: mission), facts: others,
-                                                        walk: worded.walk, flags: worded.flags))
-            language = walk.language == "fr" ? .french : .english
+            let files = try await Task.detached(priority: .userInitiated) { try store.packFiles(in: mission) }.value
+            let walk = try SiteWalkModel.load(mission: mission, store: store, files: files)
+            let inputs = ReportInputs(files: files, form: walk.walk.form.formId, flags: walk.flags,
+                                      worded: MissionSources.worded(walk),
+                                      language: walk.language == "fr" ? .french : .english)
+            let built = try await Task.detached(priority: .userInitiated) {
+                try Self.build(inputs, mission: mission, store: store, signer: signer)
+            }.value
+            (facts, sources, language, saved, approved) = (built.facts, built.sources, inputs.language, built.saved,
+                                                           built.approved)
             walkFinished = walk.finished != nil
-            let flagged = Set(MissionStore.numbered(walk.flags).filter { $0.flag.outcome == .flag }.map(\.name))
-            lines = ReportWriter.write(sources: sources, facts: facts, flagged: flagged, language: language)
-            saved = try store.latestDraft(in: mission)
-            approved = try store.approval(in: mission)
-            if approved != nil, let saved { lines = Self.lines(saved) }  // #163: the approved draft, as signed
+            lines = built.approved != nil ? built.saved.map(Self.lines) ?? built.lines : built.lines
             stage = .ready
         } catch {
             stage = .cannotOpen
         }
+    }
+
+    /// What the report is built from, read on the main thread (the walk) and handed to the background.
+    struct ReportInputs: Sendable {
+        let files: [String: Data]
+        let form: String
+        let flags: [RedFlagResult]
+        let worded: (walk: [WordedLine], flags: [WordedLine])
+        let language: AnswerLanguage
+    }
+
+    struct Built: Sendable {
+        let facts: [Fact]
+        let sources: [MissionSource]
+        let lines: [ReportLine]
+        let saved: ReportDraft?
+        let approved: ReportApprovalRecord?
+    }
+
+    /// The report facts (written once), Ask's sources and the report by code, the latest draft and the approval.
+    nonisolated static func build(_ inputs: ReportInputs, mission: String, store: MissionStore,
+                                  signer: any EvidenceSigner) throws -> Built {
+        let report = try store.reportFacts(in: mission, form: inputs.form, flags: inputs.flags, signer: signer)
+        let others = try store.facts(in: mission).filter { !ReportRules.ids.contains($0.rule.id) }
+        let facts = report + others
+        let sources = MissionSources.build(SourceInputs(packFiles: inputs.files, facts: others,
+                                                        walk: inputs.worded.walk, flags: inputs.worded.flags))
+        let flagged = Set(MissionStore.numbered(inputs.flags).filter { $0.flag.outcome == .flag }.map(\.name))
+        return Built(facts: facts, sources: sources,
+                     lines: ReportWriter.write(sources: sources, facts: facts, flagged: flagged,
+                                               language: inputs.language),
+                     saved: try store.latestDraft(in: mission), approved: try store.approval(in: mission))
     }
 
     var unproven: Int { lines.filter { !$0.checked || $0.factIds.isEmpty }.count }
@@ -156,7 +188,7 @@ final class ReportModel {
     }
 
     /// A stored draft's sentences as lines (only proven lines are ever stored).
-    private static func lines(_ draft: ReportDraft) -> [ReportLine] {
+    nonisolated private static func lines(_ draft: ReportDraft) -> [ReportLine] {
         draft.sentences.map { sentence in
             ReportLine(section: ReportSection(rawValue: sentence.section) ?? .findings, text: sentence.text,
                        factIds: sentence.factIds, checked: true)
