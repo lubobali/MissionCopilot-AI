@@ -46,6 +46,9 @@ final class DebriefReviewModel {
     private(set) var review: DebriefReview
     private(set) var decisions = DebriefDecisions()
     private(set) var problem: String?
+    /// The notes and numbers saved from this debrief, as cards (found on the iPhone, #152: once saved they were
+    /// shown nowhere but in Ask).
+    private(set) var saved: [SourceCardWords] = []
     /// The sentences code gave no label, for the officer to tag (#152).
     private(set) var untagged: [DebriefSentence] = []
     private var written: Set<Int> = []
@@ -68,6 +71,7 @@ final class DebriefReviewModel {
     func draft() async {
         stage = .drafting
         if (try? store.confirmedDebriefs(in: mission))?.contains(debrief.seq) == true {
+            loadSaved()
             stage = .alreadySaved
             return
         }
@@ -200,6 +204,7 @@ final class DebriefReviewModel {
         guard canSave else { return }
         do {
             stage = .saved(count: try store.confirmDebrief(review, decisions: decisions, in: mission).count)
+            loadSaved()
         } catch is MissionStore.NothingToSave {
             problem = "Nothing is left to save: every note was removed and no number was heard."
         } catch is MissionStore.AlreadyConfirmed {
@@ -207,5 +212,14 @@ final class DebriefReviewModel {
         } catch {
             problem = "The notes could not be saved. Try again."
         }
+    }
+
+    /// This debrief's saved notes and numbers, in the words of the source cards.
+    private func loadSaved() {
+        let mine = ((try? store.facts(in: mission)) ?? []).filter { fact in
+            (fact.name.hasPrefix("debrief.") || fact.name.hasPrefix("spoken."))
+                && fact.sources.contains { $0.seq == debrief.seq }
+        }
+        saved = mine.map { SourceWords.card(MissionSources.fact($0)) }  // stored notes first, then numbers
     }
 }

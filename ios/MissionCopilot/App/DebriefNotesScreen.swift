@@ -58,11 +58,13 @@ struct DebriefNotesView: View {
                 note("This debrief has no text yet. Open the Debrief page to turn it into text.", icon: "text.bubble")
             case .alreadySaved:
                 note("The notes of this debrief are saved.", icon: "checkmark.seal.fill", role: .success)
+                SavedNotes(cards: model.saved)
             case .review:
                 review
             case .saved(let count):
                 note("\(count) notes and numbers saved, each linked to the recording.", icon: "checkmark.seal.fill",
                      role: .success)
+                SavedNotes(cards: model.saved)
             }
         }
         .padding(16)
@@ -145,6 +147,29 @@ struct UntaggedSentences: View {
             }
             .padding(12)
             .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 16))
+        }
+    }
+}
+
+/// A debrief's saved notes and numbers, read only (#152, found on the iPhone: once saved they were shown nowhere).
+struct SavedNotes: View {
+    let cards: [SourceCardWords]
+
+    var body: some View {
+        ForEach(Array(cards.enumerated()), id: \.offset) { _, card in
+            VStack(alignment: .leading, spacing: 4) {
+                Text(card.title)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color(.secondaryText))
+                    .textCase(.uppercase)
+                ForEach(card.lines, id: \.self) { line in
+                    Text(line).font(.body).foregroundStyle(Color(.text))
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 18))
+            .accessibilityElement(children: .combine)
         }
     }
 }

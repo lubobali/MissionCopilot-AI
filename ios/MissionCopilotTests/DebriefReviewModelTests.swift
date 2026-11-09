@@ -136,5 +136,11 @@ struct DebriefReviewModelTests {
         await again.draft()
 
         #expect(again.stage == .alreadySaved)
+        // Found on the iPhone: the saved notes are shown, notes first, then the numbers.
+        #expect(again.saved.count == 8)
+        #expect(again.saved.first?.title == "Debrief note · Decision")
+        #expect(again.saved.first?.lines.first?.hasPrefix("They agreed to extend the contractor deadline") == true)
+        #expect(again.saved.last?.title.hasPrefix("Heard in a debrief") == true)
+        #expect(model.saved == again.saved)
     }
 }

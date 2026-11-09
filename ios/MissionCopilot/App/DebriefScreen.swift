@@ -217,9 +217,12 @@ struct DebriefRow: View {
                     .foregroundStyle(Color(.text))
                     .textSelection(.enabled)
                 if notesSaved {
-                    Label("Notes saved", systemImage: "checkmark.seal.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(Color(.success))
+                    // #152: the saved notes open, read only.
+                    NavigationLink(value: DebriefNotesLink(id: mission, seq: debrief.seq)) {
+                        Label("Notes saved: open them", systemImage: "checkmark.seal.fill")
+                    }
+                    .buttonStyle(.fieldSecondary)
+                    .tint(Color(.success))
                 } else {
                     NavigationLink(value: DebriefNotesLink(id: mission, seq: debrief.seq)) {
                         Label("Draft the notes", systemImage: "list.bullet.clipboard")
