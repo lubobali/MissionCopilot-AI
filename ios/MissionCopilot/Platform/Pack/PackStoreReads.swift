@@ -37,6 +37,23 @@ extension MissionStore {
         return try path.map { try packFile($0, in: mission) }
     }
 
+    /// Every file of the mission's pack by its path, opened with the mission key unwrapped once (#150: one
+    /// Secure Enclave operation, not one per file; found on the iPhone, Ask was slow to open).
+    func packFiles(in mission: String) throws -> [String: Data] {
+        let rows = try store.read { database in
+            try Row.fetchAll(database, sql: "SELECT path, sealed FROM pack_file WHERE mission_id = ?",
+                             arguments: [mission])
+        }
+        guard !rows.isEmpty else { return [:] }
+        let key = try missionKey(for: mission)
+        var files: [String: Data] = [:]
+        for row in rows {
+            let path: String = row["path"]
+            files[path] = try MissionData.open(row["sealed"], with: key)
+        }
+        return files
+    }
+
     /// One file of the mission's pack, exactly as signed.
     func packFile(_ path: String, in mission: String) throws -> Data {
         let sealed = try store.read { database in

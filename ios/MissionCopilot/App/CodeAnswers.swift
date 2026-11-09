@@ -11,7 +11,7 @@ struct CodeAnswers: Sendable {
     let sources: [MissionSource]
 
     func direct(_ question: String) -> [CodeLine]? {
-        let asked = question.lowercased()
+        let asked = AnswerText.straight(question).lowercased()
         let language = AnswerLanguage(question: question)
         let write = { (records: [MissionSource]) in
             records.map { AnswerLines.line($0, question: question, language: language) }
@@ -142,5 +142,5 @@ struct CodeAnswers: Sendable {
         + "who is the contractor|supplier|fournisseur"
     private static let riskWords = "risk|rating|risque|notation"
     private static let statusStems: Set = ["start", "begun", "began", "finish", "complet", "done", "commenc", "démarr",
-                                           "achev", "termin", "fini", "work"]
+                                           "achev", "termin", "fini", "work", "don"]
 }

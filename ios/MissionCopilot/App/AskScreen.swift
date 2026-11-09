@@ -1,5 +1,23 @@
 import SwiftUI
 
+/// What the chat shows while it opens the mission's data (#150, found on the iPhone: plain grey text looked
+/// like nothing happened, and Lubo tapped again).
+struct AskOpening: View {
+    static let words = "Opening this mission's data…"
+
+    var body: some View {
+        VStack(spacing: 14) {
+            ProgressView()
+                .controlSize(.large)
+            Text(Self.words)
+                .font(.subheadline)
+                .foregroundStyle(Color(.secondaryText))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 /// Opens a mission's Ask chat by its id (declared at the stack's root, ContentView).
 struct AskLink: Hashable, Sendable {
     let id: String
@@ -77,7 +95,7 @@ struct AskScreen: View {
                     .multilineTextAlignment(.center)
                     .padding(24)
             } else {
-                Loading(text: "Opening the mission's data")
+                AskOpening()
             }
         }
         .fieldScreen()
@@ -89,8 +107,8 @@ struct AskScreen: View {
                 cannotOpen = true
                 return
             }
-            model = AskModel(sources: MissionSources.load(mission: id, store: store),
-                             keeper: .store(store, mission: id))
+            let sources = await MissionSources.open(mission: id, store: store)
+            model = AskModel(sources: sources, keeper: .store(store, mission: id))
         }
     }
 }
