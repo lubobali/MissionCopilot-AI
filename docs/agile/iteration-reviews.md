@@ -226,3 +226,61 @@ build (#84), a lock test over hours (#85), plus the open items from Iteration 3 
 
 **Next:** Iteration 6 · Field flows: document scan, red flags, the voice debrief and the checklist, all
 offline on the iPhone.
+
+## Iteration 6 · Field flows (done Nov 8 2026)
+**Done:** everything an officer does on a mission works on the phone with no network: the site walk with
+photos, red flags by cited rules, document scans turned into checked facts, voice debriefs turned into notes,
+and Ask the mission. Fourteen stories, 19 pull requests (#124 to #158) plus this review, all proven on the
+iPhone in airplane mode ([field proof](../field-proof.md)).
+
+| Story | Result |
+|---|---|
+| #123 Logo and airplane | Home screen lockup and a diagonal app icon |
+| #125 Workspace and Before you go | The mission's workspace; one check before leaving (pack, the model's self-test, speech files, space); the model inside the app |
+| #127 Fast and safe CI | Half the wait, the same tests |
+| #129 Site walk | Agreed actions and the checklist offline, photos as signed evidence with their place |
+| #134 Red flags | Cited rules on the mission's numbers, stored at the walk's end and never changed |
+| #136 The model in the app | Verified, constrained to a grammar, time-limited, no tools |
+| #138 Scan to facts | Pages read on the phone, every fact grounded on its page and cross-checked, confirmed by the officer |
+| #142 Voice debrief | Consent, recording kept as signed evidence, text on the phone, every spoken number read back |
+| #145 Ask the mission | Answers from the mission's records with their sources; code writes the answers, the model only chooses |
+| #151 A correction must come from the page | The value the check rejected is refused; typed values checked on the pages; the page's values one tap away |
+| #152 Debrief notes by code | Each sentence labelled by cue words, a note is its sentence word for word; no model |
+| #153 Names and accents | The dictation engine with the mission's names, unsure words underlined, "Condor -> Kandor?" |
+| #154 Plain words | Statuses and record names in words; "done" says when the bank disagrees |
+| #150 Phase 6 proof | The run on the iPhone, the rows and docs, this review |
+
+**Measured:**
+- Tests: 2,481 (backend 864, scripts 426, main app 1,056, encryption lab 50, document lab 62, speech lab 23),
+  up from 1,903; the main app from 564.
+- Threat model: 61 built, 12 planned, 5 accepted (was 46, 5 spike, 15, 5), plus 8 privacy risks (3 built).
+  MASVS: 13 built, 1 spike, 3 planned, 5 accepted, 2 not applicable (was 12, 2, 3, 5, 2). Self-assessed,
+  **not independently audited**.
+- Mutation checks: counted where a pull request states the number, 64 (#126 36, #155 10, #156 6, #157 12),
+  every break caught or shown to be dead code and removed; the other stories were checked at every step
+  without a count. The Mac probe for #152: the model labelled debrief sentences 15 of 21 at best, code 50 of 51.
+
+**Learned:**
+- **Code writes the answers; the model only chooses, or not at all.** On the iPhone the 1.2B model wrote bad
+  answers and bad notes (changed quotes, invented a note, a red flag's name taken for its finding). The
+  checks held every wrong sentence back, so nothing wrong was saved, but the officer got nothing useful.
+  Measured on the Mac, small models choose well and write badly: Ask became code answers plus a chooser,
+  debrief notes became code alone (ADR 0005).
+- **The iPhone finds what the tests cannot.** Curly apostrophes from the keyboard, a three-second blank
+  screen, an invented value typed back as a correction, "Kandor" heard as "Counter", saved notes shown
+  nowhere: each found by Lubo on the phone, each fixed test first.
+- **A real accent is test data.** One take of Lubo's voice chose the speech engine: fewer word errors and the
+  money heard right. Apple's custom names work only with the dictation engine, which our Nov 7 note had missed.
+- **Universal beats per mission.** Cue words for notes, a dictionary for names and a sound code for
+  suggestions work for any mission and sector; checked on health, school and water sentences.
+
+**Changed in the plan:**
+- The model's role shrank on purpose: it chooses an answer line in Ask and does nothing in debrief notes.
+- Four stories (#151 to #154) were added from the proof run before Phase 6 closed.
+- The demo is a video and the repository, not an install; Phases 8 and 9 stay small so the demo comes sooner.
+
+**Open** (each is an issue): the engine's whitespace that eats real spaces (#159), any sector's words for Ask
+(#148), speech with more voices (#39), the agreed actions in French from the pack (#131), plus the open
+items from Iterations 3 and 5.
+
+**Next:** Iteration 7 · Report and approval: a report draft where every sentence links to its facts.
