@@ -6,8 +6,8 @@ struct DebriefNotesLink: Hashable, Sendable {
     let seq: Int
 }
 
-/// The notes review (#142): the assistant's notes with the words they came from, and every heard number with
-/// the words around it; the officer decides each one, then saves.
+/// The notes review (#142, #152): the notes code wrote from the sentences said, the sentences left without a
+/// label, and every heard number with the words around it; the officer decides each one, then saves.
 struct DebriefNotesScreen: View {
     let list: MissionListModel
     let link: DebriefNotesLink
@@ -53,20 +53,18 @@ struct DebriefNotesView: View {
         VStack(alignment: .leading, spacing: 18) {
             switch model.stage {
             case .drafting:
-                Loading(text: "The assistant is drafting the notes")
+                Loading(text: "Reading the debrief")
             case .noTranscript:
                 note("This debrief has no text yet. Open the Debrief page to turn it into text.", icon: "text.bubble")
             case .alreadySaved:
                 note("The notes of this debrief are saved.", icon: "checkmark.seal.fill", role: .success)
-            case .toOfficer(let why):
-                note(why.words, icon: "person.fill.questionmark")
-                Button("Write the notes yourself", systemImage: "square.and.pencil", action: model.writeYourself)
-                    .buttonStyle(.fieldPrimary)
+                SavedNotes(cards: model.saved)
             case .review:
                 review
             case .saved(let count):
                 note("\(count) notes and numbers saved, each linked to the recording.", icon: "checkmark.seal.fill",
                      role: .success)
+                SavedNotes(cards: model.saved)
             }
         }
         .padding(16)
@@ -84,8 +82,10 @@ struct DebriefNotesView: View {
         }
         .accessibilityElement(children: .combine)
         ForEach(model.notes) { line in
-            NoteCard(line: line, onDecide: { model.decide(note: line.id, $0) }, onUndo: { model.undo(note: line.id) })
+            NoteCard(line: line, onDecide: { model.decide(note: line.id, $0) }, onUndo: { model.undo(note: line.id) },
+                     onRelabel: { model.relabel(note: line.id, as: $0) })
         }
+        if !model.untagged.isEmpty { UntaggedSentences(model: model) }
         HStack {
             Picker("Kind", selection: $newKind) {
                 ForEach(DebriefNote.Kind.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
@@ -118,5 +118,58 @@ struct DebriefNotesView: View {
         Label(text, systemImage: icon)
             .font(.subheadline)
             .foregroundStyle(Color(role))
+    }
+}
+
+/// The sentences code left without a label (#152): one tap makes one a note of a kind, word for word.
+struct UntaggedSentences: View {
+    let model: DebriefReviewModel
+
+    var body: some View {
+        Text("Other sentences said")
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(Color(.secondaryText))
+            .textCase(.uppercase)
+        ForEach(Array(model.untagged.enumerated()), id: \.offset) { index, sentence in
+            HStack(alignment: .firstTextBaseline) {
+                Text(sentence.text)
+                    .font(.subheadline)
+                    .foregroundStyle(Color(.text))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Menu {
+                    ForEach(DebriefNote.Kind.allCases, id: \.self) { kind in
+                        Button(kind.rawValue.capitalized) { model.tag(index, as: kind) }
+                    }
+                } label: {
+                    Label("Make a note", systemImage: "plus.circle").labelStyle(.iconOnly).font(.title3)
+                }
+                .accessibilityLabel("Make a note of: \(sentence.text)")
+            }
+            .padding(12)
+            .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 16))
+        }
+    }
+}
+
+/// A debrief's saved notes and numbers, read only (#152, found on the iPhone: once saved they were shown nowhere).
+struct SavedNotes: View {
+    let cards: [SourceCardWords]
+
+    var body: some View {
+        ForEach(Array(cards.enumerated()), id: \.offset) { _, card in
+            VStack(alignment: .leading, spacing: 4) {
+                Text(card.title)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color(.secondaryText))
+                    .textCase(.uppercase)
+                ForEach(card.lines, id: \.self) { line in
+                    Text(line).font(.body).foregroundStyle(Color(.text))
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassEffect(.regular.tint(Color(.surface).opacity(0.55)), in: .rect(cornerRadius: 18))
+            .accessibilityElement(children: .combine)
+        }
     }
 }

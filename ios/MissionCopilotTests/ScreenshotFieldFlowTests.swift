@@ -64,20 +64,16 @@ extension ScreenshotTests {
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "debriefs")
     }
 
-    /// #142: the notes review, one note confirmed, one not said in the debrief, and the heard numbers.
+    /// #142, #152: the notes review, a sentence note confirmed, a sentence left to tag, and the heard numbers.
     @Test(arguments: [Look.light, .dark, .largestText])
     func theDebriefNotesAreOnTheThemeBackground(look: Look) async throws {
         let store = try DebriefModelTests.store()
         let debrief = try store.addDebrief(try DebriefStoreTests.recording(), language: .english, to: "kandor-roads",
                                            signer: SoftwareEvidenceSigner())
         _ = try await store.transcribe(debrief, in: "kandor-roads", engine: DebriefTranscriptTests.FakeTranscriber(
-            .success("Section 3 bridge still not started. Invoice 14 for 48,000 dollars.")))
-        let answer = #"{"notes":[{"kind":"risk","text":"The Section 3 bridge has not started.","who":"","#
-            + #""byWhen":"","quote":"Section 3 bridge still not started"},{"kind":"decision","text":"Invoice "#
-            + #"approved.","who":"","byWhen":"","quote":"the minister approved invoice 14"}]}"#
+            .success("Risk, the Section 3 bridge is still not started. Invoice 14 for 48,000 dollars.")))
         let review = DebriefReviewModel(mission: "kandor-roads", debrief: debrief, store: store,
-                                        contracts: try InvoiceBankViewTests.kandor().contracts,
-                                        model: FieldModel(engine: FieldModelTests.FakeEngine(answer: answer)))
+                                        contracts: try InvoiceBankViewTests.kandor().contracts)
         await review.draft()
         review.decide(note: 0, .confirm)
         try check(DebriefNotesView(model: review).fixedSize(horizontal: false, vertical: true)

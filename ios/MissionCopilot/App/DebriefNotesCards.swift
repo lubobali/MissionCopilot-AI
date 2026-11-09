@@ -6,6 +6,8 @@ struct NoteCard: View {
     let line: DebriefReviewModel.NoteLine
     var onDecide: (NoteDecision) -> Void = { _ in }
     var onUndo: () -> Void = {}
+    /// A sentence note's label changed by the officer (#152).
+    var onRelabel: (DebriefNote.Kind) -> Void = { _ in }
     @State private var typed: String?
 
     var body: some View {
@@ -21,7 +23,7 @@ struct NoteCard: View {
                 if let detail = line.detail {
                     Text(detail).font(.subheadline).foregroundStyle(Color(.secondaryText))
                 }
-                if let quote = line.quote {
+                if let quote = line.quote, !line.fromSentence {  // a sentence note is its own words (#152)
                     Label(quote, systemImage: line.canConfirm ? "quote.opening" : "questionmark.circle")
                         .font(.subheadline.italic())
                         .foregroundStyle(Color(.secondaryText))
@@ -58,6 +60,16 @@ extension NoteCard {
             .lineLimit(1)
             .disabled(!line.canConfirm)
             .accessibilityHint(line.canConfirm ? line.text : "Not said in the debrief: edit or remove it.")
+        if line.fromSentence {
+            Menu {
+                ForEach(DebriefNote.Kind.allCases, id: \.self) { kind in
+                    Button(kind.rawValue.capitalized) { onRelabel(kind) }
+                }
+            } label: {
+                Label("Label", systemImage: "tag").lineLimit(1)
+            }
+            .accessibilityHint("Change what kind of note this sentence is")
+        }
         Button("Edit", systemImage: "pencil") { typed = line.text }
             .lineLimit(1)
         Button("Remove", systemImage: "trash") { onDecide(.remove) }
