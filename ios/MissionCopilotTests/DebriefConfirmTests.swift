@@ -23,8 +23,7 @@ struct DebriefConfirmTests {
         let store = try DebriefModelTests.store()
         let debrief = try store.addDebrief(try DebriefStoreTests.recording(), language: .english, to: mission,
                                            signer: SoftwareEvidenceSigner())
-        let answer = Data(DebriefNotesTests.answer.utf8)
-        let drafted = try notes ?? JSONDecoder().decode(NotesAnswer.self, from: answer).notes
+        let drafted = try notes ?? DebriefNotesTests.notes
         return Kept(store: store, debrief: debrief,
                     notes: NoteGrounding.check(drafted, transcript: Self.transcript),
                     numbers: SpokenNumbers.find(Self.transcript))

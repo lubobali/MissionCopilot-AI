@@ -45,6 +45,28 @@ struct DebriefModelTests {
     }
 
     /// 6.6.3: each kept debrief is turned into text on its own; opened again, the text comes back unread.
+    /// Found on the iPhone (#152): back from the notes, the list still said "Draft the notes". Loading again
+    /// (each time the page shows) reads the notes saved meanwhile.
+    @Test @MainActor func loadingAgainSeesNotesSavedMeanwhile() async throws {
+        let store = try Self.store()
+        let debrief = try store.addDebrief(try DebriefStoreTests.recording(), language: .english, to: "kandor-roads",
+                                           signer: SoftwareEvidenceSigner())
+        _ = try await store.transcribe(debrief, in: "kandor-roads", engine: DebriefTranscriptTests.FakeTranscriber(
+            .success("Action, the contractor sends a new work plan by Friday.")))
+        let list = try Self.model(FakeRecorder(), store: store)
+        list.load()
+        #expect(list.confirmed.isEmpty)
+
+        let review = DebriefReviewModel(mission: "kandor-roads", debrief: debrief, store: store, contracts: nil)
+        await review.draft()
+        review.decide(note: 0, .confirm)
+        for index in review.numbers.indices { review.decide(number: index, .confirm) }
+        review.save()
+        list.load()
+
+        #expect(list.confirmed == [debrief.seq])
+    }
+
     @Test func eachDebriefIsReadIntoTextAndComesBackAsItWas() async throws {
         let recorder = FakeRecorder()
         let store = try Self.store()

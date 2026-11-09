@@ -60,7 +60,12 @@ struct DebriefScreen: View {
         .navigationTitle("Debrief")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            guard model == nil else { return }
+            // Found on the iPhone (#152): back from the notes, the list still said "Draft the notes". Each time
+            // the page shows again it reads which debriefs have saved notes.
+            if let model {
+                model.load()
+                return
+            }
             guard let store = list.openStore else {
                 cannotOpen = true
                 return
@@ -132,6 +137,10 @@ struct DebriefView: View {
             Button("Record a debrief", systemImage: "mic.fill") { Task { await model.record() } }
                 .buttonStyle(.fieldPrimary)
                 .disabled(!model.canRecord)
+            // #152: notes come from the sentences said; a spoken label makes a sentence a note for sure.
+            Label(DebriefModel.noteTip, systemImage: "lightbulb")
+                .font(.footnote)
+                .foregroundStyle(Color(.secondaryText))
         }
     }
 
@@ -208,9 +217,12 @@ struct DebriefRow: View {
                     .foregroundStyle(Color(.text))
                     .textSelection(.enabled)
                 if notesSaved {
-                    Label("Notes saved", systemImage: "checkmark.seal.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(Color(.success))
+                    // #152: the saved notes open, read only.
+                    NavigationLink(value: DebriefNotesLink(id: mission, seq: debrief.seq)) {
+                        Label("Notes saved: open them", systemImage: "checkmark.seal.fill")
+                    }
+                    .buttonStyle(.fieldSecondary)
+                    .tint(Color(.success))
                 } else {
                     NavigationLink(value: DebriefNotesLink(id: mission, seq: debrief.seq)) {
                         Label("Draft the notes", systemImage: "list.bullet.clipboard")
