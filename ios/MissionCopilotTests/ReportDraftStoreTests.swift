@@ -20,6 +20,12 @@ struct ReportDraftStoreTests {
                                           flagged: ReportWriterTests.flaggedNames(flags), language: .english))
     }
 
+    /// A stored draft's sentences as report lines again (all proven: only proven lines are stored).
+    static func lines(_ draft: ReportDraft) -> [ReportLine] {
+        draft.sentences.map { ReportLine(section: ReportSection(rawValue: $0.section) ?? .findings, text: $0.text,
+                                         factIds: $0.factIds, checked: true) }
+    }
+
     @Test func aDraftIsItsSentencesInOrder() async throws {
         let (store, lines) = try await Self.drafted()
 

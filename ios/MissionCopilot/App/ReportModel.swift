@@ -12,6 +12,7 @@ final class ReportModel {
     private(set) var stage = Stage.loading
     private(set) var lines: [ReportLine] = []
     private(set) var saved: ReportDraft?
+    private(set) var approved: ReportApprovalRecord?
     private(set) var problem: String?
     private(set) var walkFinished = false
     private(set) var language = AnswerLanguage.english
@@ -20,10 +21,12 @@ final class ReportModel {
     let mission: String
     private let store: MissionStore
     private let signer: any EvidenceSigner
+    private let approvalSigner: any ApprovalSigner
 
     init(mission: String, store: MissionStore,
-         signer: any EvidenceSigner = SecureEnclaveEvidenceSigner(user: AppSession.localProfile)) {
-        (self.mission, self.store, self.signer) = (mission, store, signer)
+         signer: any EvidenceSigner = SecureEnclaveEvidenceSigner(user: AppSession.localProfile),
+         approvalSigner: any ApprovalSigner = SecureEnclaveApprovalSigner(user: AppSession.localProfile)) {
+        (self.mission, self.store, self.signer, self.approvalSigner) = (mission, store, signer, approvalSigner)
     }
 
     /// The walk and its flags, the report facts, Ask's sources, then the report by code.
@@ -42,6 +45,8 @@ final class ReportModel {
             let flagged = Set(MissionStore.numbered(walk.flags).filter { $0.flag.outcome == .flag }.map(\.name))
             lines = ReportWriter.write(sources: sources, facts: facts, flagged: flagged, language: language)
             saved = try store.latestDraft(in: mission)
+            approved = try store.approval(in: mission)
+            if approved != nil, let saved { lines = Self.lines(saved) }  // #163: the approved draft, as signed
             stage = .ready
         } catch {
             stage = .cannotOpen
@@ -58,11 +63,12 @@ final class ReportModel {
     var canSave: Bool { !lines.isEmpty && unproven == 0 }
 
     /// #163, 7.3.1: needs proof, draft, ready (exactly the saved draft), approved.
-    var state: ReportState { ReportState.of(lines: lines, saved: saved, approved: false) }
+    var state: ReportState { ReportState.of(lines: lines, saved: saved, approved: approved != nil) }
 
     var canApprove: Bool { state == .ready }
 
     func remove(_ id: String) {
+        guard approved == nil else { return }
         lines.removeAll { $0.id == id }
         problem = nil
     }
@@ -70,6 +76,7 @@ final class ReportModel {
     /// Adds the officer's sentence at the end of its section, checked; returns whether it has proof.
     @discardableResult
     func add(section: ReportSection, text: String, factIds: [String]) -> Bool {
+        guard approved == nil else { return false }
         let line = ReportWriter.officerLine(section: section, text: text, factIds: factIds, sources: sources,
                                             facts: facts)
         guard !line.text.isEmpty else { return false }
@@ -81,7 +88,7 @@ final class ReportModel {
     /// Replaces a sentence with the officer's words, checked against the facts they pick.
     @discardableResult
     func edit(_ id: String, text: String, factIds: [String]) -> Bool {
-        guard let index = lines.firstIndex(where: { $0.id == id }) else { return false }
+        guard approved == nil, let index = lines.firstIndex(where: { $0.id == id }) else { return false }
         let line = ReportWriter.officerLine(section: lines[index].section, text: text, factIds: factIds,
                                             sources: sources, facts: facts)
         lines[index] = line
@@ -99,6 +106,7 @@ final class ReportModel {
     }
 
     func save() {
+        guard approved == nil else { return }
         guard canSave else {
             problem = "Remove or fix the sentences with no proof before saving."
             return
@@ -108,6 +116,37 @@ final class ReportModel {
             problem = nil
         } catch {
             problem = "The draft could not be saved. Try again."
+        }
+    }
+
+    /// #163: asks Face ID or the passcode once and stores the signed approval of the saved draft. A cancel or a
+    /// failure leaves the report as it was and says so.
+    func approve() async {
+        guard approved == nil else { return }
+        guard state == .ready, let draft = saved else {
+            problem = "Save the draft first, then approve it."
+            return
+        }
+        let now = Date()
+        do {
+            let signed = try await ReportApproval.sign(draft: draft, mission: mission, by: AppSession.localProfile,
+                                                       at: now, signer: approvalSigner)
+            approved = try store.approve(signed, draft: draft, by: AppSession.localProfile, at: now, in: mission)
+            problem = nil
+        } catch ReportApproval.Failure.cancelled {
+            problem = "Not approved: you cancelled."
+        } catch ReportApproval.Failure.failed {
+            problem = "Not approved: Face ID or the passcode did not work. Try again."
+        } catch {
+            problem = "Not approved: the approval could not be stored. Try again."
+        }
+    }
+
+    /// A stored draft's sentences as lines (only proven lines are ever stored).
+    private static func lines(_ draft: ReportDraft) -> [ReportLine] {
+        draft.sentences.map { sentence in
+            ReportLine(section: ReportSection(rawValue: sentence.section) ?? .findings, text: sentence.text,
+                       factIds: sentence.factIds, checked: true)
         }
     }
 

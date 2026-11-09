@@ -9,6 +9,7 @@ extension StoreSchema {
         registerDebriefs(in: &migrator)
         registerAskLog(in: &migrator)
         registerReportSources(in: &migrator)
+        registerReportApprovals(in: &migrator)
     }
 
     /// Report sources (#162): the server's signature over the pack's manifest, kept with the pack (sealed with
@@ -41,6 +42,28 @@ extension StoreSchema {
                     BEGIN SELECT RAISE(ABORT, 'append-only: \(table) rows go only with their mission'); END;
                     """)
             }
+        }
+    }
+
+    /// Report approvals (#163): one per mission, of one draft, with the bytes signed, the Secure Enclave
+    /// signature and the key that checks it; never changed, gone only with its mission.
+    static func registerReportApprovals(in migrator: inout DatabaseMigrator) {
+        migrator.registerMigration("v21-report-approvals") { database in
+            try database.execute(sql: """
+                CREATE TABLE report_approval (
+                    draft_id TEXT PRIMARY KEY REFERENCES report_draft(id) ON DELETE CASCADE,
+                    mission_id TEXT NOT NULL UNIQUE REFERENCES mission(id) ON DELETE CASCADE,
+                    approved_by TEXT NOT NULL,
+                    approved_at REAL NOT NULL,
+                    payload BLOB NOT NULL,
+                    signature BLOB NOT NULL,
+                    public_key BLOB NOT NULL);
+                CREATE TRIGGER report_approval_no_update BEFORE UPDATE ON report_approval
+                BEGIN SELECT RAISE(ABORT, 'append-only: an approval cannot be changed'); END;
+                CREATE TRIGGER report_approval_no_delete BEFORE DELETE ON report_approval
+                WHEN EXISTS (SELECT 1 FROM mission WHERE id = OLD.mission_id)
+                BEGIN SELECT RAISE(ABORT, 'append-only: an approval goes only with its mission'); END;
+                """)
         }
     }
 
