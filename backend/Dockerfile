@@ -29,7 +29,12 @@ RUN rm /app/.venv/lib/python3.12/site-packages/pyxform/validators/odk_validate/b
 FROM python:3.12.16-slim-trixie@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b
 LABEL org.opencontainers.image.source="https://github.com/lubobali/MissionCopilot-AI" \
       org.opencontainers.image.description="MissionCopilot backend server" \
-      org.opencontainers.image.licenses="MIT"
+      org.opencontainers.image.licenses="LicenseRef-AllRightsReserved"
+# Debian fixes the base image does not carry yet (Grype fails on a fixable high, #162): only named packages,
+# each at an exact version, then apt's lists go.
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends --only-upgrade "zlib1g=1:1.3.dfsg+really1.3.1-1+deb13u1" \
+    && rm -rf /var/lib/apt/lists/*
 # 10120: a uid no other app on the server uses (host uids are shared by every container).
 RUN groupadd --system --gid 10120 missioncopilot \
     && useradd --system --uid 10120 --gid 10120 --no-create-home --home-dir /nonexistent \
