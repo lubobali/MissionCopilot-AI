@@ -10,7 +10,8 @@ struct EvidenceRecord: Codable, Sendable, Equatable {
 /// What the phone signs for each photo, scanned page or recording: payload version 2
 /// (docs/evidence-format.md). Encoded with sorted keys and integers only; a nil location is left out.
 struct EvidencePayload: Codable, Sendable, Equatable {
-    enum Kind: String, Codable, Sendable { case photo, scan, audio }
+    /// pack and walk (#162): the mission pack and the finished site walk, as sources a report can cite.
+    enum Kind: String, Codable, Sendable { case photo, scan, audio, pack, walk }
     enum ClockSource: String, Codable, Sendable { case device, gnss }
 
     /// Whole micro-degrees: no decimals in signed bytes, so both languages print the same.

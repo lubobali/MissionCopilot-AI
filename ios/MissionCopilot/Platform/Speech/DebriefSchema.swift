@@ -8,6 +8,15 @@ extension StoreSchema {
         registerDocuments(in: &migrator)
         registerDebriefs(in: &migrator)
         registerAskLog(in: &migrator)
+        registerReportSources(in: &migrator)
+    }
+
+    /// Report sources (#162): the server's signature over the pack's manifest, kept with the pack (sealed with
+    /// the mission key; empty for packs imported before), so the pack can become evidence a report cites.
+    static func registerReportSources(in migrator: inout DatabaseMigrator) {
+        migrator.registerMigration("v19-pack-signature") { database in
+            try database.execute(sql: "ALTER TABLE mission_pack ADD COLUMN sealed_signature BLOB")
+        }
     }
 
     static func registerDebriefs(in migrator: inout DatabaseMigrator) {

@@ -19,6 +19,9 @@ struct FactInput: Sendable {
     let unit: String?
     let sources: [FactSource]
     let rule: RuleRef
+    /// At least this label, whatever the sources say (#162: a red flag's fact is strictly confidential, like
+    /// the stored flags, though its pack sources are official use only).
+    var floor: Classification?
 }
 
 /// A fact as stored: immutable, traceable to its evidence and rule, labelled like its strictest source.
@@ -52,7 +55,8 @@ extension MissionStore {
         let facts = try inputs.map { input in
             guard !input.sources.isEmpty else { throw FactError.noSource }
             return Fact(id: UUID().uuidString.lowercased(), name: input.name, value: input.value, unit: input.unit,
-                        rule: input.rule, classification: try strictestLabel(of: input.sources, in: mission),
+                        rule: input.rule, classification: Classification.strictest(
+                            [try strictestLabel(of: input.sources, in: mission)] + [input.floor].compactMap { $0 }),
                         sources: input.sources)
         }
         try store.write { database in

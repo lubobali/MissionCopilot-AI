@@ -8,7 +8,7 @@
 # Python 3.12.16 fixes critical CVE-2026-115557 and the image's Debian OpenSSL fixes, so this base
 # skips the 7-day cooldown (security fixes are not delayed: .github/dependabot.yml).
 
-FROM python:3.12.16-slim-trixie@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30 AS builder
+FROM python:3.12.16-slim-trixie@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 /uv /bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0 UV_NO_DEV=1
 WORKDIR /app
@@ -26,10 +26,15 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # (only the jar: pyxform imports the odk_validate module itself; container_check loads pyxform).
 RUN rm /app/.venv/lib/python3.12/site-packages/pyxform/validators/odk_validate/bin/ODK_Validate.jar
 
-FROM python:3.12.16-slim-trixie@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+FROM python:3.12.16-slim-trixie@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b
 LABEL org.opencontainers.image.source="https://github.com/lubobali/MissionCopilot-AI" \
       org.opencontainers.image.description="MissionCopilot backend server" \
-      org.opencontainers.image.licenses="MIT"
+      org.opencontainers.image.licenses="LicenseRef-AllRightsReserved"
+# Debian fixes the base image does not carry yet (Grype fails on a fixable high, #162): only named packages,
+# each at an exact version, then apt's lists go.
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends --only-upgrade "zlib1g=1:1.3.dfsg+really1.3.1-1+deb13u1" \
+    && rm -rf /var/lib/apt/lists/*
 # 10120: a uid no other app on the server uses (host uids are shared by every container).
 RUN groupadd --system --gid 10120 missioncopilot \
     && useradd --system --uid 10120 --gid 10120 --no-create-home --home-dir /nonexistent \

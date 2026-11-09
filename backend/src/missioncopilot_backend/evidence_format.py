@@ -18,7 +18,8 @@ V2_REQUIRED = {
 }
 HEX64 = re.compile(r"[0-9a-f]{64}")
 TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
-KINDS = {"photo", "scan", "audio"}
+# pack and walk (#162): the mission pack and the finished site walk, as sources a report can cite.
+KINDS = {"photo", "scan", "audio", "pack", "walk"}
 CLOCKS = {"device", "gnss"}
 
 

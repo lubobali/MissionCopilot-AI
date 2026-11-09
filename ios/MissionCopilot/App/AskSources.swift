@@ -32,7 +32,8 @@ extension MissionSources {
     nonisolated static func records(mission: String, store: MissionStore) -> SourceInputs {
         var inputs = SourceInputs()
         inputs.packFiles = (try? store.packFiles(in: mission)) ?? [:]
-        inputs.facts = (try? store.facts(in: mission)) ?? []
+        // #162: report facts come from the pack, walk and flags, which Ask reads directly; never twice.
+        inputs.facts = ((try? store.facts(in: mission)) ?? []).filter { !ReportRules.ids.contains($0.rule.id) }
         return inputs
     }
 

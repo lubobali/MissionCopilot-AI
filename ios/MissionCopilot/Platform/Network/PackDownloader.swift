@@ -56,15 +56,16 @@ actor PackDownloader {
 
     private func download(org: String, mission: String) async -> PackOutcome {
         let base = "/v1/missions/\(mission)/pack"
-        var checked: (PackManifest, Data)?
+        var checked: CheckedManifest?
         for _ in 0..<2 {  // a second time if a pack was published between the two requests
             let manifestAnswer = await client.get("\(base)/manifest")
             guard case .success(let manifest, _, _) = manifestAnswer else { return stopped(manifestAnswer) }
             let signatureAnswer = await client.get("\(base)/signature")
             guard case .success(let signature, _, _) = signatureAnswer else { return stopped(signatureAnswer) }
             do {
-                checked = (try PackVerifier.verify(manifest: manifest, signature: signature, keys: keys, now: now(),
-                                                   appVersion: appVersion), manifest)
+                checked = CheckedManifest(pack: try PackVerifier.verify(manifest: manifest, signature: signature,
+                                                                        keys: keys, now: now(), appVersion: appVersion),
+                                          bytes: manifest, signature: signature)
                 break
             } catch PackRefusal.badSignature {
                 continue
@@ -72,16 +73,17 @@ actor PackDownloader {
                 return .failed(.refused(error))
             }
         }
-        guard let (pack, manifestBytes) = checked else { return .failed(.refused(.badSignature)) }
+        guard let checked else { return .failed(.refused(.badSignature)) }
+        let (pack, manifestBytes, signature) = (checked.pack, checked.bytes, checked.signature)
         do {
             try PackAcceptance.check(pack, manifestBytes: manifestBytes, asked: (org: org, mission: mission), in: store)
         } catch {
             return .failed(.refused(error))
         }
-        return await files(of: pack, manifestBytes: manifestBytes, base: base)
+        return await files(of: pack, manifestBytes: manifestBytes, signature: signature, base: base)
     }
 
-    private func files(of pack: PackManifest, manifestBytes: Data, base: String) async -> PackOutcome {
+    private func files(of pack: PackManifest, manifestBytes: Data, signature: Data, base: String) async -> PackOutcome {
         let reused = reuseStored(pack)
         let total = pack.files.reduce(0) { $0 + $1.size }
         var done = pack.files.reduce(0) { sum, file in
@@ -94,7 +96,8 @@ actor PackDownloader {
         for file in pack.files where !staging.isReady(file) {
             if let stop = await fetch(file, base: base, done: &done, total: total) { return stop }
         }
-        return .verified(PackReady(manifest: pack, manifestBytes: manifestBytes, staging: staging))
+        return .verified(PackReady(manifest: pack, manifestBytes: manifestBytes, staging: staging,
+                                   signature: signature))
     }
 
     /// Files the phone already holds in its encrypted store, same SHA-256 as the signed manifest says, are
@@ -217,4 +220,11 @@ enum PackLog {
         guard case .success(let data, let status, let headers) = answer else { return "stop \(file) \(answer.kind)" }
         return "got \(file) status=\(status) range=\(headers["content-range"] ?? "none") bytes=\(data.count)"
     }
+}
+
+/// A manifest whose signature checked out: the pack it describes, its exact bytes and the signature document.
+private struct CheckedManifest {
+    let pack: PackManifest
+    let bytes: Data
+    let signature: Data
 }

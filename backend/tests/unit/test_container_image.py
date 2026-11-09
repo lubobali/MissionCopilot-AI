@@ -119,3 +119,21 @@ def test_the_unused_odk_validator_jar_is_removed():
     assert f"\nRUN rm {jar}\n" in builder
     source = (BACKEND / "src" / "missioncopilot_backend").rglob("*.py")
     assert not [p for p in source if "odk_validate" in p.read_text(encoding="utf-8")]
+
+
+def test_a_base_image_fix_names_an_exact_version_and_leaves_no_apt_lists():
+    # #162: Grype found fixable highs in the base image's zlib1g before the Python image had
+    # Debian's fix; the final image upgrades only named packages, each at an exact version,
+    # then drops apt's lists.
+    joined = FINAL.replace("\\\n", " ")  # a RUN that goes on over several lines, as one
+    runs = [run for run in _instructions(joined, "RUN") if "apt-get" in run]
+    upgrades = re.findall(r"\"?([\w.+-]+)=([^\s\"]+)", " ".join(runs))
+
+    assert all("--only-upgrade" in run and "rm -rf /var/lib/apt/lists/*" in run for run in runs)
+    assert ("zlib1g", "1:1.3.dfsg+really1.3.1-1+deb13u1") in upgrades
+
+
+def test_the_image_label_states_the_repositorys_license():
+    # The repository is all rights reserved (LICENSE), never MIT.
+    assert 'org.opencontainers.image.licenses="LicenseRef-AllRightsReserved"' in DOCKERFILE
+    assert "MIT" not in DOCKERFILE

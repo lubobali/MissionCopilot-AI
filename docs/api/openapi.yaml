@@ -1089,7 +1089,7 @@ components:
           description: SHA-256 of the file as captured, hex
         kind:
           type: string
-          enum: [photo, scan, audio]
+          enum: [photo, scan, audio, pack, walk]
         capturedAt:
           type: string
           pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"

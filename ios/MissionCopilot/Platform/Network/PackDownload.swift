@@ -45,6 +45,9 @@ struct PackReady: Equatable, Sendable {
     let manifest: PackManifest
     let manifestBytes: Data
     let staging: PackStaging
+    /// The server's signature document over the manifest bytes, as checked (#162: kept with the pack, so a
+    /// report's bank records can be shown to come from the server).
+    var signature: Data?
 
     static func == (left: PackReady, right: PackReady) -> Bool {
         left.manifestBytes == right.manifestBytes && left.staging.folder == right.staging.folder

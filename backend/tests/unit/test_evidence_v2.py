@@ -86,6 +86,12 @@ def test_a_signed_item_that_breaks_the_format_is_refused(change):
     assert (result.ok, result.index, result.problem) == (False, 0, "bad_payload")
 
 
+@pytest.mark.parametrize("kind", ["pack", "walk"])
+def test_a_report_source_kind_is_accepted(kind):
+    # #162: the mission pack and the finished walk become evidence items a report can cite.
+    assert check(changed({"kind": kind})).ok
+
+
 def test_a_true_or_false_is_not_a_number():
     # In Python True == 1; JSON true must not pass as a sequence number or a coordinate.
     for change in ({"seq": True}, {"location": {"latE6": True, "lonE6": 0}}):
