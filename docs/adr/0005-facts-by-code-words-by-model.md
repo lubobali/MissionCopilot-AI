@@ -73,5 +73,17 @@ Option 3.
   kept only with a second tap and is cited as "typed by you", never as the page. Code offers the values
   printed on the page; the officer chooses.
 
+## Evidence (#152: debrief notes, Nov 8 2026)
+- On the iPhone the model changed the words it quoted, added words never said and invented a note; the checks
+  held each one back, but the officer had to fix almost every note.
+- Measured on the Mac with the same model, answer keys written first: labelling each sentence decision,
+  action, risk or none, the model scored 15 of 21 at best (one pass 10, one at a time 3, calibrated 10,
+  yes/no 15) and 9 of 15 on new sentences; code cue words scored 50 of 51, including 15 of 15 from other
+  sectors (health, schools, water, energy, social payments), English and French. Code plus the model did worse.
+- **Added rule:** debrief notes are written by code, with no model: each sentence that was said is labelled by
+  cue words (the officer's spoken label first: "Action", "Risk", "Decision"), and a note is its sentence word
+  for word. The officer changes a label, tags a sentence code left, edits or removes. The word lists describe
+  how people speak, never a mission's topic; a new language is one more list.
+
 ## Revisit when
 - Never for arithmetic. Revisit the extraction split if document types multiply beyond what rules handle.

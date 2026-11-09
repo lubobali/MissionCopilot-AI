@@ -1,13 +1,13 @@
 import Foundation
 import Observation
 
-/// The notes review (#142, step 6.6.9): for one transcribed debrief, the assistant drafts notes, code grounds
-/// them and finds every heard number (checked against the pack); the officer decides each one, then saves.
+/// The notes review (#142, step 6.6.9; #152): for one transcribed debrief, code labels each sentence that was
+/// said and writes the notes from them, word for word, and finds every heard number (checked against the pack);
+/// no model. The officer decides each one, changes a label or tags a sentence code left, then saves.
 @Observable @MainActor
 final class DebriefReviewModel {
     enum Stage: Equatable {
         case drafting, review, noTranscript, alreadySaved
-        case toOfficer(DebriefExtraction.Why)
         case saved(count: Int)
     }
 
@@ -21,6 +21,8 @@ final class DebriefReviewModel {
         let problems: [String]
         let canConfirm: Bool
         let decision: String?
+        /// Written by code from a sentence (#152): its label can be changed.
+        var fromSentence = false
     }
 
     /// One heard number as the page shows it.
@@ -44,15 +46,15 @@ final class DebriefReviewModel {
     private(set) var review: DebriefReview
     private(set) var decisions = DebriefDecisions()
     private(set) var problem: String?
+    /// The sentences code gave no label, for the officer to tag (#152).
+    private(set) var untagged: [DebriefSentence] = []
     private var written: Set<Int> = []
+    private var transcript = ""
     private let store: MissionStore
     private let contracts: PackContracts?
-    private let model: FieldModel
 
-    init(mission: String, debrief: Debrief, store: MissionStore, contracts: PackContracts?,
-         model: FieldModel = AppModel.field) {
-        (self.mission, self.debrief, self.store, self.contracts, self.model) = (mission, debrief, store, contracts,
-                                                                                model)
+    init(mission: String, debrief: Debrief, store: MissionStore, contracts: PackContracts?) {
+        (self.mission, self.debrief, self.store, self.contracts) = (mission, debrief, store, contracts)
         review = DebriefReview(debrief: debrief, notes: [], numbers: [])
     }
 
@@ -62,7 +64,7 @@ final class DebriefReviewModel {
                            contracts: try? PackContracts.read(try store.packFile(PackContracts.path, in: mission)))
     }
 
-    /// The assistant's notes, grounded, and every heard number, checked.
+    /// The notes code writes from the sentences, grounded, and every heard number, checked.
     func draft() async {
         stage = .drafting
         if (try? store.confirmedDebriefs(in: mission))?.contains(debrief.seq) == true {
@@ -74,19 +76,32 @@ final class DebriefReviewModel {
             return
         }
         let numbers = SpokenNumbers.check(SpokenNumbers.find(transcript.text), contracts: contracts)
-        switch await DebriefExtraction.extract(transcript.text, model: model) {
-        case .notes(let notes):
-            review = DebriefReview(debrief: debrief, notes: NoteGrounding.check(notes, transcript: transcript.text),
-                                   numbers: numbers)
-            stage = .review
-        case .toOfficer(let why):
-            review = DebriefReview(debrief: debrief, notes: [], numbers: numbers)
-            stage = .toOfficer(why)
-        }
+        let drafted = CodeNotes.draft(transcript.text)
+        self.transcript = transcript.text
+        review = DebriefReview(debrief: debrief, notes: drafted.notes, numbers: numbers)
+        untagged = drafted.untagged
+        stage = .review
     }
 
-    /// The assistant could not help: the officer writes the notes (the numbers are still read back).
-    func writeYourself() { stage = .review }
+    /// A sentence code left without a label becomes a note of the kind the officer chose, word for word.
+    func tag(_ index: Int, as kind: DebriefNote.Kind) {
+        guard untagged.indices.contains(index) else { return }
+        let note = CodeNotes.note(untagged.remove(at: index), kind: kind, transcript: transcript)
+        review = DebriefReview(debrief: debrief, notes: review.notes + [note], numbers: review.numbers)
+    }
+
+    /// The officer changes a sentence note's label; it stays the sentence, word for word, to decide again.
+    func relabel(note index: Int, as kind: DebriefNote.Kind) {
+        // A note the officer wrote has no place in the transcript, so only a sentence note is relabelled.
+        guard review.notes.indices.contains(index), review.notes[index].found != nil else { return }
+        var notes = review.notes
+        let old = notes[index].note
+        notes[index] = NoteCheck(note: DebriefNote(kind: kind, text: old.text, who: old.who, byWhen: old.byWhen,
+                                                   quote: old.quote),
+                                 found: notes[index].found, problems: notes[index].problems)
+        review = DebriefReview(debrief: debrief, notes: notes, numbers: review.numbers)
+        decisions.notes[index] = nil
+    }
 
     func addNote(_ kind: DebriefNote.Kind, _ text: String) {
         let words = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -144,7 +159,8 @@ final class DebriefReviewModel {
             }
             return NoteLine(id: index, kind: note.kind.rawValue.capitalized, text: note.text,
                             detail: detail.isEmpty ? nil : detail, quote: note.quote.isEmpty ? nil : "“\(note.quote)”",
-                            problems: check.problems, canConfirm: check.found != nil, decision: decision)
+                            problems: check.problems, canConfirm: check.found != nil, decision: decision,
+                            fromSentence: check.found != nil && !written.contains(index))
         }
     }
 

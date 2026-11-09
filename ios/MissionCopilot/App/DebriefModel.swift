@@ -5,6 +5,9 @@ import Observation
 /// at 5 minutes. Spike #14 used about 2 minutes; 5 leaves room without letting the microphone run on.
 @Observable @MainActor
 final class DebriefModel {
+    /// #152: code writes the notes from the sentences said; a label said first makes a sentence a note.
+    static let noteTip = "Start a sentence with “Action”, “Risk” or “Decision” to make it a note."
+
     enum State: Equatable, Sendable {
         case idle, recording
         case recorded(seconds: Double)

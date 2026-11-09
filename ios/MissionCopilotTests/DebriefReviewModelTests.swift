@@ -2,24 +2,22 @@ import Foundation
 import Testing
 @testable import MissionCopilot
 
-/// The notes review's model (#142, step 6.6.9): for one transcribed debrief, the assistant drafts notes, code
-/// grounds them and finds every heard number (checked against the pack); the officer confirms, edits or
-/// removes each note and confirms or corrects each number, then saves. When the assistant cannot help, the
-/// officer writes the notes.
+/// The notes review's model (#142, step 6.6.9; #152): for one transcribed debrief, code writes the notes from
+/// the sentences said and finds every heard number (checked against the pack), no model; the officer confirms,
+/// edits, relabels or removes each note, tags a sentence code left, confirms or corrects each number, then saves.
 @MainActor
 struct DebriefReviewModelTests {
     let mission = "kandor-roads"
     static let transcript = DebriefConfirmTests.transcript
 
-    private func model(answer: String = DebriefNotesTests.answer) async throws -> (DebriefReviewModel, MissionStore) {
+    private func model() async throws -> (DebriefReviewModel, MissionStore) {
         let store = try DebriefModelTests.store()
         let debrief = try store.addDebrief(try DebriefStoreTests.recording(), language: .english, to: mission,
                                            signer: SoftwareEvidenceSigner())
         _ = try await store.transcribe(debrief, in: mission,
                                        engine: DebriefTranscriptTests.FakeTranscriber(.success(Self.transcript)))
         let model = DebriefReviewModel(mission: mission, debrief: debrief, store: store,
-                                       contracts: try InvoiceBankViewTests.kandor().contracts,
-                                       model: FieldModel(engine: FieldModelTests.FakeEngine(answer: answer)))
+                                       contracts: try InvoiceBankViewTests.kandor().contracts)
         return (model, store)
     }
 
@@ -28,12 +26,19 @@ struct DebriefReviewModelTests {
 
         await model.draft()
 
+        // The transcript's sentences: "They agreed ..." is a decision, "... need to check invoice 14" an action;
+        // the other three carry no cue word and wait to be tagged. No model is asked.
         #expect(model.stage == .review)
-        #expect(model.notes.map(\.kind) == ["Decision", "Action", "Risk"])
-        #expect(model.notes[1].detail == "Who: the contractor · By when: in two weeks")
-        #expect(model.notes[1].quote == "“the contractor shows a new work plan in two weeks”")
+        #expect(model.notes.map(\.kind) == ["Decision", "Action"])
+        #expect(model.notes[0].text.hasPrefix("They agreed to extend the contractor deadline to March 15"))
+        #expect(model.notes[0].detail == "Who: the contractor · By when: March 15")
+        #expect(model.notes.allSatisfy { $0.fromSentence && $0.canConfirm && $0.problems.isEmpty })
+        #expect(model.untagged.map(\.text) == [
+            "Just met the deputy minister of transport and the road agency director.",
+            "Section 3 bridge still not started.", "Invoice 14 for 480,000 dollars."
+        ])
         #expect(model.numbers.map(\.heard) == ["March 15", "two weeks", "3", "14", "14", "480,000 dollars"])
-        #expect(model.summary == "3 notes · 6 numbers · 0 of 9 decided")
+        #expect(model.summary == "2 notes · 6 numbers · 0 of 8 decided")
     }
 
     @Test func aWrongNumberShowsItsProblem() async throws {
@@ -51,8 +56,10 @@ struct DebriefReviewModelTests {
         let (model, store) = try await model()
         await model.draft()
 
+        model.tag(1, as: .risk)  // "Section 3 bridge still not started."
+        #expect(model.notes.last?.text == "Section 3 bridge still not started.")
         model.decide(note: 0, .confirm)
-        model.decide(note: 1, .edit("Contractor sends a new work plan."))
+        model.decide(note: 1, .edit("Check invoice 14."))
         model.decide(note: 2, .remove)
         for index in model.numbers.indices.dropLast() { model.decide(number: index, .confirm) }
         #expect(!model.canSave)
@@ -82,27 +89,33 @@ struct DebriefReviewModelTests {
         _ = store
     }
 
-    @Test func aNoteNotSaidCannotBeConfirmed() async throws {
-        let made = #"{"notes":[{"kind":"decision","text":"Approved.","who":"","byWhen":"","#
-            + #""quote":"the minister approved it"}]}"#
-        let (model, _) = try await model(answer: made)
+    /// The officer changes a sentence note's label; it stays the same words, to decide again.
+    @Test func aSentenceNotesLabelCanBeChanged() async throws {
+        let (model, _) = try await model()
         await model.draft()
+        model.decide(note: 1, .confirm)
 
-        model.decide(note: 0, .confirm)
+        model.relabel(note: 1, as: .risk)
 
-        #expect(model.notes[0].decision == nil)
-        #expect(!model.notes[0].canConfirm)
-        #expect(model.notes[0].problems == ["These words are not in the debrief: “the minister approved it”."])
+        #expect(model.notes[1].kind == "Risk")
+        #expect(model.notes[1].text.hasSuffix("need to check invoice 14."))
+        #expect(model.notes[1].decision == nil)
+        model.tag(9, as: .action)  // not a sentence: nothing happens
+        #expect(model.untagged.count == 3)
     }
 
-    @Test func whenTheAssistantCannotHelpTheOfficerWritesTheNotes() async throws {
-        let (model, store) = try await model(answer: "no JSON")
+    /// The officer still writes a note of their own; it is theirs, and its label is not a sentence's.
+    @Test func theOfficerCanStillWriteANote() async throws {
+        let (model, store) = try await model()
         await model.draft()
-        #expect(model.stage == .toOfficer(.notUsable))
 
-        model.writeYourself()
         model.addNote(.action, "Send the no-objection by Friday.")
-        #expect(model.notes.map(\.decision) == ["Written by you"])
+        #expect(model.notes.last?.decision == "Written by you")
+        #expect(model.notes.last?.fromSentence == false)
+        model.relabel(note: 2, as: .risk)
+        #expect(model.notes.last?.kind == "Action")
+        model.decide(note: 0, .remove)
+        model.decide(note: 1, .remove)
         for index in model.numbers.indices { model.decide(number: index, .confirm) }
         model.save()
 
@@ -111,16 +124,15 @@ struct DebriefReviewModelTests {
     }
 
     @Test func aSavedDebriefIsNotDraftedAgain() async throws {
-        let (model, store) = try await model(answer: "no JSON")
+        let (model, store) = try await model()
         await model.draft()
-        model.writeYourself()
-        model.addNote(.risk, "Payments ahead of the work.")
+        model.decide(note: 0, .confirm)
+        model.decide(note: 1, .confirm)
         for index in model.numbers.indices { model.decide(number: index, .confirm) }
         model.save()
-        #expect(model.stage == .saved(count: 7))
+        #expect(model.stage == .saved(count: 8))
 
-        let again = DebriefReviewModel(mission: mission, debrief: model.debrief, store: store, contracts: nil,
-                                       model: FieldModel(engine: FieldModelTests.FakeEngine(answer: "{}")))
+        let again = DebriefReviewModel(mission: mission, debrief: model.debrief, store: store, contracts: nil)
         await again.draft()
 
         #expect(again.stage == .alreadySaved)

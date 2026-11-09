@@ -132,6 +132,10 @@ struct DebriefView: View {
             Button("Record a debrief", systemImage: "mic.fill") { Task { await model.record() } }
                 .buttonStyle(.fieldPrimary)
                 .disabled(!model.canRecord)
+            // #152: notes come from the sentences said; a spoken label makes a sentence a note for sure.
+            Label(DebriefModel.noteTip, systemImage: "lightbulb")
+                .font(.footnote)
+                .foregroundStyle(Color(.secondaryText))
         }
     }
 
