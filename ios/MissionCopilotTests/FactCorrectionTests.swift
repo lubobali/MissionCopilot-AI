@@ -120,6 +120,20 @@ struct FactCorrectionTests {
         }
     }
 
+    /// Found on the iPhone: only the invoice scanned, so the report's facts were invented. The card says what to scan.
+    @Test func aFactWithNothingOnThePagesSaysWhichPageToScan() async throws {
+        let (model, _) = try await reviewed()
+        let invoiceOnly = FactReviewModel.choices("kmCompleted", rejected: "1",
+                                                  pages: [try FactGroundingTests.kandorPages()[0]])
+
+        #expect(invoiceOnly.isEmpty)
+        #expect(FactReviewModel.notScanned("kmCompleted")
+                == "Not on the scanned pages. Scan the progress report that shows it, or correct it.")
+        #expect(FactReviewModel.notScanned("amountDue")
+                == "Not on the scanned pages. Scan the invoice that shows it, or correct it.")
+        #expect(try line(model, "kmCompleted").found == "Not found on the pages. Correct it to keep it.")
+    }
+
     /// The value the check rejected is never offered, and there are at most three.
     @Test func choicesNeverOfferTheRejectedValue() throws {
         let pages = [FactGroundingTests.page("Road built: 1 of 64 km. Road built: 2 of 64 km. Road built: 3 of 64 km. "

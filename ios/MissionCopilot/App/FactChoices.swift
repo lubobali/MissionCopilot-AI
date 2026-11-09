@@ -7,6 +7,14 @@ import Foundation
 extension FactReviewModel {
     static let maxChoices = 3
 
+    /// Found on the iPhone: with only the invoice scanned, the model invented the progress report's facts. A fact
+    /// with nothing on the pages says which page to scan.
+    static func notScanned(_ field: String) -> String {
+        let report: Set = ["kmCompleted", "kmTotal", "bridgeStatus"]
+        return "Not on the scanned pages. Scan the \(report.contains(field) ? "progress report" : "invoice") "
+            + "that shows it, or correct it."
+    }
+
     static func choices(_ field: String, rejected: String?, pages: [PageReading]) -> [Choice] {
         var values = FactGrounding.labelled(in: pages)[field]?.map { FactGrounding.normalized($0, field: field) } ?? []
         let texts = pages.map(FactGrounding.text)

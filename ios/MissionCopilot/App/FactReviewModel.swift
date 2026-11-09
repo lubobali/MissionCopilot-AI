@@ -96,7 +96,8 @@ final class FactReviewModel {
     var lines: [Line] {
         InvoiceFacts.fields.map { field in
             let printed = manual ? nil : review.printedAt[field]
-            let missing = "Not found on the pages. Correct it to keep it."
+            let choices = printed == nil ? Self.choices(field, rejected: rejected(field), pages: readings) : []
+            let missing = choices.isEmpty ? Self.notScanned(field) : "Not found on the pages. Correct it to keep it."
             let found = manual ? "Read it on the scanned pages."
                 : printed.map { "Page \($0.page + 1): “\($0.text)”" } ?? missing
             let decision: String? = switch decisions[field] {
@@ -111,7 +112,7 @@ final class FactReviewModel {
                             : InvoiceFacts.words(field, value: review.facts.value(field) ?? ""),
                         found: found, problems: review.problems(for: field).map(\.words), canConfirm: printed != nil,
                         decision: decision,
-                        choices: printed == nil ? Self.choices(field, rejected: rejected(field), pages: readings) : [],
+                        choices: choices,
                         notOnPage: decisions[field] == nil ? waitingSecondTap[field] : nil,
                         warning: problemField == field ? problem : nil)
         }
