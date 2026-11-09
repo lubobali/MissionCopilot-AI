@@ -85,4 +85,25 @@ struct ReportModelApprovalTests {
         #expect(again.lines.map(\.text) == approvedLines.map(\.text))
         #expect(!again.lines.contains { $0.text.contains("Later note") })
     }
+
+    /// What the page says under Approve, in each state (#163, 7.3.4), and once approved.
+    @Test func thePageSaysWhatToDoNext() async throws {
+        let ready = try await Self.ready()
+        let model = ready.model
+        #expect(model.approvalHint == "Face ID or your passcode signs it on this iPhone.")
+
+        model.remove(model.lines[0].id)
+        #expect(model.approvalHint == "Save the draft, then approve it.")
+
+        model.add(section: .findings, text: "The road is good.", factIds: [])
+        #expect(model.approvalHint == "Fix or remove the sentences with no proof first.")
+
+        model.remove(try #require(model.lines.first { !$0.checked }).id)
+        model.save()
+        await model.approve()
+        let when = try #require(model.approved?.approvedAt)
+        #expect(model.approvalHint
+                == "Approved on this iPhone \(when.formatted(date: .abbreviated, time: .shortened)). It cannot change.")
+        #expect(model.summary.hasPrefix("Approved · "))
+    }
 }

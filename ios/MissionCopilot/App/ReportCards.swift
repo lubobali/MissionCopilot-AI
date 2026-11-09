@@ -34,6 +34,8 @@ struct ReportCard: View {
 struct ReportSentence: View {
     let line: ReportLine
     let number: Int
+    /// #163: an approved report shows no Edit or Remove.
+    var locked = false
     var onProof: () -> Void = {}
     var onEdit: () -> Void = {}
     var onRemove: () -> Void = {}
@@ -57,12 +59,14 @@ struct ReportSentence: View {
                     .font(.subheadline)
                     .foregroundStyle(Color(.warning))
             }
-            HStack(spacing: 16) {
-                Button("Edit", systemImage: "pencil", action: onEdit)
-                Button("Remove", systemImage: "trash", role: .destructive, action: onRemove)
+            if !locked {
+                HStack(spacing: 16) {
+                    Button("Edit", systemImage: "pencil", action: onEdit)
+                    Button("Remove", systemImage: "trash", role: .destructive, action: onRemove)
+                }
+                .font(.footnote)
+                .buttonStyle(.borderless)
             }
-            .font(.footnote)
-            .buttonStyle(.borderless)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)

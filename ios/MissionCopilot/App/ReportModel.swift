@@ -57,6 +57,7 @@ final class ReportModel {
 
     var summary: String {
         let count = "\(lines.count) sentence\(lines.count == 1 ? "" : "s")"
+        if approved != nil { return "Approved · \(count), each with its proof" }
         return unproven == 0 ? "\(count), each with its proof" : "\(count) · \(unproven) with no proof"
     }
 
@@ -66,6 +67,18 @@ final class ReportModel {
     var state: ReportState { ReportState.of(lines: lines, saved: saved, approved: approved != nil) }
 
     var canApprove: Bool { state == .ready }
+
+    /// What the page says under Approve (#163, 7.3.4): what to do next, or when it was approved.
+    var approvalHint: String {
+        switch state {
+        case .needsProof: "Fix or remove the sentences with no proof first."
+        case .draft: "Save the draft, then approve it."
+        case .ready: "Face ID or your passcode signs it on this iPhone."
+        case .approved:
+            "Approved on this iPhone \(approved?.approvedAt.formatted(date: .abbreviated, time: .shortened) ?? ""). "
+                + "It cannot change."
+        }
+    }
 
     func remove(_ id: String) {
         guard approved == nil else { return }

@@ -73,6 +73,15 @@ extension ScreenshotTests {
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "report")
     }
 
+    /// #163: the approved report, locked: no Edit, Remove, Add or Save, the approval line.
+    @Test(arguments: [Look.light, .dark, .largestText])
+    func theApprovedReportIsOnTheThemeBackground(look: Look) async throws {
+        let model = try await ReportModelApprovalTests.ready().model
+        await model.approve()
+        try check(ReportView(model: model).fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "report-approved")
+    }
+
     /// #142, #152: the notes review, a sentence note confirmed, a sentence left to tag, and the heard numbers.
     @Test(arguments: [Look.light, .dark, .largestText])
     func theDebriefNotesAreOnTheThemeBackground(look: Look) async throws {
