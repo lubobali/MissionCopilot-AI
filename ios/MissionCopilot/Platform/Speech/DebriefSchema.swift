@@ -17,6 +17,31 @@ extension StoreSchema {
         migrator.registerMigration("v19-pack-signature") { database in
             try database.execute(sql: "ALTER TABLE mission_pack ADD COLUMN sealed_signature BLOB")
         }
+        // Report drafts (#161): a draft is its sentences in order; never changed, gone only with its mission.
+        migrator.registerMigration("v20-report-drafts") { database in
+            try database.execute(sql: """
+                CREATE TABLE report_draft (
+                    id TEXT PRIMARY KEY,
+                    mission_id TEXT NOT NULL REFERENCES mission(id) ON DELETE CASCADE,
+                    language TEXT NOT NULL CHECK (language IN ('en', 'fr')),
+                    created_at REAL NOT NULL);
+                CREATE TABLE report_line (
+                    draft_id TEXT NOT NULL REFERENCES report_draft(id) ON DELETE CASCADE,
+                    mission_id TEXT NOT NULL REFERENCES mission(id) ON DELETE CASCADE,
+                    position INTEGER NOT NULL CHECK (position >= 0),
+                    sentence_id TEXT NOT NULL REFERENCES sentence(id) ON DELETE CASCADE,
+                    PRIMARY KEY (draft_id, position));
+                """)
+            for table in ["report_draft", "report_line"] {
+                try database.execute(sql: """
+                    CREATE TRIGGER \(table)_no_update BEFORE UPDATE ON \(table)
+                    BEGIN SELECT RAISE(ABORT, 'append-only: \(table) rows cannot be changed'); END;
+                    CREATE TRIGGER \(table)_no_delete BEFORE DELETE ON \(table)
+                    WHEN EXISTS (SELECT 1 FROM mission WHERE id = OLD.mission_id)
+                    BEGIN SELECT RAISE(ABORT, 'append-only: \(table) rows go only with their mission'); END;
+                    """)
+            }
+        }
     }
 
     static func registerDebriefs(in migrator: inout DatabaseMigrator) {

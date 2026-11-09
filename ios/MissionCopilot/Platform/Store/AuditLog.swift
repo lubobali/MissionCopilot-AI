@@ -15,6 +15,7 @@ struct AuditEvent: Sendable, Equatable {
         case debriefTranscribed  // #142: the target is the debrief's evidence seq and the engine, never words
         case debriefRecorded  // #142: the target is the audio's evidence seq, length and language, never words
         case questionAsked  // #145: the target is the kept entry's id, never the question or the answer
+        case reportDrafted  // #161: the target is the draft's id and its sentence count, never its words
     }
 
     let seq: Int
