@@ -37,6 +37,14 @@ Option 3.
   required foreign keys (same mission). A derived item takes the strictest label of its inputs. These rows
   are never changed, and go only with their whole mission after a shred. Every change is in a hash-chained,
   append-only audit log. Approvals and the approval gate come with the approval flow (Phase 7).
+- **Report sources (#162, decided by Lubo, option A):** the mission pack and the finished site walk are
+  evidence items too (kinds `pack` and `walk`), so every report sentence keeps the one path sentence ->
+  facts -> evidence. The pack's item holds the exact manifest bytes and the server's signature over them (kept
+  at import from #162 on); the manifest pins every pack file by SHA-256. The walk's item is its answers and
+  checks as canonical JSON, added once, never before the finish. Code writes facts from them: `pack-record`
+  (region: file#pointer and the file's SHA-256), `walk-answer` (region: the question or the action, plus its
+  photo), `red-flag` (its inputs; strictly confidential like the stored flags). A fact cites each evidence item
+  once (`fact_source`'s key), so the several fields of one item go in one region, separated by " | ".
 
 ### Signing and chaining
 - Each evidence item stores: content hash (SHA-256), the previous item's hash, capture time, location

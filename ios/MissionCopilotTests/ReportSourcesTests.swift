@@ -210,6 +210,34 @@ struct ReportSourcesTests {
         #expect(ScannedInvoice.all(from: try store.facts(in: Self.mission)).isEmpty)
     }
 
+    // MARK: 7.1.6 trace
+
+    /// A report sentence on these facts traces back to the pack's evidence (the manifest the server signed)
+    /// and the walk's evidence, each fact naming the file and pointer or the question it came from.
+    @Test func aReportSentenceTracesToThePackAndTheWalk() async throws {
+        let (store, flags) = try await Self.finished()
+        let facts = try Self.write(store, flags)
+        let milestone = try #require(facts.first { $0.name == "pack:sections/milestones.json#/milestones/2" })
+        let walked = try #require(facts.first { $0.name == "walk:bridge_started" })
+
+        let sentence = try store.addSentence(SentenceInput(section: "findings",
+                                                           text: "The Section 3 bridge is late and not started.",
+                                                           factIds: [milestone.id, walked.id]), to: Self.mission)
+        let trace = try store.trace(sentence: sentence.id, in: Self.mission)
+
+        #expect(trace.facts.map(\.id) == [milestone.id, walked.id])
+        let kinds = try trace.evidence.map {
+            try JSONDecoder().decode(EvidencePayload.self, from: $0.record.payload).kind
+        }
+        #expect(kinds == [.pack, .walk])
+        let file = try JSONDecoder().decode(PackEvidenceFile.self,
+                                            from: store.evidenceFile(in: Self.mission, seq: trace.evidence[0].seq))
+        #expect(file.manifestSHA256 == (try store.storedPack(for: Self.mission))?.manifestSHA256)
+        #expect(trace.facts[0].sources[0].region?.hasPrefix("sections/milestones.json#/milestones/2 sha256:") == true)
+        #expect(trace.facts[1].sources[0].region == "question:bridge_started")
+        #expect(sentence.classification == .officialUseOnly)
+    }
+
     static func payload(_ store: MissionStore, _ seq: Int) throws -> EvidencePayload {
         try JSONDecoder().decode(EvidencePayload.self, from: store.evidence(in: mission)[seq - 1].payload)
     }

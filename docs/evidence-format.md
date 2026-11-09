@@ -44,3 +44,12 @@ API contract carries the same rules (`EvidencePayload`, `Evidence`, `ChainHead` 
 The chain signed by the iPhone in spike #17 is version 1: `{capturedAt, fileSHA256, missionId, prevHash,
 seq}`, without kind, clock source or location. Verifiers still accept it, so that proof stays checkable;
 new evidence is always version 2.
+
+## Report sources: `pack` and `walk` (#162)
+- **`pack`:** the evidence file is `{"manifest": <base64 of the exact manifest bytes>, "manifestSHA256": <hex>,
+  "signature": <base64 of the server's signature document, or null for a pack imported before #162>}` (sorted
+  keys). Check the server's signature over the manifest bytes, then the manifest's SHA-256 of any pack file.
+  One item per manifest: a newer pack gets its own.
+- **`walk`:** the evidence file is the finished walk as canonical JSON: `{"answers": {question: value},
+  "checks": {actionKey: {"note", "photo", "seen"}}, "finishedAt": <whole seconds>, "formId", "formVersion"}`
+  (sorted keys, no escaped slashes). Added once, never before the walk is finished.

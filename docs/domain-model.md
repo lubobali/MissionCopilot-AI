@@ -39,7 +39,7 @@ Common fields on every object: `id` (UUID), `mission_id` (except Mission), `crea
 | **Evidence** | `kind` (photo, scan, audio, pack, walk), `content_hash` (SHA-256), `prev_hash`, `signature`, `captured_at`, `clock_source`, `location` (optional), `file_ref` (encrypted with the mission key) | Device | **Immutable** |
 | **FieldNote** | `source` (typed, debrief), `text`, `audio_evidence_id` (optional), `consent` (for recordings) | Officer / device | Until approval |
 | **RuleVersion** | `rule_id` (R067, R068, MC-01 ...), `version`, `source`, `formula`, `threshold` | Organization / app release | **Immutable** |
-| **Fact** | `name` (for example `payments_total`), `value`, `unit`, `source_evidence_ids[]`, `region` (page area or time range), `rule_version_id`, `quality` (complete, consistent, valid) | Rule engine (code) | **Immutable** (a correction is a new Fact) |
+| **Fact** | `name` (for example `payments_total`), `value`, `unit`, `source_evidence_ids[]`, `region` (page area or time range; for report sources a pack file#pointer with its SHA-256, or a walk question, #162), `rule_version_id`, `quality` (complete, consistent, valid) | Rule engine (code) | **Immutable** (a correction is a new Fact) |
 | **RiskFlag** | `rule_version_id`, `input_fact_ids[]`, `computed_values`, `threshold`, `status` (raised, not checked, dismissed with reason) | Rule engine (code) | Status only, with reason |
 | **ReportDraft** | `template` (Aide-Memoire style), `sections[]`, `version` | Model (words) + officer (edits) | Until approval |
 | **ReportSentence** | `section`, `text`, `fact_ids[]` (must not be empty to be approved) | Model + officer | Until approval |
