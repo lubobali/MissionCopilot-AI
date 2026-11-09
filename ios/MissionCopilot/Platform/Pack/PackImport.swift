@@ -96,9 +96,10 @@ enum PackImport {
         try PackAcceptance.versionRule(pack, manifestBytes: ready.manifestBytes, last: last)
         let manifestSHA256 = PackAcceptance.hash(ready.manifestBytes)
         try database.execute(sql: "DELETE FROM mission_pack WHERE mission_id = ?", arguments: [mission])
-        try database.execute(sql: "INSERT INTO mission_pack VALUES (?, ?, ?, ?, ?, ?, ?, ?)", arguments: [
+        try database.execute(sql: "INSERT INTO mission_pack VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", arguments: [
             mission, pack.packId, pack.version, manifestSHA256, try MissionData.seal(ready.manifestBytes, with: key),
-            pack.createdAt.timeIntervalSince1970, pack.expiresAt.timeIntervalSince1970, now.timeIntervalSince1970
+            pack.createdAt.timeIntervalSince1970, pack.expiresAt.timeIntervalSince1970, now.timeIntervalSince1970,
+            try ready.signature.map { try MissionData.seal($0, with: key) }
         ])
         for entry in pack.files {
             try database.execute(sql: "INSERT INTO pack_file VALUES (?, ?, ?, ?, ?, ?, ?)", arguments: [

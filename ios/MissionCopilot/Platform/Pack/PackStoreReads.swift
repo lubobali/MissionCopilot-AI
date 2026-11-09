@@ -7,6 +7,17 @@ extension MissionStore {
     struct PackFileNotFound: Error {}
 
     /// The mission's pack, or nil when none was imported.
+    /// The server's signature document kept with the mission's pack (#162); nil for a pack imported before it
+    /// was kept, or no pack.
+    func packSignature(in mission: String) throws -> Data? {
+        let sealed = try store.read { database in
+            try Data.fetchOne(database, sql: "SELECT sealed_signature FROM mission_pack WHERE mission_id = ?",
+                              arguments: [mission])
+        }
+        guard let sealed else { return nil }
+        return try MissionData.open(sealed, with: missionKey(for: mission))
+    }
+
     func storedPack(for mission: String) throws -> StoredPack? {
         let rows = try store.read { database in
             (try Row.fetchOne(database, sql: "SELECT * FROM mission_pack WHERE mission_id = ?", arguments: [mission]),
