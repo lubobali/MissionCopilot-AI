@@ -14,6 +14,8 @@ struct AskOpening: View {
             Text(words)
                 .font(.subheadline)
                 .foregroundStyle(Color(.secondaryText))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)  // #163: a long line wraps instead of touching the edges
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .combine)
