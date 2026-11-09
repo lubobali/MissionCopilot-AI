@@ -57,6 +57,11 @@ final class ReportModel {
 
     var canSave: Bool { !lines.isEmpty && unproven == 0 }
 
+    /// #163, 7.3.1: needs proof, draft, ready (exactly the saved draft), approved.
+    var state: ReportState { ReportState.of(lines: lines, saved: saved, approved: false) }
+
+    var canApprove: Bool { state == .ready }
+
     func remove(_ id: String) {
         lines.removeAll { $0.id == id }
         problem = nil
