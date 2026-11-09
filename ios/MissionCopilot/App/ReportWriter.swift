@@ -54,6 +54,29 @@ enum ReportWriter {
         }.map(\.element)
     }
 
+    /// The officer's own sentence (#161, step 7.2.3), checked in full by Ask's check (AnswerCheck: numbers,
+    /// dates, months, status words and their opposite, the main words) against the facts they picked; one that
+    /// fails or picks no fact keeps the reason, and is never stored.
+    static func officerLine(section: ReportSection, text: String, factIds: [String], sources: [MissionSource],
+                            facts: [Fact]) -> ReportLine {
+        let words = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !factIds.isEmpty else {
+            return ReportLine(section: section, text: words, factIds: [], checked: false, reason: pickFacts)
+        }
+        let byId = Dictionary(uniqueKeysWithValues: facts.map { ($0.id, $0) })
+        let byName = Dictionary(sources.map { ($0.id, $0) }) { first, _ in first }
+        let cited = factIds.compactMap { id in
+            byId[id].flatMap { byName[$0.name] ?? byName["fact:\(id)"] }
+        }
+        let reason: String? = switch AnswerCheck.check(words, cites: cited.map(\.id), found: cited) {
+        case .backed: nil
+        case .leftOut(let why): why
+        }
+        return ReportLine(section: section, text: words, factIds: factIds, checked: reason == nil, reason: reason)
+    }
+
+    static let pickFacts = "Pick the facts this sentence comes from."
+
     /// Code's own lines: every number and month must be in the record (the rule Ask's code lines meet,
     /// AnswerLinesTests); statuses come straight from the record's fields and names (a milestone named
     /// "Section 3 bridge complete" is a name, not a claim). The officer's sentences get the full check.

@@ -125,4 +125,48 @@ struct ReportWriterTests {
         #expect(lines.map(\.section) == [.agreedActions])
         #expect(lines.first?.text == "Your site walk: Start the Section 3 bridge works, seen done.")
     }
+
+    // MARK: 7.2.3 the officer's sentences
+
+    static let action = "pack:sections/agreed-actions.json#/actions/0"
+
+    /// The Kandor pack's sources and a report fact for the bridge action, named like its source.
+    static func officerInputs() -> ([MissionSource], [Fact]) {
+        let fact = Fact(id: "a", name: action, value: "", unit: nil, rule: ReportRules.packRecord,
+                        classification: .officialUseOnly, sources: [FactSource(seq: 1, region: "x")])
+        return (AnswerLinesTests.sources, [fact])
+    }
+
+    @Test func theOfficersSentenceIsCheckedAgainstTheFactsTheyPick() {
+        let (sources, facts) = Self.officerInputs()
+        let write = { (text: String, ids: [String]) in
+            ReportWriter.officerLine(section: .findings, text: text, factIds: ids, sources: sources, facts: facts)
+        }
+
+        let backed = write("The Section 3 bridge works were not started by the 31 Jul 2026 deadline.", ["a"])
+        #expect(backed.checked && backed.reason == nil && backed.factIds == ["a"], "\(backed)")
+
+        let wrongNumber = write("The Section 3 bridge works were not started by 30 Jul 2026.", ["a"])
+        #expect(!wrongNumber.checked)
+        #expect(wrongNumber.reason == "The number 30 is not in the sources it cites.")
+
+        let opposite = write("The Section 3 bridge works have started.", ["a"])
+        #expect(!opposite.checked && opposite.reason == "It says the opposite of the sources it cites.")
+
+        let unproven = write("The road is in good condition.", [])
+        #expect(!unproven.checked && unproven.reason == "Pick the facts this sentence comes from.")
+        #expect(unproven.factIds.isEmpty)
+    }
+
+    /// A sentence the officer writes is never mistaken for the code's: it is checked in full.
+    @Test func theOfficersSentenceGetsTheFullCheck() {
+        let (sources, facts) = Self.officerInputs()
+
+        let line = ReportWriter.officerLine(section: .findings, text: "The bridge is finished and paid.",
+                                            factIds: ["a"], sources: sources, facts: facts)
+
+        #expect(!line.checked)
+        #expect(line.reason?.hasPrefix("The word") == true || line.reason?.hasPrefix("It says") == true,
+                "\(line.reason ?? "")")
+    }
 }
