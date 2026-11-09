@@ -15,6 +15,7 @@ struct RedFlagsScreen: View {
     let id: String
     var language: String?
     @State private var walk: SiteWalkModel?
+    @State private var names: [String: String] = [:]
     @State private var cannotOpen = false
 
     var body: some View {
@@ -22,7 +23,8 @@ struct RedFlagsScreen: View {
             if let walk {
                 ScrollView {
                     RedFlagsView(results: walk.flags, mission: id, stored: walk.finished != nil,
-                                 words: RedFlagWords(rules: (try? .bundled()) ?? .empty, language: walk.language))
+                                 words: RedFlagWords(rules: (try? .bundled()) ?? .empty, language: walk.language,
+                                                     recordNames: names))
                 }
             } else if cannotOpen {
                 Text("The red flags cannot open. Unlock the app, and make sure the mission's pack is downloaded.")
@@ -37,10 +39,13 @@ struct RedFlagsScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             guard walk == nil else { return }
-            guard let store = list.openStore, let model = try? SiteWalkModel.load(mission: id, store: store) else {
+            let files = (try? list.openStore?.packFiles(in: id)) ?? [:]  // one unwrap for the walk and the names
+            guard let store = list.openStore, let model = try? SiteWalkModel.load(mission: id, store: store,
+                                                                               files: files) else {
                 cannotOpen = true
                 return
             }
+            names = RedFlagWords.recordNames(from: files)
             if let language { model.language = language }
             walk = model
         }

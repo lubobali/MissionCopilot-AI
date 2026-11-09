@@ -6,6 +6,8 @@ import Foundation
 struct RedFlagWords: Sendable {
     let rules: RedFlagRules
     var language = "en"
+    /// Each pack record's name as its source card says it, by "path#pointer" (#154, `recordNames(from:)`).
+    var recordNames: [String: String] = [:]
 
     private var french: Bool { language == "fr" }
 
@@ -172,7 +174,7 @@ struct RedFlagWords: Sendable {
     func input(_ input: RedFlagResult.Input, mission: String) -> String {
         switch input {
         case .pack(let citation):
-            return "\(citation.path.split(separator: "/").last.map(String.init) ?? citation.path) · \(citation.pointer)"
+            return record(citation)
         case .evidence(let photo) where photo.mission == mission:
             return french ? "Photo \(photo.seq), cette mission" : "Photo \(photo.seq), this mission"
         case .evidence(let photo):

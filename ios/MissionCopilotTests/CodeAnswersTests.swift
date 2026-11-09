@@ -162,7 +162,8 @@ struct CodeAnswersTests {
             #expect(cited.contains("pack:sections/milestones.json#/milestones/0"), "\(question)")
             #expect(cited.contains("walk:action-53f6e638bcf6"), "\(question)")
             #expect(!cited.contains("walk:board_number"), "\(question)")
-            #expect(!cited.contains(Self.action), "\(question)")
+            // The open action is never a done line of its own; it is cited only beside the walk (#154).
+            #expect(!lines.contains { $0.sources == [Self.action] }, "\(question)")
         }
         // A lone letter is not a topic: "what's" does not match "contractor's".
         let started = try #require(answers.direct("What's started on the bridge?")).flatMap(\.sources)
