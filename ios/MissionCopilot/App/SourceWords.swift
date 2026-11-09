@@ -117,8 +117,12 @@ extension SourceWords {
         } else if let last = components.last {
             title += " · \(words(last).capitalized(firstOnly: true))"
         }
+        // #154: a status in plain words ("notMet" as "Not met"), never the pack's code.
+        let said = { (key: String, raw: String) in
+            key == "status" ? AnswerLines.statusWords(raw, .english).capitalized(firstOnly: true) : value(raw, key: key)
+        }
         return SourceCardWords(title: title, lines: shown.map { "\($0.key.capitalized(firstOnly: true)): "
-            + value($0.value, key: $0.key) }, place: place)
+            + said($0.key, $0.value) }, place: place)
     }
 
     private static func document(_ source: MissionSource, path: String, paragraph: Int) -> SourceCardWords {

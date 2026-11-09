@@ -58,7 +58,7 @@ struct RedFlagWordsTests {
         let citation = PackCitation(path: "sections/contracts.json", sha256: "ab",
                                     pointer: "/contracts/0/contractValue")
 
-        #expect(Self.english.input(.pack(citation), mission: "m") == "contracts.json · /contracts/0/contractValue")
+        #expect(Self.english.input(.pack(citation), mission: "m") == "Contract 1 · contract value")  // #154
         #expect(Self.english.input(.evidence(PhotoRef(mission: "m", seq: 3)), mission: "m")
                 == "Photo 3, this mission")
         #expect(Self.english.input(.evidence(PhotoRef(mission: "x", seq: 1)), mission: "m")

@@ -29,7 +29,7 @@ struct CodeAnswers: Sendable {
         } else if has(asked, Self.openWords) {
             lines = write(open)
         } else if has(asked, Self.doneWords) {
-            lines = write(done)
+            lines = done.map { doneLine($0, question: question, language: language) }
         } else if has(asked, Self.statusWords) {
             lines = status(question, language: language)
         } else if has(asked, Self.promiseWords) {
@@ -73,6 +73,19 @@ struct CodeAnswers: Sendable {
         milestones.filter { ["met", "complete"].contains(field("status", $0).lowercased()) }
             + actions.filter { field("status", $0).lowercased().contains("completed") }
             + sources.filter { $0.kind == .walkAnswer && $0.text.lowercased().contains("seen: done") }
+    }
+
+    /// A done item; a walk check the bank's records say is not done says so, citing both (#154, found on the
+    /// iPhone: "seen done" with no word that the bank says not started).
+    private func doneLine(_ source: MissionSource, question: String, language: AnswerLanguage) -> CodeLine {
+        let line = AnswerLines.line(source, question: question, language: language)
+        let prefix = "Agreed action: "
+        guard source.kind == .walkAnswer, source.title.hasPrefix(prefix),
+              let bank = actions.first(where: { field("action", $0) == String(source.title.dropFirst(prefix.count)) }),
+              !field("status", bank).lowercased().contains("completed") else { return line }
+        let status = AnswerLines.statusWords(field("status", bank), language)
+        let says = language.pick(" The bank's records say \(status).", " Selon les registres de la banque : \(status).")
+        return CodeLine(text: line.text + says, sources: line.sources + [bank.id])
     }
 
     /// "Was the Section 3 bridge started?": the bank's actions and milestones and the walk's answers about the
