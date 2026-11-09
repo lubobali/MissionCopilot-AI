@@ -135,7 +135,7 @@ struct MissionSourcesTests {
 
         #expect(sources.contains { $0.kind == .document && $0.text.hasPrefix("Previous mission") })
         #expect(sources.contains { $0.text == "Amount due: 480000 USD" })
-        #expect(sources.contains { $0.id == "walk:bridge_started" && $0.text.hasSuffix(" no") })
+        #expect(sources.contains { $0.id == "walk:bridge_started" && $0.text.hasSuffix(" No") })
         #expect(sources.contains { $0.kind == .redFlag })
         #expect(MissionSources.load(mission: "no-such-mission", store: store).isEmpty)
     }

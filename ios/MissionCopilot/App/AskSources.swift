@@ -42,7 +42,10 @@ extension MissionSources {
     static func worded(_ model: SiteWalkModel) -> (walk: [WordedLine], flags: [WordedLine]) {
         let walk = model.walk
         let answers = walk.form.questions.compactMap { question in
-            walk.answers[question.name].map { WordedLine(key: question.name, title: question.label.english, text: $0) }
+            walk.answers[question.name].map { answer in
+                WordedLine(key: question.name, title: question.label.english,
+                           text: WalkAnswerWords.words(answer, question: question, choices: walk.form.choices))
+            }
         }
         let checks = walk.actions.actions.compactMap { action in
             walk.checks[action.key].map { check in

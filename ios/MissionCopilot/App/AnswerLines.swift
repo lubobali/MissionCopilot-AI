@@ -39,7 +39,9 @@ enum AnswerLines {
                 let action = String(source.title.dropFirst(checkPrefix.count))
                 return language.pick("Your site walk: ", "Votre visite : ") + "\(action), \(seen)."
             }
-            return language.pick("Your site walk: ", "Votre visite : ") + "\(source.title) \(card.lines.first ?? "")."
+            let colon = source.title.hasSuffix("?") ? "" : language.pick(":", " :")  // #161, 7.2.8
+            return language.pick("Your site walk: ", "Votre visite : ")
+                + "\(source.title)\(colon) \(card.lines.first ?? "")."
         case .fact:
             let line = card.lines.first ?? source.text
             if source.kind == .note {
