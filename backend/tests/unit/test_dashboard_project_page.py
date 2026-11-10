@@ -48,7 +48,7 @@ def page() -> str:
 
 
 def test_a_fact_sheet_from_the_pack(page):
-    assert 'class="back" href="/dashboard"' in page and 'aria-label="Back to missions"' in page
+    assert 'class="back" href="/dashboard"' in page and 'aria-label="Back"' in page
     assert "Kandor Rural Roads Project, Package 1" in page and "KRRP-P1" in page
     assert "Ministry &lt;of&gt; Works" in page and "Improve all-season road access." in page
 

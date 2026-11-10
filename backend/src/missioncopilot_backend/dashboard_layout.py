@@ -27,10 +27,10 @@ HEAD = """<!doctype html>
 """
 
 
-def titled(title: str, back: str, back_to: str) -> str:
-    """The page title with the one way back: a round ‹ to the page one step up (Missions, then
-    project, then report). Never the browser's history, so it always goes to the same place."""
-    label = f"Back to {back_to}"
+def titled(title: str, back: str, back_to: str = "") -> str:
+    """The page title with the way back: a round ‹. dashboard.js takes it to the page you came
+    from; without one (a new tab, a typed link) it goes to the page one step up (`back`)."""
+    label = "Back"
     return (f'<div class="titled"><a class="back" href="{escape(back)}"'
             f' aria-label="{escape(label)}" title="{escape(label)}">'
             '<span aria-hidden="true">‹</span></a>'

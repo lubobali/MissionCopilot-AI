@@ -186,7 +186,7 @@ def test_a_mission_link_always_opens_its_project_page():
 def test_the_one_way_back_goes_to_the_project():
     html = page()
     assert f'class="back" href="/dashboard/missions/{ROADS.id}/project"' in html
-    assert 'aria-label="Back to the project"' in html and 'class="crumbs"' not in html
+    assert 'aria-label="Back"' in html and 'class="crumbs"' not in html
 
 
 def test_a_kept_file_is_served_privately_with_its_sniffed_type():

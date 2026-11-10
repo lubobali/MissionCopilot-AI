@@ -170,3 +170,17 @@ document.addEventListener("click", async (event) => {
     button.disabled = false;
   }
 });
+
+// Lubo, Nov 10: the round ‹ goes back to the page you came from, like the browser's back. Only
+// when you did not come from another dashboard page (a new tab, a typed link) does it follow its
+// link, the page one step up.
+document.addEventListener("click", (event) => {
+  const back = event.target.closest("a.back");
+  if (!back) return;
+  const from = document.referrer;
+  const fromHere = from.startsWith(`${location.origin}/dashboard`) && from !== location.href;
+  if (fromHere && history.length > 1) {
+    event.preventDefault();
+    history.back();
+  }
+});
