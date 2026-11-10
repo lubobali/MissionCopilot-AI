@@ -131,4 +131,5 @@ flowchart LR
 - **One image for both**, built and scanned in CI and deployed by digest; staging runs a digest first,
   prod gets the same one.
 - **Why a shared server, and what it costs:** [ADR 0013](adr/0013-hosting-on-a-shared-server.md).
+- **How managers sign in to the dashboard:** passkeys (Touch ID), [ADR 0014](adr/0014-dashboard-sign-in-with-passkeys.md).
   How to deploy, roll back and restore: [deploy/RUNBOOK.md](../deploy/RUNBOOK.md).
