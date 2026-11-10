@@ -67,7 +67,7 @@ async function register(button) {
 }
 
 document.addEventListener("click", async (event) => {
-  const button = event.target.closest("button[data-action]");
+  const button = event.target.closest('button[data-action="sign-in"], button[data-action="register"]');
   if (!button) return;
   const card = button.closest("section");
   if (!window.PublicKeyCredential) return say(card, "This browser cannot use passkeys. Use Safari or Chrome.", true);
@@ -84,4 +84,60 @@ document.addEventListener("click", async (event) => {
       : "Not signed in. Try again.", true);
     button.disabled = false;
   }
+});
+
+// #175: the inner pages. Numbers count up into place; Command-K opens the palette; a clicked
+// mission's title flows into the next page (cross-document View Transitions). Reduced motion: still.
+const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function countUp(element) {
+  const target = Number(element.dataset.count);
+  if (still || !Number.isFinite(target) || target === 0) return;
+  const start = performance.now(), time = 900;
+  const step = (now) => {
+    const done = Math.min(1, (now - start) / time);
+    element.textContent = String(Math.round(target * (1 - Math.pow(1 - done, 3))));
+    if (done < 1) requestAnimationFrame(step);
+  };
+  element.textContent = "0";
+  requestAnimationFrame(step);
+}
+
+function palette() {
+  const dialog = document.getElementById("palette");
+  if (!dialog) return null;
+  const input = dialog.querySelector("input"), empty = dialog.querySelector(".palette-empty");
+  const items = [...dialog.querySelectorAll("li")];
+  input.addEventListener("input", () => {
+    const words = input.value.trim().toLowerCase();
+    let shown = 0;
+    for (const item of items) {
+      const match = item.textContent.toLowerCase().includes(words);
+      item.hidden = !match;
+      shown += match ? 1 : 0;
+    }
+    empty.hidden = shown > 0;
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      const first = items.find((item) => !item.hidden);
+      if (first) first.querySelector("a").click();
+    }
+  });
+  return () => { input.value = ""; input.dispatchEvent(new Event("input")); dialog.showModal(); input.focus(); };
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("[data-count]").forEach(countUp);
+  const open = palette();
+  if (!open) return;
+  document.addEventListener("keydown", (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      open();
+    }
+  });
+  document.querySelectorAll('[data-action="palette"]').forEach((button) => button.addEventListener("click", open));
+  document.querySelectorAll(".mission-link").forEach((link) =>
+    link.addEventListener("click", () => { link.style.viewTransitionName = "mission"; }));
 });

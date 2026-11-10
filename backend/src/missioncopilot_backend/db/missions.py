@@ -6,6 +6,7 @@ from pathlib import Path
 
 from psycopg_pool import ConnectionPool
 
+from missioncopilot_backend.db.dashboard_data import DashboardData
 from missioncopilot_backend.db.packs import PostgresPacks
 from missioncopilot_backend.db.session import as_user
 from missioncopilot_backend.db.sync import PostgresSync
@@ -28,6 +29,10 @@ class PostgresOrgDatabases:
     def packs_for(self, org_id: str) -> PostgresPacks | None:
         pool = self.pools.get(org_id)
         return PostgresPacks(pool) if pool else None
+
+    def dashboard_for(self, org_id: str) -> DashboardData | None:  # #175
+        pool = self.pools.get(org_id)
+        return DashboardData(pool) if pool else None
 
     def sync_for(self, org_id: str) -> PostgresSync | None:  # #172
         pool = self.pools.get(org_id)

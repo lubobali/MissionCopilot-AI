@@ -68,6 +68,10 @@ h1 { font: 400 clamp(2rem, 4vw, 2.75rem)/1.1 var(--serif); letter-spacing: -0.01
 .medallion { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.9rem 0.35rem 0.35rem;
   border-radius: 999px; background: oklch(1 0 0 / 0.07); border: 1px solid oklch(1 0 0 / 0.12);
   backdrop-filter: blur(12px) saturate(140%); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.15); }
+/* The glass shine that slides across, as on the iPhone. */
+.medallion.shine { position: relative; overflow: hidden; }
+.medallion.shine::after { content: ""; position: absolute; inset: 0; pointer-events: none; transform: translateX(-120%);
+  background: linear-gradient(105deg, transparent 30%, oklch(1 0 0 / 0.35) 48%, oklch(1 0 0 / 0.08) 56%, transparent 70%); }
 .medallion .logo { width: 2.25rem; height: auto; padding: 0.3rem; border-radius: 0.65rem; background: white;
   box-shadow: 0 2px 10px -4px oklch(0 0 0 / 0.5); }
 .mark { width: 4.5rem; height: 2rem; overflow: visible; }
@@ -105,9 +109,11 @@ body.cover::before { content: ""; position: fixed; inset: -30%; z-index: -1; bac
   .mark .trail { animation: draw 1.6s ease-out both; }
   .mark .plane { animation: fly 1.6s ease-out both; }
   .sign-card { animation: rise 0.8s cubic-bezier(.2,.7,.2,1) both; }
+  .medallion.shine::after { animation: shine 7s ease-in-out 1.2s infinite; }
 }
 @keyframes beam { to { --spin: 1turn; } }
 @keyframes aurora { to { transform: translate(4%, -3%) rotate(8deg) scale(1.08); } }
 @keyframes draw { from { stroke-dashoffset: 60; } }
 @keyframes fly { from { opacity: 0; transform: translate(-10px, 6px); } }
+@keyframes shine { 0% { transform: translateX(-120%); } 30%, 100% { transform: translateX(120%); } }
 @keyframes rise { from { opacity: 0; transform: translateY(14px) scale(0.98); } }

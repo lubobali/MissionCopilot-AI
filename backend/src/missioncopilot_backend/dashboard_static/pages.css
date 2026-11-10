@@ -1,0 +1,115 @@
+/* The dashboard's inner pages (#175 onwards). The bank's reading order (a navy band, capital titles
+   with one bold word, big numbers, plain tables, pill buttons) with the luxury touches: an aurora in
+   the band, edge cards, the radar, Command-K, a calm reveal. Light and dark follow the Mac. */
+
+@view-transition { navigation: auto; }
+
+body.app { background: var(--page); }
+body.app main { padding: 0 clamp(1rem, 4vw, 3rem) 4rem; max-width: 84rem; margin: 0 auto; }
+
+/* The navy band, both modes, with a slow aurora behind the brand. */
+.band { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 1.25rem;
+  padding: 0.75rem clamp(1rem, 4vw, 3rem); color: white; background: var(--navy); isolation: isolate;
+  overflow: hidden; box-shadow: 0 10px 30px -18px oklch(0 0 0 / 0.6); }
+.band::before { content: ""; position: absolute; inset: -60% -10%; z-index: -1; opacity: 0.85; background:
+  radial-gradient(30% 120% at 15% 50%, oklch(0.615 0.186 264.7 / 0.45), transparent 70%),
+  radial-gradient(25% 120% at 60% 40%, oklch(0.754 0.139 232.7 / 0.28), transparent 70%),
+  radial-gradient(20% 120% at 90% 60%, oklch(0.72 0.14 292 / 0.22), transparent 70%); filter: blur(24px); }
+.band .brand { display: flex; align-items: center; gap: 0.75rem; color: white; text-decoration: none;
+  font: 600 1.05rem/1 var(--sans); }
+.band .medallion { padding: 0.25rem 0.7rem 0.25rem 0.25rem; }
+.band .medallion .logo { width: 1.85rem; }
+.search { margin-left: auto; display: inline-flex; align-items: center; gap: 0.75rem; min-width: 16rem;
+  padding: 0.5rem 0.6rem 0.5rem 1rem; border-radius: 999px; border: 1px solid oklch(1 0 0 / 0.18);
+  background: oklch(1 0 0 / 0.08); color: oklch(1 0 0 / 0.8); font: 400 0.9rem/1 var(--sans);
+  cursor: pointer; backdrop-filter: blur(10px); }
+.search kbd { margin-left: auto; font: 600 0.75rem/1 var(--mono); padding: 0.3rem 0.45rem;
+  border-radius: 0.4rem; background: oklch(1 0 0 / 0.12); }
+.who { display: flex; align-items: center; gap: 0.75rem; font-size: 0.9rem; }
+.who .pill.ghost { color: white; border-color: oklch(1 0 0 / 0.3); }
+
+/* Titles as on the bank's pages: capitals, one bold word. */
+.caps { font: 300 clamp(1.9rem, 3.6vw, 2.6rem)/1.1 var(--sans); text-transform: uppercase;
+  letter-spacing: 0.01em; margin: 0.3rem 0 0.6rem; }
+.caps b { font-weight: 600; }
+.caps.small { font-size: 1rem; letter-spacing: 0.06em; margin: 0 0 1rem; }
+.hero { padding: clamp(2rem, 5vw, 3.25rem) 0 1.5rem; }
+.muted, .note, .empty { color: var(--muted); }
+
+/* The three numbers: edge cards, light in light mode, deep in dark. */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1.25rem; }
+.stat { padding: 1.4rem 1.5rem 1.3rem; --from: oklch(0.97 0.02 250); --to: var(--card); color: var(--text); }
+.stat .number { font: 400 3rem/1 var(--serif); margin: 0 0 0.4rem; font-variant-numeric: tabular-nums; }
+.stat .label { font: 600 0.95rem/1.2 var(--sans); margin: 0; }
+.stat .line { color: var(--muted); font-size: 0.82rem; margin: 0.35rem 0 0; }
+@media (prefers-color-scheme: dark) { .stat { --from: oklch(0.3 0.093 264.9); } }
+
+/* Cards and the split: the missions table and the site visits. */
+.split { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(16rem, 1fr); gap: 1.25rem; margin-top: 1.25rem; }
+@media (max-width: 60rem) { .split { grid-template-columns: 1fr; } .search span { display: none; } .search { min-width: 0; } }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.25rem 1.4rem; }
+.table-card { padding: 0.5rem 0.25rem; overflow-x: auto; }
+
+table.missions { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
+.missions th { text-align: left; font: 600 0.72rem/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted); padding: 0.9rem 1rem; border-bottom: 1px solid var(--line); }
+.missions td { padding: 1rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.missions tr:last-child td { border-bottom: 0; }
+.missions tbody tr { transition: background 0.2s; }
+.missions tbody tr:hover { background: oklch(0.52 0.15 248 / 0.06); }
+.mission-link { color: var(--blue); font-weight: 600; text-decoration: none; }
+.mission-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.ref { display: block; font: 500 0.75rem/1.6 var(--mono); color: var(--muted); }
+.flags { display: inline-block; margin-top: 0.3rem; font-size: 0.78rem; color: var(--danger); font-weight: 600; }
+.num { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted); }
+
+/* Status pills: an icon and words, never colour alone. */
+.status { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem 0.3rem 0.5rem;
+  border-radius: 999px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+.status svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.status.received { color: var(--blue); background: oklch(0.52 0.15 248 / 0.12); }
+.status.in_field { color: var(--muted); background: oklch(0.5 0.03 255 / 0.12); }
+.status.endorsed { color: var(--success); background: oklch(0.5 0.12 150 / 0.12); }
+.status.sent_back { color: var(--warning); background: oklch(0.5 0.11 70 / 0.14); }
+.risk b { font-weight: 600; }
+.risk small { color: var(--muted); margin-left: 0.25rem; }
+.trend { font-weight: 700; margin-left: 0.2rem; }
+.trend.up { color: var(--danger); }
+.trend.down { color: var(--success); }
+.trend.same { color: var(--muted); }
+
+/* The site visits radar: drawn on the server, no map service, no coordinates. */
+.visits { display: flex; flex-direction: column; }
+.radar { width: 100%; max-width: 18rem; align-self: center; margin: 0.5rem 0 1rem; }
+.radar .ring, .radar .axis { fill: none; stroke: var(--line); stroke-width: 1; }
+.radar .sweep path { fill: oklch(0.67 0.14 230 / 0.16); }
+.radar .sweep { transform-origin: 100px 100px; }
+.radar .dot { fill: var(--cyan); filter: drop-shadow(0 0 6px var(--cyan)); }
+.note { font-size: 0.85rem; margin: auto 0 0; }
+
+/* Command-K: one calm dialog for every mission and page. */
+#palette { width: min(36rem, 92vw); padding: 0; border: 1px solid var(--line); border-radius: 1.25rem;
+  background: var(--card); color: var(--text); box-shadow: 0 30px 80px -20px oklch(0 0 0 / 0.55); }
+#palette::backdrop { background: oklch(0.166 0.026 269.4 / 0.45); backdrop-filter: blur(6px); }
+#palette input { width: 100%; padding: 1.1rem 1.25rem; border: 0; border-bottom: 1px solid var(--line);
+  background: transparent; color: inherit; font: 400 1.05rem/1 var(--sans); outline: none; }
+#palette ul { list-style: none; margin: 0; padding: 0.5rem; max-height: 55vh; overflow-y: auto; }
+.palette-item { display: flex; justify-content: space-between; gap: 1rem; padding: 0.75rem 0.9rem;
+  border-radius: 0.75rem; color: inherit; text-decoration: none; }
+.palette-item small { color: var(--muted); }
+.palette-item:hover, .palette-item:focus-visible { background: oklch(0.52 0.15 248 / 0.1); outline: none; }
+.palette-empty { padding: 1rem 1.25rem; color: var(--muted); margin: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .band::before { animation: aurora 28s ease-in-out infinite alternate; }
+  .radar .sweep { animation: sweep 6s linear infinite; }
+  .radar .dot { animation: ping 2.4s ease-in-out infinite; }
+  .hero, .stats > *, .split > * { animation: rise 0.7s cubic-bezier(.2,.7,.2,1) both; }
+  .stats > :nth-child(2) { animation-delay: 0.06s; } .stats > :nth-child(3) { animation-delay: 0.12s; }
+  .split > * { animation-delay: 0.18s; }
+  @supports (animation-timeline: view()) {
+    .reveal { animation: rise linear both; animation-timeline: view(); animation-range: entry 0% cover 25%; }
+  }
+}
+@keyframes sweep { to { transform: rotate(1turn); } }
+@keyframes ping { 50% { r: 6; opacity: 0.7; } }

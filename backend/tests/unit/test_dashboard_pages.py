@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from missioncopilot_backend.app import create_app
 from missioncopilot_backend.dashboard_auth import DashboardMemory
+from missioncopilot_backend.db.dashboard_data import Portfolio
 from missioncopilot_backend.headers import DASHBOARD_POLICY
 from missioncopilot_backend.settings import Settings
 from tests.unit.clients import local_client
@@ -55,6 +56,8 @@ def test_home_needs_a_session(world):
     )
     user = store.add_user("org-a", "manager-1", "Amina <Diallo>", ("manager",))
     client.cookies.set("__Host-mc_session", store.new_session(user.id))
+    empty = Portfolio([], 0, 0, 0)
+    client.app.state.dashboard_reader = lambda _: type("R", (), {"portfolio": lambda _, m: empty})()
     home = client.get("/dashboard")
     assert home.status_code == 200 and "Amina &lt;Diallo&gt;" in home.text
     assert 'action="/dashboard/sign-out"' not in home.text  # the API path, below

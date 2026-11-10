@@ -7,26 +7,19 @@ import mimetypes
 from html import escape
 from importlib.resources import files
 
-from fastapi import APIRouter, Depends, FastAPI, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from missioncopilot_backend.dashboard_layout import MEDALLION, shell
+from missioncopilot_backend.dashboard_portfolio import render as render_portfolio
 from missioncopilot_backend.dashboard_routes import COOKIE, site
 
 STATIC = files("missioncopilot_backend") / "dashboard_static"
 mimetypes.add_type(
     "font/woff2", ".woff2"
 )  # a slim server image has no type for it (found on staging)
-# The app's brand (BrandMedallion on the iPhone): Lubo's logo on a white tile, a glowing trail, and
-# the airplane (Material Symbols' "flight", Apache-2.0), in a glass pill.
-PLANE = (
-    '<span class="medallion"><img class="logo" src="/dashboard/static/logo.png" alt="" width="36" '
-    'height="38"><svg class="mark" viewBox="0 0 72 32" aria-hidden="true"><path class="trail" '
-    'd="M2 22 C 20 30, 36 28, 50 16"/>'
-    '<g class="plane" transform="translate(48 0) rotate(45 12 12)">'
-    '<path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22'
-    'l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></g></svg></span>'
-)
+PLANE = MEDALLION  # the brand, as on the iPhone (dashboard_layout)
 
 
 def page(title: str, body: str, *, cover: bool = False) -> HTMLResponse:
@@ -89,23 +82,29 @@ def invite_page(code: str) -> HTMLResponse:
         cover=True)  # fmt: skip
 
 
+def reader(request: Request, org_id: str):
+    """The organization's dashboard reads: a test may set app.state.dashboard_reader; the server
+    opens the organization's own database (db/dashboard_data.py)."""
+    made = getattr(request.app.state, "dashboard_reader", None)
+    if made is not None:
+        return made(org_id)
+    databases = request.app.state.databases
+    found = databases.dashboard_for(org_id) if databases is not None else None
+    if found is None:
+        raise HTTPException(404)
+    return found
+
+
 @router.get("", response_model=None)
 def home(request: Request) -> Response:
     token = request.cookies.get(COOKIE)
     user = request.app.state.dashboard.session(token) if token else None
     if user is None:
         return RedirectResponse("/dashboard/sign-in", status_code=303)
-    return page(
-        "Missions",
-        f"""<header class="top">
-  <p class="brand">{PLANE}<span>MissionCopilot</span></p>
-  <form method="post" action="/v1/dashboard/sign-out">
-    <button class="pill ghost">Sign out</button>
-  </form>
-</header>
-<section class="hello"><p class="eyebrow">Signed in</p><h1>Welcome, {escape(user.name)}</h1>
-<p class="lead">The missions and their reports come here next.</p></section>""",
-    )
+    portfolio = reader(request, user.org_id).portfolio(user.user_id)
+    palette = [(row.title, row.country or "Mission", f"/dashboard/missions/{row.id}")
+               for row in portfolio.rows] + [("All missions", "Page", "/dashboard")]  # fmt: skip
+    return shell("Missions", user.name, render_portfolio(portfolio), palette)
 
 
 def install_dashboard_pages(app: FastAPI) -> None:
