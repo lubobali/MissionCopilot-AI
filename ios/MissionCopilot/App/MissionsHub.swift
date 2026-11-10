@@ -88,8 +88,11 @@ extension Connection {
                                                                  directoryHint: .isDirectory)
             // Measured on the app's home folder: it always exists and sits on the same volume.
             let space: @Sendable () -> Int64 = { PackDownloader.availableSpace(at: .homeDirectory) }
-            let world = MissionListWorld(client: client, keys: { config.key(for: $0) }, stagingBase: base,
+            let registration = ApprovalKeyRegistration(signer: SecureEnclaveApprovalSigner(user: user),
+                                                       records: records)
+            var world = MissionListWorld(client: client, keys: { config.key(for: $0) }, stagingBase: base,
                                          schema: schema, freeSpace: space)
+            world.registerApprovalKey = { _ = await registration.ensure(client: client) }
             return .success(MissionListModel(world: world, missions: missions) { [weak hub] body in
                 let phone = ShredOrderAction.Phone(records: records, forgetKey: { try? signer.deleteKey() })
                 let result = ShredOrderAction.handle(body, phone: phone, missions: missions(),
