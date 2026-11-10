@@ -1,0 +1,107 @@
+/* The report page (#177): the aide-memoire as a paper on the desk. A seal for the verified Face ID
+   approval (a slow light sweep when verified, a plain red frame when not), numbered sentences whose
+   numbers open the proof drawer, the ratings and action plan in the bank's plain tables, and a
+   print view that looks like the document managers file. Motion off under reduced motion. */
+
+.paper { max-width: 60rem; margin: 0 auto; }
+.report-head { padding-bottom: 0.5rem; }
+.tools { display: flex; gap: 0.6rem; margin: 1.4rem 0 0; }
+
+/* The seal: who approved, verified again on this load. */
+.seal { position: relative; display: flex; gap: 0.9rem; align-items: center; margin: 1.2rem 0 0;
+  padding: 0.95rem 1.2rem; border-radius: 1rem; overflow: hidden; line-height: 1.35;
+  border: 1px solid color-mix(in srgb, var(--success) 45%, transparent);
+  background: color-mix(in srgb, var(--success) 9%, var(--card)); }
+.seal small { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 0.2rem; }
+.seal .tick { flex: none; display: grid; place-items: center; width: 2.1rem; height: 2.1rem;
+  border-radius: 50%; color: white; font-weight: 700; background: var(--success);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--success) 20%, transparent); }
+.seal.ok::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, oklch(1 0 0 / 0.35) 50%, transparent 65%);
+  transform: translateX(-100%); animation: seal-sweep 5.5s ease-in-out 0.6s infinite; }
+@keyframes seal-sweep { 0%, 70% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+.seal.bad { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--card)); }
+.seal.bad .tick { background: var(--danger); box-shadow: none; }
+
+/* The parts of the aide-memoire, each a card with numbered sentences. */
+.part { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 1.4rem 1.6rem; margin-top: 1.1rem; }
+.lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; }
+.line { display: grid; grid-template-columns: 2.4rem 1fr; gap: 0.6rem; align-items: baseline;
+  padding: 0.55rem 0.4rem; border-radius: 0.7rem; font: 400 1.04rem/1.6 var(--serif); }
+.line:hover { background: color-mix(in srgb, var(--blue) 6%, transparent); }
+.line .num { justify-self: start; min-width: 1.9rem; padding: 0.2rem 0.45rem; border-radius: 999px;
+  font: 600 0.75rem/1.2 var(--mono); text-align: center; color: var(--blue);
+  border: 1px solid color-mix(in srgb, var(--blue) 40%, transparent); background: none; }
+button.num { cursor: pointer; transition: background 0.2s, color 0.2s, box-shadow 0.2s; }
+button.num:hover, button.num:focus-visible { color: white; background: var(--blue);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue) 22%, transparent); outline: none; }
+.hidden-line em { color: var(--muted); font: italic 400 0.95rem/1.6 var(--sans); }
+.hidden-line .num { color: var(--muted); border-style: dashed; }
+
+table.plan, .part table.ratings { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin-top: 1rem; }
+.plan caption { text-align: left; font: 600 0.72rem/1 var(--mono); letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted); padding: 0 0 0.6rem; }
+.plan th, .plan td { text-align: left; padding: 0.7rem 0.6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.plan thead th { font: 600 0.7rem/1.2 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.plan tbody th { font-weight: 600; }
+
+/* The proof drawer: a native popover sliding in from the right, glass over the page. */
+.proof { margin: 0 0 0 auto; height: 100dvh; max-height: none; width: min(34rem, 100vw);
+  padding: 1.4rem 1.5rem 2rem; border: 0; border-left: 1px solid var(--line); color: var(--text);
+  background: color-mix(in srgb, var(--card) 88%, transparent); backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: -30px 0 60px -30px oklch(0 0 0 / 0.45); overflow-y: auto;
+  transition: transform 0.35s cubic-bezier(.2,.8,.2,1), opacity 0.35s, overlay 0.35s allow-discrete,
+    display 0.35s allow-discrete; transform: translateX(100%); opacity: 0; }
+.proof:popover-open { transform: none; opacity: 1; }
+@starting-style { .proof:popover-open { transform: translateX(100%); opacity: 0; } }
+.proof::backdrop { background: oklch(0.2 0.05 260 / 0.25); }
+.proof header { display: flex; align-items: center; justify-content: space-between; }
+.proof .close { font-size: 1.5rem; line-height: 1; border: 0; background: none; color: var(--muted); cursor: pointer; }
+.proof blockquote { margin: 0.8rem 0 1.2rem; padding-left: 1rem; border-left: 3px solid var(--blue);
+  font: 400 1.1rem/1.55 var(--serif); }
+.fact { border: 1px solid var(--line); border-radius: 1rem; padding: 0.9rem 1rem; margin-top: 0.8rem; background: var(--card); }
+.fact .value { margin: 0; font-weight: 600; }
+.fact .rule { margin: 0.2rem 0 0.4rem; color: var(--muted); font: 400 0.75rem/1.4 var(--mono); word-break: break-word; }
+.sources { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.source { padding-top: 0.6rem; border-top: 1px dashed var(--line); }
+.source .kind { margin: 0; font-weight: 600; font-size: 0.9rem; }
+.source .kind small { display: block; font-weight: 400; color: var(--muted); font-size: 0.75rem; }
+.source .where { margin: 0.3rem 0; font: 400 0.75rem/1.4 var(--mono); color: var(--muted); word-break: break-word; }
+.source img { display: block; width: 100%; border-radius: 0.7rem; margin-top: 0.4rem; border: 1px solid var(--line); }
+.source audio { width: 100%; margin-top: 0.4rem; }
+.record { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.9rem; margin: 0.3rem 0 0; font-size: 0.88rem; }
+.record div { display: contents; }
+.record dt { color: var(--muted); }
+.record dd { margin: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .seal.ok::after { animation: none; display: none; }
+  .proof { transition: none; }
+}
+
+/* Print: the aide-memoire on paper. No band, no buttons, no drawers; serif, numbered, plain. */
+@media print {
+  @page { margin: 2cm 2.2cm; }
+  :root { color-scheme: light; --text: black; --muted: #444; --line: #bbb; --card: white; --page: white; }
+  body.app { background: white; color: black; }
+  .band, .skip, .crumbs, .tools, .proof, #palette, .aurora { display: none !important; }
+  body.app main { padding: 0; max-width: none; }
+  .paper { max-width: none; }
+  .report-head { text-align: center; padding: 0 0 0.6cm; border-bottom: 2px solid black; }
+  .report-head .eyebrow { font: 600 10pt/1.2 var(--sans); letter-spacing: 0.15em; text-transform: uppercase; }
+  .report-head .title { font-size: 20pt; }
+  .report-head .facts { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.3cm 0.8cm; }
+  .report-head .facts div { border: 0; padding: 0; }
+  .seal { justify-content: center; border: 1px solid black; background: none; }
+  .seal::after { display: none; }
+  .seal .tick { color: black; background: none; border: 1px solid black; box-shadow: none; }
+  .part { border: 0; border-radius: 0; padding: 0.5cm 0 0; break-inside: auto; }
+  .part h2 { font-size: 11pt; border-bottom: 1px solid black; padding-bottom: 0.1cm; }
+  .line { font-size: 11pt; padding: 0.08cm 0; break-inside: avoid; }
+  .line .num { border: 0; color: black; padding: 0; }
+  .plan, .ratings { font-size: 9.5pt; }
+  .plan th, .plan td, .ratings th, .ratings td { border-bottom: 1px solid #999; }
+  .trend { color: black !important; }
+}
+.tools .pill:first-child { background: var(--blue); color: white; border-color: transparent; }

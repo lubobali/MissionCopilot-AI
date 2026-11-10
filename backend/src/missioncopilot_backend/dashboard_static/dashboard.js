@@ -141,3 +141,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".mission-link").forEach((link) =>
     link.addEventListener("click", () => { link.style.viewTransitionName = "mission"; }));
 });
+
+// The report page's Print button (#177): the browser's print, with report.css's paper look.
+document.addEventListener("click", (event) => {
+  if (event.target.closest('button[data-action="print"]')) window.print();
+});

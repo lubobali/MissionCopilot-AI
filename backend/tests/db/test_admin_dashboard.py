@@ -4,6 +4,7 @@ person in one organization, 15 minutes; recorded in the audit log without the co
 import pytest
 
 from missioncopilot_backend import admin, admin_dashboard
+from missioncopilot_backend.admin_devices import _open
 from tests.db.postgres import admin_url
 from tests.db.test_admin_devices import _audit, ops  # noqa: F401 - the fixture
 
@@ -43,3 +44,23 @@ def test_the_command_line_prints_the_link(ops, capsys):  # noqa: F811
 
     out = capsys.readouterr().out
     assert "/dashboard/invite/" in out and "15 minutes" in out
+
+
+@pytest.mark.parametrize(("confidential", "roles"), [
+    (False, ("manager",)), (True, ("manager", "confidential")),
+])  # fmt: skip
+def test_only_a_confidential_invite_may_read_red_flags(ops, confidential, roles):  # noqa: F811
+    """#177: strictly confidential sentences reach only the `confidential` role."""
+    link, _ = admin_dashboard.invite_manager(
+        admin_url(),
+        ops.secrets,
+        ops.org_id,
+        "manager-2",
+        "Kofi Mensah",
+        "https://mc.example.org",
+        confidential=confidential,
+    )
+    with _open(admin_url(), ops.secrets) as directory:
+        user = directory.dashboard.consume_invite(link.rsplit("/", 1)[1])
+
+    assert user is not None and user.roles == roles

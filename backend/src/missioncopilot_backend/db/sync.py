@@ -8,6 +8,7 @@ import uuid
 from dataclasses import dataclass
 from typing import LiteralString
 
+import psycopg
 from psycopg_pool import ConnectionPool
 
 from missioncopilot_backend.db.session import as_user
@@ -54,6 +55,27 @@ class StoredReport:
     sentences: list[StoredSentence]
 
 
+def read_report(conn: psycopg.Connection, mission_id: str) -> StoredReport | None:
+    """The mission's approved report with its sentences in order, or None (any row-level role)."""
+    row = conn.execute(
+        "SELECT draft_id, language, approved_by, approved_at, approval_payload,"
+        " approval_signature, approval_key_id, device_id, received_at FROM reports"
+        " WHERE mission_id = %s",
+        [mission_id],
+    ).fetchone()
+    if row is None:
+        return None
+    lines = conn.execute(
+        "SELECT sentence_id, section, text, classification, fact_ids FROM report_sentences"
+        " WHERE mission_id = %s ORDER BY position",
+        [mission_id],
+    ).fetchall()
+    draft, language, by, at, payload, signature, key, device, received = row
+    sentences = [StoredSentence(i, sec, t, c, tuple(f)) for i, sec, t, c, f in lines]
+    return StoredReport(draft, language, by, at, bytes(payload), bytes(signature), key,
+                        str(device), received, sentences)  # fmt: skip
+
+
 class PostgresSync:
     def __init__(self, pool: ConnectionPool):
         self._pool = pool
@@ -96,23 +118,7 @@ class PostgresSync:
 
     def report(self, user_id: str, mission_id: str) -> StoredReport | None:
         with as_user(self._pool, user_id) as conn:
-            row = conn.execute(
-                "SELECT draft_id, language, approved_by, approved_at, approval_payload,"
-                " approval_signature, approval_key_id, device_id, received_at FROM reports"
-                " WHERE mission_id = %s",
-                [mission_id],
-            ).fetchone()
-            if row is None:
-                return None
-            lines = conn.execute(
-                "SELECT sentence_id, section, text, classification, fact_ids FROM report_sentences"
-                " WHERE mission_id = %s ORDER BY position",
-                [mission_id],
-            ).fetchall()
-        draft, language, by, at, payload, signature, key, device, received = row
-        sentences = [StoredSentence(i, sec, t, c, tuple(f)) for i, sec, t, c, f in lines]
-        return StoredReport(draft, language, by, at, bytes(payload), bytes(signature), key,
-                            str(device), received, sentences)  # fmt: skip
+            return read_report(conn, mission_id)
 
     def save(
         self,

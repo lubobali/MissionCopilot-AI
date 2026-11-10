@@ -13,11 +13,12 @@
 409 is a chain the server cannot accept as it stands; 422 is a batch that breaks a rule."""
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
 from missioncopilot_backend.approval_keys import ApprovalKey
-from missioncopilot_backend.db.sync import Stored
+from missioncopilot_backend.db.sync import Stored, StoredReport
 from missioncopilot_backend.evidence import Record, verify_with_head
 from missioncopilot_backend.signatures import is_signed_by, load_p256_public_key
 from missioncopilot_backend.sync_batch import SyncBatch, decode
@@ -85,18 +86,43 @@ def _approval(
     key = load_p256_public_key(approval.public_key_der)
     if key is None or not is_signed_by(key, signature, payload):
         return Refused(422, "approval:bad_signature")
+    lines = [(s.factIds, s.section, s.text) for s in batch.sentences]
+    if not names(payload, signed_names(mission_id, batch.draftId, batch.language, lines)):
+        return Refused(422, "approval:not_this_report")
+    return None
+
+
+def signed_names(
+    mission_id: str, draft_id: str, language: str, lines: Sequence[tuple[Sequence[str], str, str]]
+) -> dict:
+    """What an approval's bytes must name (ios ReportApproval.payload): one rule at sync and on
+    every report page load. `lines`: each sentence's fact ids, section and text, in order."""
+    sentences = [{"factIds": list(f), "section": sec, "text": t} for f, sec, t in lines]
+    return {"version": 1, "mission": mission_id, "draftId": draft_id, "language": language,
+            "sentences": sentences}  # fmt: skip
+
+
+def names(payload: bytes, expected: dict) -> bool:
     try:
         signed = json.loads(payload)
     except ValueError:
-        return Refused(422, "approval:not_this_report")
-    sentences = [
-        {"factIds": s.factIds, "section": s.section, "text": s.text} for s in batch.sentences
-    ]
-    expected = {"version": 1, "mission": mission_id, "draftId": batch.draftId,
-                "language": batch.language, "sentences": sentences}  # fmt: skip
-    if not isinstance(signed, dict) or any(signed.get(k) != v for k, v in expected.items()):
-        return Refused(422, "approval:not_this_report")
-    return None
+        return False
+    return isinstance(signed, dict) and all(signed.get(k) == v for k, v in expected.items())
+
+
+def verify_stored(report: StoredReport, mission_id: str, key: ApprovalKey | None) -> bool:
+    """The report page's badge (#177, 8.7.3): the key kept for the report's phone signed exactly
+    the stored approval bytes, and they name this mission and the stored draft and sentences."""
+    if key is None or key.key_id != report.approval_key_id or key.device_id != report.device_id:
+        return False
+    public = load_p256_public_key(key.public_key_der)
+    if public is None or not is_signed_by(
+        public, report.approval_signature, report.approval_payload
+    ):
+        return False
+    lines = [(list(s.fact_ids), s.section, s.text) for s in report.sentences]
+    return names(report.approval_payload,
+                 signed_names(mission_id, report.draft_id, report.language, lines))  # fmt: skip
 
 
 def _lineage(batch: SyncBatch, count: int) -> Refused | None:
