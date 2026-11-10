@@ -39,3 +39,13 @@ Lesson: when a constrained run fails, keep the partial output. The diagnosis too
 ## Decision
 - **Constrained output is required for every fact the app extracts.** Free-text JSON is never parsed for facts.
 - **MLX confirmed as the engine** (ADR 0004): runtime JSON-schema constraints worked on the device.
+
+## Follow-up: real spaces eaten under the grammar (#159, Nov 10 2026)
+Found in Phase 6: the model sometimes dropped a real space next to a number ("Section3", "invoice14"). The
+likely cause is the whitespace bias above, which lowers the score of tokens such as " 3". It was seen only in
+debrief notes written by the model; since #152 those notes copy the transcript word for word, so no screen shows
+a sentence the model wrote. The model now only picks a label (Ask) or fills numbers, a patterned date and an
+enum (a scan); its one free string, the invoice number, is tidied by code before it is grounded, checked or shown
+("No14" and " 14 " become "14", "NOV-2026" stays). Both are pinned by tests (`ModelTextTests`,
+`ScanExtractionTests`). A tokenizer-aware grammar is not needed while no model prose is shown; if a future screen
+shows model text, measure the bias first.
