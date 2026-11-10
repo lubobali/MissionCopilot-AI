@@ -24,6 +24,7 @@ from webauthn.helpers.exceptions import InvalidAuthenticationResponse, InvalidRe
 from webauthn.helpers.structs import (
     AttestationConveyancePreference,
     AuthenticatorSelectionCriteria,
+    PublicKeyCredentialDescriptor,
     ResidentKeyRequirement,
     UserVerificationRequirement,
 )
@@ -161,8 +162,9 @@ def endorse_options(store: DashboardStore, site: Site, user: DashboardUser, subj
     """Options to endorse one report (#178): the challenge names the manager and the report
     (mission, version, approval hash); user verification required (Touch ID)."""
     challenge = store.new_challenge("endorse", user.id, subject)
-    options = generate_authentication_options(
-        rp_id=site.rp_id, challenge=challenge, allow_credentials=[],
+    own = [PublicKeyCredentialDescriptor(id=k.credential_id) for k in store.passkeys_of(user.id)]
+    options = generate_authentication_options(  # only this manager's passkeys are offered (Lubo)
+        rp_id=site.rp_id, challenge=challenge, allow_credentials=own,
         user_verification=UserVerificationRequirement.REQUIRED,
     )  # fmt: skip
     return options_to_json(options)

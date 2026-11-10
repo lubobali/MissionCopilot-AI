@@ -8,7 +8,7 @@ from html import escape
 
 from missioncopilot_backend.audit import AuditEvent
 from missioncopilot_backend.dashboard_layout import titled
-from missioncopilot_backend.dashboard_portfolio import moment
+from missioncopilot_backend.dashboard_portfolio import moment, officer
 from missioncopilot_backend.db.dashboard_report import Trail
 
 LOGGED = {
@@ -22,12 +22,16 @@ BY = {"pack_downloaded": "The officer's iPhone", "mission_synced": "The officer'
       "report_endorsed": "A manager", "report_sent_back": "A manager"}  # fmt: skip
 
 
+def upper_first(words: str) -> str:
+    return words[:1].upper() + words[1:]
+
+
 def steps(trail: Trail, events: list[AuditEvent]) -> list[tuple[float, str, str, str]]:
     """(when, kind, what, who), oldest first."""
     found = []
     for v in trail.versions:
         found.append((v.approved_at, "approved", f"Version {v.version} approved with Face ID on the"
-                      f" officer's iPhone (draft {v.draft_id})", v.approved_by))  # fmt: skip
+                      f" officer's iPhone", upper_first(officer(v.approved_by))))  # fmt: skip
         found.append((v.received_at, "received", f"Version {v.version} received and checked by the"
                       " server", "Server"))  # fmt: skip
     for r in trail.reviews:

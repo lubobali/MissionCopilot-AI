@@ -9,7 +9,7 @@ from html import escape
 
 from missioncopilot_backend.dashboard_decision import panel
 from missioncopilot_backend.dashboard_layout import titled
-from missioncopilot_backend.dashboard_portfolio import moment
+from missioncopilot_backend.dashboard_portfolio import moment, officer
 from missioncopilot_backend.dashboard_project_page import rating_row
 from missioncopilot_backend.dashboard_proof import may_see, proof
 from missioncopilot_backend.db.dashboard_report import SECTIONS, Action, Line, ReportView
@@ -19,7 +19,7 @@ LANGUAGES = {"en": "English", "fr": "French"}
 
 def seal(view: ReportView, verified: bool) -> str:
     stored = view.stored
-    who = (f"<small>Approved by {escape(stored.approved_by)}, {moment(stored.approved_at)}"
+    who = (f"<small>Approved by {escape(officer(stored.approved_by))}, {moment(stored.approved_at)}"
            f" · received {moment(stored.received_at)}</small>")  # fmt: skip
     if verified:
         return (f'<p class="seal ok"><span class="tick" aria-hidden="true">✓</span><span>'

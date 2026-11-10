@@ -67,6 +67,7 @@ def test_home_needs_a_session(world):
 def test_the_policy_allows_only_this_server(world):
     for part in ("default-src 'none'", "script-src 'self'", "style-src 'self'", "font-src 'self'",
                  "connect-src 'self'", "form-action 'self'", "base-uri 'none'",
+                 "media-src 'self'",  # the debrief recordings in a report's proof (Lubo, Nov 10)
                  "frame-ancestors 'none'"):  # fmt: skip
         assert part in DASHBOARD_POLICY
     assert "unsafe" not in DASHBOARD_POLICY and "http" not in DASHBOARD_POLICY

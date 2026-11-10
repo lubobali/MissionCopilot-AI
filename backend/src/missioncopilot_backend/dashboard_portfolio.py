@@ -24,6 +24,12 @@ def day(timestamp: float | None) -> str:
     return datetime.fromtimestamp(timestamp, UTC).strftime("%-d %b %Y") if timestamp else "Not yet"
 
 
+def officer(approved_by: str) -> str:
+    """Who approved, in words: the phone signs its local profile ("this-phone") when it has no
+    officer's name, so that is said as the officer's iPhone, never as a raw id (Lubo, Nov 10)."""
+    return "the officer's iPhone" if approved_by in ("", "this-phone") else approved_by
+
+
 def moment(at: float) -> str:
     return datetime.fromtimestamp(at, UTC).strftime("%-d %b %Y, %H:%M UTC")
 
