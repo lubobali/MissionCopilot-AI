@@ -41,7 +41,7 @@ import psycopg
 from cryptography.hazmat.primitives import serialization
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
-from missioncopilot_backend import admin_config, admin_devices
+from missioncopilot_backend import admin_config, admin_dashboard, admin_devices
 from missioncopilot_backend.admin_common import AdminError, as_admin, directory_url
 from missioncopilot_backend.admin_config import DIRECTORY
 from missioncopilot_backend.checklist_xlsx import from_xlsx
@@ -209,6 +209,11 @@ def _parser() -> argparse.ArgumentParser:
     code.add_argument("user_id")
     code.add_argument("--label", default="iPhone")
     commands.add_parser("list-devices").add_argument("org_id")
+    invite = commands.add_parser("invite-manager")  # #174: a one-time dashboard link
+    invite.add_argument("org_id")
+    invite.add_argument("user_id")
+    invite.add_argument("--name", required=True)
+    invite.add_argument("--base", required=True, help="the dashboard address, https://...")
     for name in ("approve-device", "revoke-device"):
         phone = commands.add_parser(name)
         phone.add_argument("device_id")
@@ -243,6 +248,13 @@ def _database_command(args: argparse.Namespace, env: Mapping[str, str]) -> None:
     admin_url, address_dir, directory = admin_config.settings(env)
     if args.command in DEVICE_COMMANDS:
         _devices(args, admin_url, address_dir)
+    elif args.command == "invite-manager":
+        link, expires = admin_dashboard.invite_manager(
+            admin_url, address_dir, args.org_id, args.user_id, args.name, args.base
+        )
+        print(
+            f"OK: invite for {args.name}: {link}\nIt works once, for 15 minutes (until {expires})."
+        )
     elif args.command == "setup":
         path = setup(admin_url, address_dir, directory)
         print(f"OK: directory set up; its address is in {path}")
