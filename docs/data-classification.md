@@ -69,6 +69,7 @@ Key names: **MK** = the mission key (one per mission, wrapped by a Secure Enclav
 | Mission key | Device | Secret | Keychain, wrapped by SE | SE | **Never**; destroyed at crypto-shred | No |
 | Database key | Device | Secret | Keychain, this device only | Hardware-backed Keychain | **Never** | No |
 | Device registration (public key, status) | Organization | Official Use Only | Org database | TK | Public key only, at enrollment | No |
+| Approval public key (the officer's Face ID approval key, public half, #171) | Organization | Official Use Only | Directory, with its phone | TK | Public key only, once after approval | No |
 | Client IP address (audit log, server logs) | Organization | Official Use Only, personal data | Directory (audit events); the server's nginx and API logs | Database access control; logs readable by the server's administrators only | It is the phone's own address, seen by the server | No |
 | Server signing key | Organization | Secret | The server's secrets folder (prod's spare: off the server) | File permissions (one owner, 0600) | Public half only (pinned in the app) | No |
 | Backups (every database, the roles, the server's secrets) | Organization | Secret | The environment's own restic repository in a private bucket | restic (AES-256, its own password) and the bucket's encryption | Server only, to its own backup bucket | No |
