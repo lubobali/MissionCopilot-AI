@@ -141,6 +141,7 @@ def build(env: Mapping[str, str] = os.environ) -> FastAPI:
         enrollment_codes=directory.codes,
         devices=directory.devices,
         approval_keys=directory.approval_keys,
+        dashboard=directory.dashboard,
         signing_key=signing_key,
         lifespan=lifespan,
         ready=directory.ready,

@@ -25,6 +25,12 @@ pytestmark = pytest.mark.unit
 ISSUER = "https://login.example.org"
 AUDIENCE = "missioncopilot-api"
 PUBLIC_ROUTES = {"/v1/health", "/v1/ready", "/v1/devices/enroll"}  # enroll: by its one-time code
+# The dashboard's sign-in (#174): public by design, like enroll, and guarded instead by the
+# dashboard's own Origin, one-time invites and challenges, and passkeys (test_dashboard_routes.py).
+PUBLIC_ROUTES |= {
+    "/v1/dashboard/register/options", "/v1/dashboard/register/verify",
+    "/v1/dashboard/sign-in/options", "/v1/dashboard/sign-in/verify", "/v1/dashboard/sign-out",
+}  # fmt: skip
 
 
 def pem(key: ec.EllipticCurvePrivateKey) -> str:

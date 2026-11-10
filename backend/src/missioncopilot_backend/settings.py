@@ -29,6 +29,8 @@ class Settings:
     forwarded_allow_ips: tuple[str, ...] = ()
     # The oldest phone build still served (its X-App-Build); 0: every build (app_version.py).
     min_app_build: int = 0
+    # The manager dashboard's own address (#174), e.g. https://mc.lubot.ai; None: no dashboard.
+    dashboard_origin: str | None = None
 
     def __post_init__(self) -> None:
         if "*" in self.allowed_origins or "*" in self.allowed_hosts:
@@ -38,6 +40,7 @@ class Settings:
                 f"MISSIONCOPILOT_MIN_APP_BUILD cannot be negative: {self.min_app_build}"
             )
         _check_process(self.host, self.port, self.forwarded_allow_ips)
+        _check_dashboard(self.dashboard_origin)
         for field, (name, _, _) in LIMITS.items():
             if getattr(self, field) < 1:
                 raise ValueError(f"{name} must be at least 1, got {getattr(self, field)}")
@@ -107,6 +110,7 @@ class Settings:
             ),
             max_body_bytes=_limit(env, "max_body_bytes", cls.max_body_bytes),
             min_app_build=_whole_number(env, "MISSIONCOPILOT_MIN_APP_BUILD", cls.min_app_build),
+            dashboard_origin=env.get("MISSIONCOPILOT_DASHBOARD_ORIGIN") or None,
         )
 
 
@@ -167,3 +171,12 @@ def read_env_file(path: Path) -> dict[str, str]:
             key, value = line.split("=", 1)
             values[key.strip()] = value.strip()
     return values
+
+
+def _check_dashboard(origin: str | None) -> None:
+    """Passkeys need a secure page: https, or plain http to this machine only (local tests)."""
+    if origin is None:
+        return
+    local = origin == "http://localhost" or origin.startswith("http://localhost:")
+    if not (origin.startswith("https://") or local) or origin.endswith("/"):
+        raise ValueError(f"MISSIONCOPILOT_DASHBOARD_ORIGIN must be https://<host>, got {origin!r}")
