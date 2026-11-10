@@ -123,7 +123,7 @@ def test_the_demo_starts_a_real_server_where_each_officer_sees_only_their_team_m
     app = build(_server_env(ops))
     with local_client(app):
         store = app.state.databases.for_org(demo)
-        assert [m.id for m in store.for_user("officer-7")] == [admin.ROADS, admin.BRIDGES]
+        assert [m.id for m in store.for_user("officer-7")][:2] == [admin.ROADS, admin.BRIDGES]
         assert [m.id for m in store.for_user("officer-8")] == [admin.BRIDGES]
         assert [m.id for m in store.for_user("manager-1")] == [admin.ROADS, admin.BRIDGES]
 
@@ -232,8 +232,8 @@ def test_the_demo_can_go_into_another_organization_from_the_command_line(ops, ca
 
     out = capsys.readouterr().out
     assert f"OK: demo loaded into {e2e}" in out and f"published into {e2e}" in out
-    # (missions, packs): roads and bridges, and the five portfolio projects with their packs
-    for org_id, expected in ((e2e, (7, 6)), (untouched, (0, 0))):
+    # (missions, packs): roads, bridges, five portfolio projects, the clean mission; with packs
+    for org_id, expected in ((e2e, (8, 7)), (untouched, (0, 0))):
         database = make_conninfo(admin_url(), dbname=names_for(org_id)[0])
         with psycopg.connect(database) as conn:
             found = conn.execute(

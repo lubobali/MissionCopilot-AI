@@ -2,17 +2,25 @@
 shows what a manager's portfolio looks like. Each is a real mission with a real signed pack (its
 header, ratings, financing and components), checked against the pack's contract like any other;
 they are in the field, with no report yet. Their teams are fictional officers with no phone, so no
-phone ever downloads them. Every name and amount is invented."""
+phone ever downloads them. And one clean mission for the demo officer (#180). Every name and amount
+is invented."""
 
 import json
+from importlib.resources import files
 
 import psycopg
 from cryptography.hazmat.primitives.asymmetric import ec
 
 from missioncopilot_backend.db.packs import publish_pack
-from missioncopilot_backend.pack_content import check_pack_files
+from missioncopilot_backend.pack_content import check_pack_files, pack_files
 
 TEAM = "officer-9"  # fictional, no phone enrolled
+# The clean mission for the Phase 8 proof and the demo (#180): the roads project's next visit, with
+# the same dataset's pack under its own title; on the demo officer's team, so their phone gets it.
+FRESH = "6f1d2c3a-0000-4000-8000-000000000008"
+FRESH_TITLE = "Kandor Rural Roads, Package 1: November 2026 mission"
+FRESH_TEAM = "officer-7"
+DATASET = files("missioncopilot_backend") / "data" / "kandor-rural-roads.json"
 P = ["Highly Unsatisfactory", "Unsatisfactory", "Moderately Unsatisfactory",
      "Moderately Satisfactory", "Satisfactory", "Highly Satisfactory"]  # fmt: skip
 # id suffix, ref, title, sector, agency, objective, (risk before, now), performance (before, now),
@@ -74,8 +82,23 @@ def _files(project: tuple) -> dict[str, bytes]:
             for name, body in sections.items()}  # fmt: skip
 
 
+def fresh_files() -> dict[str, bytes]:
+    """The roads dataset's pack, its project titled as this visit (so the dashboard tells them
+    apart)."""
+    made = pack_files(json.loads(DATASET.read_text(encoding="utf-8")))
+    project = json.loads(made["sections/project.json"])
+    project["title"] = FRESH_TITLE
+    made["sections/project.json"] = (json.dumps(project, indent=2, sort_keys=True,
+                                                ensure_ascii=False) + "\n").encode()  # fmt: skip
+    return made
+
+
 def seed_portfolio(conn: psycopg.Connection) -> None:
-    """The five missions and their fictional team; safe to run again."""
+    """The five missions and their fictional team, and the clean mission; safe to run again."""
+    conn.execute("INSERT INTO missions (id, title) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                 [FRESH, FRESH_TITLE])  # fmt: skip
+    conn.execute("INSERT INTO mission_members VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                 [FRESH, FRESH_TEAM])  # fmt: skip
     for project in PROJECTS:
         conn.execute("INSERT INTO missions (id, title) VALUES (%s, %s) ON CONFLICT DO NOTHING",
                      [mission_id(project[0]), project[2]])  # fmt: skip
@@ -89,6 +112,11 @@ def publish_portfolio(url: str, org_id: str, key: ec.EllipticCurvePrivateKey) ->
     with psycopg.connect(url) as conn:
         done = {row[0] for row in conn.execute("SELECT DISTINCT mission_id FROM packs")}
     published = 0
+    if FRESH not in done:
+        fresh = fresh_files()
+        check_pack_files(fresh)
+        publish_pack(url, org_id, FRESH, fresh, key)
+        published += 1
     for project in PROJECTS:
         if mission_id(project[0]) in done:
             continue

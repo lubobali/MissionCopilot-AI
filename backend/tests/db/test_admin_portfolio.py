@@ -8,7 +8,7 @@ from psycopg.conninfo import make_conninfo
 from psycopg_pool import ConnectionPool
 
 from missioncopilot_backend import admin
-from missioncopilot_backend.admin_portfolio import PROJECTS, TEAM, mission_id
+from missioncopilot_backend.admin_portfolio import FRESH, FRESH_TITLE, PROJECTS, TEAM, mission_id
 from missioncopilot_backend.db.dashboard_data import DashboardData
 from missioncopilot_backend.db.organizations import names_for
 from missioncopilot_backend.server import build
@@ -33,7 +33,9 @@ def test_the_portfolio_has_seven_missions_and_the_officers_phones_see_only_their
     with ConnectionPool(make_conninfo(admin_url(), dbname=names_for(demo)[0]), open=True) as pool:
         portfolio = DashboardData(pool).portfolio("manager-1")
     rows = {row.id: row for row in portfolio.rows}
-    assert len(rows) == 7
+    assert len(rows) == 8  # roads, bridges, five projects, the clean mission (#180)
+    fresh = rows[FRESH]
+    assert (fresh.title, fresh.status, fresh.project_ref) == (FRESH_TITLE, "in_field", "KRRP-P1")
     water = rows[mission_id("3")]
     assert (water.title, water.project_ref, water.status) == (
         "Kandor Water Supply and Sanitation", "KWSS-P2", "in_field",
@@ -48,5 +50,5 @@ def test_the_portfolio_has_seven_missions_and_the_officers_phones_see_only_their
     app = build(_server_env(ops))
     with local_client(app):
         store = app.state.databases.for_org(demo)
-        assert [m.id for m in store.for_user("officer-7")] == [admin.ROADS, admin.BRIDGES]
+        assert [m.id for m in store.for_user("officer-7")] == [admin.ROADS, admin.BRIDGES, FRESH]
         assert len(store.for_user(TEAM)) == len(PROJECTS)
