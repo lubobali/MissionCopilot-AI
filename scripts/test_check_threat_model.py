@@ -27,7 +27,7 @@ def test_a_complete_table_passes(repo):
     rows = (
         "| T01 | S | Fake phone | Enrollment | planned | #46 |\n"
         "| T02 | T | Changed payload | Signatures | built | `tests/test_real.py` |\n"
-        "| T03 | I | Copied DB | SQLCipher | spike | `tests/test_real.py`, rebuild Phase 7 |\n"
+        "| T03 | I | Copied DB | SQLCipher | spike | `tests/test_real.py`, rebuild Phase 8 |\n"
         "| T04 | D | Lost unsynced | Deliberate | accepted | Accepted: safer than leaking |\n"
     )
 
@@ -104,7 +104,7 @@ def test_an_empty_model_is_a_problem(repo):
     assert problems([], repo) == ["no threat rows found"]
 
 
-@pytest.mark.parametrize("phase", [4, 5, 6])
+@pytest.mark.parametrize("phase", [4, 5, 6, 7])
 @pytest.mark.parametrize("status", ["spike", "planned"])
 def test_a_finished_phase_alone_is_no_plan(repo, status, phase):
     # Phases up to LAST_FINISHED_PHASE are done: "rebuild Phase 5" now means the row drifted.
@@ -115,13 +115,13 @@ def test_a_finished_phase_alone_is_no_plan(repo, status, phase):
     ]
 
 
-@pytest.mark.parametrize("where", ["Phase 4 and Phase 8", "Phase 4, #60", "Phase 7"])
+@pytest.mark.parametrize("where", ["Phase 4 and Phase 8", "Phase 4, #60", "Phase 8"])
 def test_an_open_phase_or_an_issue_is_still_a_plan(repo, where):
     assert check(f"| T01 | I | x | y | spike | `tests/test_real.py`, {where} |\n", repo) == []
 
 
 def test_every_phase_up_to_the_last_finished_one_counts_as_finished(repo):
-    assert LAST_FINISHED_PHASE == 6
+    assert LAST_FINISHED_PHASE == 7
     found = check("| T01 | E | x | y | planned | Phase 0 |\n", repo)
 
     assert found == ["T01: planned, but Phase 0 is finished; name a later phase or an issue"]
