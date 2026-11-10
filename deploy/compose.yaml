@@ -81,6 +81,8 @@ services:
       # Host nginx reaches the container from this network's gateway: the one proxy believed.
       MISSIONCOPILOT_FORWARDED_ALLOW_IPS: ${MC_EDGE_GATEWAY:?}
       MISSIONCOPILOT_MIN_APP_BUILD: ${MC_MIN_APP_BUILD:-0}
+      # The manager dashboard (#174, ADR 0014) on the same host name: passkeys are bound to it.
+      MISSIONCOPILOT_DASHBOARD_ORIGIN: https://${MC_HOSTNAME:?}
       MISSIONCOPILOT_DIRECTORY_URL_FILE: /run/mc/addresses/directory.url
       MISSIONCOPILOT_ORG_URLS_DIR: /run/mc/addresses/orgs
       MISSIONCOPILOT_SIGNING_KEY_FILE: /run/mc/keys/signing-key.pem
