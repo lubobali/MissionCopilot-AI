@@ -45,7 +45,7 @@ final class MissionListModelTests {
         let world = MissionListWorld(client: client, keys: pinned,
                                      stagingBase: base, schema: try PackSectionsTests.schema(), runways: [],
                                      freeSpace: { 1 << 30 }, now: { now }, chunk: 256, wait: wait, jitter: jitter,
-                                     registerApprovalKey: register)
+                                     afterList: register)
         let made = MissionListModel(world: world, missions: { [unowned self] in gate.isOpen ? store : nil },
                                     onShredOrder: { [unowned self] in shredOrders.append($0) })
         made.onChange = { [unowned self] in seen.append($0) }

@@ -31,6 +31,7 @@ struct ReportSendStoreTests {
         let again = try store.queueReport(in: Self.mission)
 
         #expect(first == again, "queued once: the same key every try")
+        #expect(try store.queuedReports() == [Self.mission])
         #expect(UUID(uuidString: first.idempotencyKey) != nil)
         #expect(first.draftId == (try store.approval(in: Self.mission))?.draftId)
     }

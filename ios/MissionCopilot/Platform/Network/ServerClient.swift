@@ -88,8 +88,10 @@ struct ServerClient: Sendable {
         await send("GET", path, body: Data(), headers: headers)
     }
 
-    func post(_ path: String, body: Data) async -> Outcome {
-        await send("POST", path, body: body, headers: ["Content-Type": "application/json"])
+    /// #173: `headers` adds the sync's Idempotency-Key; an evidence file goes as raw bytes (`contentType`).
+    func post(_ path: String, body: Data, headers: [String: String] = [:],
+              contentType: String = "application/json") async -> Outcome {
+        await send("POST", path, body: body, headers: headers.merging(["Content-Type": contentType]) { _, new in new })
     }
 
     private func send(_ method: String, _ path: String, body: Data, headers: [String: String]) async -> Outcome {

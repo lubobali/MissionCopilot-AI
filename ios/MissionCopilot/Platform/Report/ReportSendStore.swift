@@ -101,4 +101,11 @@ extension MissionStore {
                              arguments: [mission])
         }
     }
+
+    /// Missions whose approved report is queued; the sender skips what the server already confirmed.
+    func queuedReports() throws -> [String] {
+        try store.read { database in
+            try String.fetchAll(database, sql: "SELECT mission_id FROM report_outbox ORDER BY queued_at")
+        }
+    }
 }

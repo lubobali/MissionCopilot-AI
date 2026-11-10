@@ -15,7 +15,7 @@ struct MissionListWorld: Sendable {
     /// The real wait before a busy server is tried again, and the random part of it (#104).
     var wait: @Sendable (Int) async -> Void = { seconds in try? await Task.sleep(for: .seconds(seconds)) }
     var jitter: @Sendable (Int) -> Int = { cap in Int.random(in: 0...cap) }
-    var registerApprovalKey: @Sendable () async -> Void = {}  // #171: the Face ID key, sent once
+    var afterList: @Sendable () async -> Void = {}  // the Face ID key (#171), then queued reports (#173)
 }
 
 /// The mission list (#92): the server's list joined with the packs in the encrypted store. A download
@@ -61,7 +61,7 @@ struct MissionListWorld: Sendable {
                 list = fresh
                 try? missions()?.cacheMissionList(fresh)
             }
-            await world.registerApprovalKey()
+            await world.afterList()
         case .refused:
             message = MissionRow.notApproved
         case .shredOrder(let body):

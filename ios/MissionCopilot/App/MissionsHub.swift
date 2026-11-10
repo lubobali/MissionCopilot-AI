@@ -92,7 +92,14 @@ extension Connection {
                                                        records: records)
             var world = MissionListWorld(client: client, keys: { config.key(for: $0) }, stagingBase: base,
                                          schema: schema, freeSpace: space)
-            world.registerApprovalKey = { _ = await registration.ensure(client: client) }
+            world.afterList = {
+                _ = await registration.ensure(client: client)
+                guard let store = await MainActor.run(body: { missions() }) else { return }
+                for mission in (try? store.queuedReports()) ?? [] {  // #173: back online, they go
+                    _ = await ReportSender(store: store, registration: registration).send(mission: mission,
+                                                                                          client: client)
+                }
+            }
             return .success(MissionListModel(world: world, missions: missions) { [weak hub] body in
                 let phone = ShredOrderAction.Phone(records: records, forgetKey: { try? signer.deleteKey() })
                 let result = ShredOrderAction.handle(body, phone: phone, missions: missions(),
