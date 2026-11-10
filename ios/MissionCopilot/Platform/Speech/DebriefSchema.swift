@@ -10,6 +10,7 @@ extension StoreSchema {
         registerAskLog(in: &migrator)
         registerReportSources(in: &migrator)
         registerReportApprovals(in: &migrator)
+        registerReportSends(in: &migrator)
     }
 
     /// Report sources (#162): the server's signature over the pack's manifest, kept with the pack (sealed with

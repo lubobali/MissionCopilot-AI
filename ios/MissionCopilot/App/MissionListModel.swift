@@ -12,10 +12,10 @@ struct MissionListWorld: Sendable {
     var freeSpace: @Sendable () -> Int64
     var now: @Sendable () -> Date = { Date() }
     var chunk = 1 << 20
-    /// The real wait before a busy server is tried again, and the random part of it (#104).
-    var wait: @Sendable (Int) async -> Void = { seconds in try? await Task.sleep(for: .seconds(seconds)) }
+    var wait: @Sendable (Int) async -> Void = { seconds in try? await Task.sleep(for: .seconds(seconds)) }  // #104
     var jitter: @Sendable (Int) -> Int = { cap in Int.random(in: 0...cap) }
-    var registerApprovalKey: @Sendable () async -> Void = {}  // #171: the Face ID key, sent once
+    var afterList: @Sendable () async -> Void = {}  // the Face ID key (#171), then queued reports (#173)
+    var sendReport: @Sendable (String) async -> ReportSender.Outcome = { _ in .notQueued }  // #173, now
 }
 
 /// The mission list (#92): the server's list joined with the packs in the encrypted store. A download
@@ -30,7 +30,7 @@ struct MissionListWorld: Sendable {
     /// Told after every change of the rows (the tests watch progress with it).
     var onChange: (([MissionRow]) -> Void)?
 
-    private let world: MissionListWorld
+    let world: MissionListWorld
     private let missions: @MainActor () -> MissionStore?
 
     /// The open mission store, or nil while the app is locked (the site walk reads and writes it, #129).
@@ -61,7 +61,7 @@ struct MissionListWorld: Sendable {
                 list = fresh
                 try? missions()?.cacheMissionList(fresh)
             }
-            await world.registerApprovalKey()
+            await world.afterList()
         case .refused:
             message = MissionRow.notApproved
         case .shredOrder(let body):
