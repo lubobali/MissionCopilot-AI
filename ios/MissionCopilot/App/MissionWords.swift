@@ -3,6 +3,9 @@ import Foundation
 /// What a mission row and its pack summary say (#92), in the phone's language and time zone (the tests
 /// fix both). Sizes use bytes, KB or MB as the size needs; every date is a day, no time.
 struct MissionWords: Sendable {
+    /// #195: on the mission's row and its screen until the next version is sent.
+    static let sentBack = "Sent back by your manager"
+
     var locale = Locale.current
     var timeZone = TimeZone.current
 

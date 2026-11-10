@@ -245,6 +245,7 @@ struct MissionListWorld: Sendable {
         rows = (list?.missions ?? []).map { mission in
             MissionRow(mission: mission, stored: try? store?.storedPack(for: mission.id),
                        activity: activity[mission.id], running: running[mission.id] != nil, now: now)
+                .marked(sentBack: (try? store?.needsResponse(in: mission.id)) == true)  // #195
         }
         onChange?(rows)
     }
@@ -252,8 +253,7 @@ struct MissionListWorld: Sendable {
 
 /// Trying a busy server again (#104).
 extension MissionListModel {
-    /// A busy server: wait the time the row shows, then try again with newly signed requests. After
-    /// Backoff.maxTries busy answers in a row the person decides ("Try again").
+    /// A busy server: wait the time the row shows, then retry (newly signed); after Backoff.maxTries, "Try again".
     fileprivate func retryLater(_ id: String, asked: Int?, pause: (Int) -> MissionPause) {
         let attempt = tries[id, default: 0]
         guard attempt < Backoff.maxTries else {

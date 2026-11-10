@@ -24,6 +24,7 @@ struct ReportVersionTests {
 
     @Test func aReceivedReportWaitsForItsDecision() async throws {
         let store = try await Self.received().store
+        #expect(try !store.needsResponse(in: Self.mission), "nothing sent back: nothing to answer")
 
         #expect(try store.reportVersion(in: Self.mission) == 1)
         #expect(try store.awaitingReview() == [Self.mission])
@@ -42,6 +43,7 @@ struct ReportVersionTests {
         #expect(try store.queuedReports().isEmpty && store.awaitingReview().isEmpty)
         #expect(try store.sentBack(in: Self.mission) == Self.back)
         #expect(try store.isApprovedDraft(first.draftId), "version 1's approval stays as history")
+        #expect(try store.needsResponse(in: Self.mission))
     }
 
     @Test func onlyTheSentVersionsDecisionIsKeptAndOnlyOnce() async throws {
@@ -85,6 +87,9 @@ struct ReportVersionTests {
         #expect(queued.idempotencyKey != firstKey && queued.draftId == second.draftId)
         #expect(try store.queuedReports() == [Self.mission])
         #expect(model.managerWords == nil, "approved again: the note has done its job")
+        #expect(try store.needsResponse(in: Self.mission), "#195: still to send")
+        try store.keepReceipt(batchId: "batch-2", receivedAt: Date(), in: Self.mission)
+        #expect(try !store.needsResponse(in: Self.mission), "version 2 received: nothing more to do")
     }
 
     @Test func theStoreNeverApprovesASentBackDraftAgain() async throws {

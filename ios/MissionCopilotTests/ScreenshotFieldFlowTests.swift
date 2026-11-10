@@ -82,6 +82,17 @@ extension ScreenshotTests {
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "report-approved")
     }
 
+    /// #193: a report the manager sent back: the note at the top, the sentences ready to change.
+    @Test(arguments: [Look.light, .dark, .largestText])
+    func theSentBackReportIsOnTheThemeBackground(look: Look) async throws {
+        let store = try await ReportVersionTests.received().store
+        try store.keepReview(ReportVersionTests.back, in: ReportVersionTests.mission)
+        let model = ReportModel(mission: ReportVersionTests.mission, store: store, signer: SoftwareEvidenceSigner())
+        await model.load()
+        try check(ReportView(model: model).fixedSize(horizontal: false, vertical: true)
+            .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "report-sent-back")
+    }
+
     /// #173: the approved report with Send, and the review of exactly what goes.
     @Test(arguments: [Look.light, .dark, .largestText])
     func theSendReviewIsOnTheThemeBackground(look: Look) async throws {

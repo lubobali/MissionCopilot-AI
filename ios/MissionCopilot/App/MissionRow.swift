@@ -10,6 +10,7 @@ struct MissionRow: Equatable, Identifiable, Sendable {
     let updateAvailable: Bool
     let canDownload: Bool
     let note: String?
+    var sentBack = false  // #195: the manager sent the report back; the officer must send the next version
 
     static let offline = "No connection. Showing the missions from the last time this iPhone was online."
     static let notApproved = "This iPhone is not approved yet. Ask your manager, then try again."
@@ -22,6 +23,13 @@ struct MissionRow: Equatable, Identifiable, Sendable {
         + "answered. Pull down to try again."
 
     var version: Int? { pack?.version }
+
+    /// The row with the manager's send back marked (#195).
+    func marked(sentBack: Bool) -> MissionRow {
+        var row = self
+        row.sentBack = sentBack
+        return row
+    }
 
     init(id: String, title: String, status: MissionStatus, pack: PackFacts?, updateAvailable: Bool,
          canDownload: Bool, note: String?) {

@@ -96,6 +96,11 @@ struct MissionCard: View {
                     .font(.subheadline)
                     .foregroundStyle(Color(.secondaryText))
             }
+            if row.sentBack {  // #195
+                Label(MissionWords.sentBack, systemImage: "arrow.uturn.backward.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color(.warning))
+            }
             if let note = row.note ?? (row.updateAvailable ? "A newer pack is on the server." : nil) {
                 Text(note)
                     .font(.footnote)
