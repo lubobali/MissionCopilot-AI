@@ -284,3 +284,41 @@ iPhone in airplane mode ([field proof](../field-proof.md)).
 items from Iterations 3 and 5.
 
 **Next:** Iteration 7 · Report and approval: a report draft where every sentence links to its facts.
+
+## Iteration 7 · Report and approval (done Nov 9 2026)
+**Done:** the aide-memoire is written by code from the mission's records, every sentence citing its facts and
+each fact its signed evidence; the officer removes, adds or edits sentences, each checked against the facts
+picked; a saved draft is approved with Face ID and signed by the phone's Secure Enclave, then locked. Four
+stories, 3 pull requests (#165 to #167) plus this review, proven on the iPhone in airplane mode
+([field proof](../field-proof.md#field-proof-phase-7-on-the-iphone-164)).
+
+| Story | Result |
+|---|---|
+| #162 Report sources | The pack (with the server's signature) and the finished walk become signed evidence; pack records, walk answers and raised flags become facts; deployed to staging and production by the server session |
+| #161 Report drafted by code | Five aide-memoire sections, every sentence proven; "No proof" with the reason for the officer's own words; drafts append-only; short (one sentence per invoice, no repeats) and in plain words |
+| #163 Approve with Face ID | A separate Secure Enclave key that asks every time; one signature over the saved draft's exact bytes; locked after; opens with a spinner |
+| #164 Phase 7 proof | The run on the iPhone, the rows, this review |
+
+**Measured:**
+- Tests: 2,554 (backend 868, scripts 430, main app 1,121, encryption lab 50, document lab 62, speech lab 23),
+  up from 2,481; the main app from 1,056.
+- Threat model: 65 built, 10 planned, 5 accepted (was 61, 12, 5), plus 8 privacy risks (3 built, 4 planned,
+  1 accepted). MASVS: 14 built, 1 spike, 2 planned, 5 accepted, 2 not applicable (was 13, 1, 3, 5, 2).
+  Self-assessed, **not independently audited**.
+- Mutation checks counted from step 7.2.7 on: 44, every break caught (two survivors at first, each closed by
+  a new test).
+
+**Learned:**
+- **A test mission is not a real one.** The 77 sentences were mostly Phase 6's test data (three scans, many
+  debriefs); the rules that made it short (one sentence per invoice, no repeats) are right anyway, and a clean
+  mission gives 14. Record the demo on a clean mission.
+- **Sign what was saved, not what is on screen.** Approve is on only when the screen holds exactly the saved
+  draft, and the store refuses a signature over any other bytes.
+- **One prompt per approval.** A fresh context with no reuse, and the signature itself asks (no second
+  `evaluatePolicy`), after reports of two signatures racing the Face ID prompt since iOS 26.1.
+- **Every slow screen gets a spinner.** The report froze the way Ask once did; the same fix (work off the main
+  thread) is now the rule.
+
+**Open:** #168 Face ID again before destroying a mission; #169 the cancel on the iPhone in the Phase 9 run;
+#148 the pack brings its own words (now also the walk's French titles and the invoice's field names).
+**Next:** Iteration 8, sync and the manager dashboard.

@@ -109,4 +109,23 @@ struct ReportModelTests {
         #expect(model.stage == .ready && !model.walkFinished)
         #expect(!model.lines.contains { $0.text.hasPrefix("Your site walk") })
     }
+
+    /// Threat T10 (#164): another mission's records never reach this mission's report, even in the same store.
+    @Test func anotherMissionsRecordsStayOut() async throws {
+        let (store, _) = try await ReportSourcesTests.finished()
+        try store.create(mission: "other-mission", title: "Another mission")
+        try store.addEvidence(EvidenceChainTests.capture("other"), to: "other-mission",
+                              signer: SoftwareEvidenceSigner())  // its evidence 1
+        try store.addFacts([FactInput(name: "debrief.risk",
+                                      value: #"{"byWhen":"","text":"Secret of the other mission.","who":""}"#,
+                                      unit: nil, sources: [FactSource(seq: 1, region: "x")],
+                                      rule: MissionStore.debriefRule)], to: "other-mission")
+        let model = ReportModel(mission: Self.mission, store: store, signer: SoftwareEvidenceSigner())
+
+        await model.load()
+
+        #expect(model.stage == .ready)
+        #expect(!model.lines.contains { $0.text.contains("Secret of the other mission") })
+        #expect(!model.pickable.contains { $0.words.contains("Secret of the other mission") })
+    }
 }

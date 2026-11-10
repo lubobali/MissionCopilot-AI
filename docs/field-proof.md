@@ -39,3 +39,42 @@ says what each one showed. One phone, one iOS version, a Staging build.
 - Raw words on screen ("notMet", record paths) and a "done" answer without the bank's disagreement (#154).
 - Ask took three seconds to open with nothing on screen; it now opens with one key unwrap (#150).
 - Saved notes were shown nowhere; they open from the debrief now (#152).
+
+# Field proof: Phase 7 on the iPhone (#164)
+
+The report and its approval, run by Lubo on his iPhone 13 Pro Max on Nov 9 2026 with the same Kandor mission
+(fictional data), in airplane mode, Staging builds installed from the Mac. The screenshots stay private; this
+page says what each one showed. This mission holds every test of Phase 6 (three scans, many debriefs), so its
+report is longer than a real one: the same records on a clean mission give 14 sentences
+(`ios/MissionCopilotTests/ReportModelTests.swift`, the screenshot test).
+
+## The run
+
+| Step | What the iPhone showed | Time |
+|---|---|---|
+| 1 | The report opened, every sentence with a number; tapping 1 showed the contract's bank record (USD 10,000,000, supplier, status) | 11:55 AM |
+| 2 | A sentence added with no fact picked: "No proof: Pick the facts this sentence comes from." and Save locked; removed, "77 sentences, each with its proof"; the draft saved | 11:55 AM |
+| 3 | After 7.2.7: 51 sentences; one sentence per scanned invoice with its 8 facts behind one number, a typed value marked "(typed by you, not on the page)"; "Physical progress: 32 of 64 km of asphalt built, as of 30 Sep 2026."; only the overall rating | 12:46 PM |
+| 4 | After 7.2.8: the walk's answers in words: "Broken road edges", "6 Nov 2026", "41.85988, -87.71320 (within 7 m)", "Photo taken"; the proof cards the same | 1:23 PM |
+| 5 | Approve with Face ID grey, "Save the draft, then approve it."; saved (51 sentences), Approve on, "Face ID or your passcode signs it on this iPhone." | 5:18 PM |
+| 6 | Face ID once; "Approved on this iPhone Nov 9, 2026 at 5:18 PM. It cannot change."; no Edit, Remove, Add or Save anywhere | 5:18 PM |
+| 7 | Reopened: a spinner, "Writing the report from this mission's records…", then "Approved · 51 sentences, each with its proof" | 5:31 PM |
+
+The cancel ("Not approved: you cancelled.") is covered by tests and was not tried on the phone before the
+report was approved; it is proven in the Phase 9 run (#169).
+
+## Traceability: each sentence back to its evidence
+
+| Sentence | Facts | Evidence |
+|---|---|---|
+| USD 8,500,000 paid to date (the sum of 6 payments). | The pack record, rule `pack-record` v1 | The pack, signed evidence of kind `pack` (its manifest, the manifest's SHA-256 and the server's signature) |
+| Your site walk: Has work on the Section 3 bridge started? Yes. | The answer, rule `walk-answer` v1 | The finished walk, signed evidence of kind `walk` |
+| Red flag MC-01: Payments are 35 points ahead of the work built. | The flag, rule `red-flag` v1, strictly confidential | The pack (payments, contract value, physical progress) and the stored flags |
+| From your scanned invoice: Invoice number: 14; … Section 3 bridge: Not started. | The invoice's 8 facts, rule `scan-invoice` v1 (or `officer`) | The scanned pages, each fact at its place on its page |
+| From your debrief: The bridge works have not started. | The note, rule `debrief` v1 | The recording and the sentence's place in its transcript |
+| The approval | The draft's sentences and their fact ids, who and when | One ECDSA P-256 signature by the phone's Secure Enclave approval key after Face ID, over those exact bytes (#163) |
+
+## Found by the run, each fixed test first before Phase 7 closed
+- 77 sentences: one per scanned fact, the same note from several debriefs, every rating (7.2.7).
+- Walk answers raw: choice codes, ISO dates, the location's numbers, "Evidence:1" (7.2.8).
+- The report page froze over a second with no spinner; it is built off the main thread now, like Ask (7.3.6).
