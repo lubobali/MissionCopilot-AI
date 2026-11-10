@@ -2,6 +2,7 @@
 publish-demo-pack their signed packs, so a manager's portfolio looks like one; they are in the
 field, with their own ratings and money, and no phone of the demo's officers sees them."""
 
+import psycopg
 import pytest
 from psycopg.conninfo import make_conninfo
 from psycopg_pool import ConnectionPool
@@ -21,11 +22,13 @@ pytestmark = pytest.mark.db
 def test_the_portfolio_has_seven_missions_and_the_officers_phones_see_only_theirs(ops):  # noqa: F811
     admin.setup(admin_url(), ops.secrets, ops.directory)
     demo = ops.org()
-    admin.seed_demo(admin_url(), ops.secrets, demo)
     key = ops.secrets.parent / "keys" / "signing-key.pem"
     admin.make_signing_key(key)
-    admin.publish_demo_pack(admin_url(), key, demo)
-    admin.publish_demo_pack(admin_url(), key, demo)  # safe to run again: next versions
+    admin.seed_demo(admin_url(), ops.secrets, demo, key)
+    roads = admin.publish_demo_pack(admin_url(), key, demo)
+    admin.seed_demo(admin_url(), ops.secrets, demo, key)  # safe to run again
+
+    assert roads.version == 1  # seed-demo never publishes the roads pack: the phone sees no update
 
     with ConnectionPool(make_conninfo(admin_url(), dbname=names_for(demo)[0]), open=True) as pool:
         portfolio = DashboardData(pool).portfolio("manager-1")
@@ -37,6 +40,10 @@ def test_the_portfolio_has_seven_missions_and_the_officers_phones_see_only_their
     )  # fmt: skip
     assert (water.risk_before, water.risk_now) == ("Substantial", "Moderate")
     assert all(rows[mission_id(p[0])].risk_now for p in PROJECTS)
+    with psycopg.connect(make_conninfo(admin_url(), dbname=names_for(demo)[0])) as conn:
+        counts = conn.execute("SELECT mission_id, max(version) FROM packs GROUP BY mission_id")
+        versions = dict(counts.fetchall())
+    assert versions[admin.ROADS] == 1 and set(versions.values()) == {1}  # once each
 
     app = build(_server_env(ops))
     with local_client(app):

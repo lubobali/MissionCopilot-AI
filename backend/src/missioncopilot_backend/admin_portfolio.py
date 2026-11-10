@@ -84,9 +84,16 @@ def seed_portfolio(conn: psycopg.Connection) -> None:
 
 
 def publish_portfolio(url: str, org_id: str, key: ec.EllipticCurvePrivateKey) -> int:
-    """Each project's pack, checked first; how many were published."""
+    """Each project's pack, checked first, only when it has none yet (safe to run again); how many
+    were published. Never the roads or bridges missions: the officer's phone sees no change."""
+    with psycopg.connect(url) as conn:
+        done = {row[0] for row in conn.execute("SELECT DISTINCT mission_id FROM packs")}
+    published = 0
     for project in PROJECTS:
+        if mission_id(project[0]) in done:
+            continue
         files = _files(project)
         check_pack_files(files)
         publish_pack(url, org_id, mission_id(project[0]), files, key)
-    return len(PROJECTS)
+        published += 1
+    return published

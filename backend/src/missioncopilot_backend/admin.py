@@ -4,11 +4,10 @@ Usage (uv run --directory backend missioncopilot-admin <command>):
   setup              the directory database and its own login (once)
   add-org <org id>   an organization's database, logins and address file
   migrate            every database up to the code's migrations (the server never does this itself)
-  seed-demo [--org ID]  the fictional Kandor demo (seven missions, their teams) into kandor-works
+  seed-demo [--org ID]  the fictional Kandor demo: 7 missions, teams, 5 extra packs (not roads)
   make-signing-key   the server's key for packs and shred orders (once); prints its public half
-  publish-demo-pack [--checklist FORM.xlsx] [--org ID]  the Kandor roads pack from the dataset,
-                     with an admin's checklist if given, and the five other projects' packs
-                     (admin_portfolio.py); checked, signed, next version (kandor-works or --org)
+  publish-demo-pack [--checklist FORM.xlsx] [--org ID]  the Kandor roads pack from the dataset
+                     (admin's checklist if given), checked, signed, next version
   convert-checklist FORM.xlsx [--out FILE]   check an .xlsx form and write the pack's checklist JSON
                                              (no database; try a form before publishing it)
   issue-code <org> <user> [--label]  a one-time code for one person's phone (15 minutes)
@@ -125,8 +124,8 @@ def migrate_all(admin_url: str, address_dir: Path) -> dict[str, list[int]]:
     return applied
 
 
-def seed_demo(admin_url: str, address_dir: Path, org_id: str = DEMO_ORG) -> None:
-    """The fictional demo; safe to run again. Written as the admin, past row-level security."""
+def seed_demo(admin_url: str, address_dir: Path, org_id: str = DEMO_ORG, key: Path | None = None):
+    """The fictional demo, safe to run again, as the admin; with the key, the 5 extra packs too."""
     if not (address_dir / "orgs" / f"{org_id}.url").exists():
         add_org(admin_url, address_dir, org_id)
     database, _, _ = names_for(org_id)
@@ -142,6 +141,8 @@ def seed_demo(admin_url: str, address_dir: Path, org_id: str = DEMO_ORG) -> None
                     [mission_id, user],
                 )
         seed_portfolio(conn)  # Lubo, Nov 10: the rest of the fictional portfolio
+    if key is not None and key.exists():  # never the roads pack: the phone's mission stays as it is
+        publish_portfolio(make_conninfo(admin_url, dbname=database), org_id, load_signing_key(key))
 
 
 def make_signing_key(path: Path) -> tuple[str, str]:
@@ -165,7 +166,6 @@ def publish_demo_pack(
     url = make_conninfo(admin_url, dbname=database)
     files = pack_files(data, checklist)
     check_pack_files(files)
-    publish_portfolio(url, org_id, load_signing_key(key_path))  # the other five projects' packs
     return publish_pack(url, org_id, ROADS, files, load_signing_key(key_path))
 
 
@@ -273,7 +273,7 @@ def _database_command(args: argparse.Namespace, env: Mapping[str, str]) -> None:
         print(f"OK: Kandor roads pack version {pack.version} published into {args.org}, signed "
               f"by key {pack.signature['keyId']}")  # fmt: skip
     else:
-        seed_demo(admin_url, address_dir, args.org)
+        seed_demo(admin_url, address_dir, args.org, admin_config.key_path(env))
         print(f"OK: demo loaded into {args.org}")
 
 
