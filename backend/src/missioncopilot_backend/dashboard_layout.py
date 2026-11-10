@@ -27,20 +27,28 @@ HEAD = """<!doctype html>
 """
 
 
-def head(title: str, inner: bool) -> str:
-    pages = '<link rel="stylesheet" href="/dashboard/static/pages.css">\n' if inner else ""
+def head(title: str, inner: bool, styles: tuple[str, ...] = ()) -> str:
+    names = ("pages", *styles) if inner else styles
+    pages = "".join(f'<link rel="stylesheet" href="/dashboard/static/{n}.css">\n' for n in names)
     return HEAD.format(title=escape(title), pages=pages)
 
 
-def shell(title: str, manager: str, body: str, palette: list[tuple[str, str, str]]) -> HTMLResponse:
-    """A signed-in page. `palette`: (label, hint, link) for every place Command-K can open."""
+def shell(
+    title: str,
+    manager: str,
+    body: str,
+    palette: list[tuple[str, str, str]],
+    styles: tuple[str, ...] = (),
+) -> HTMLResponse:
+    """A signed-in page. `palette`: (label, hint, link) for every place Command-K can open;
+    `styles`: the page's own stylesheets after pages.css (report.css)."""
     items = "\n".join(
         f'<li><a class="palette-item" href="{escape(link)}"><span>{escape(label)}</span>'
         f"<small>{escape(hint)}</small></a></li>"
         for label, hint, link in palette
     )
     return HTMLResponse(
-        head(title, inner=True)
+        head(title, inner=True, styles=styles)
         + f"""<body class="app">
 <a class="skip" href="#main">Skip to content</a>
 <header class="band">

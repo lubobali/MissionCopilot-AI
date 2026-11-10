@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import psycopg
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from psycopg.conninfo import make_conninfo
 from psycopg_pool import ConnectionPool
@@ -23,7 +24,7 @@ from missioncopilot_backend.evidence import GENESIS_HASH, Record, link
 from missioncopilot_backend.sync_batch import SyncBatch
 from tests.db.postgres import admin_url
 from tests.unit.evidence_signing import canonical, item, signed
-from tests.unit.sync_batches import PhoneBatch, signed_item
+from tests.unit.sync_batches import PhoneBatch, approval_payload, b64, signed_item
 
 ROADS = "6f1d2c3a-0000-4000-8000-000000000001"
 BRIDGES = "6f1d2c3a-0000-4000-8000-000000000002"
@@ -46,22 +47,70 @@ class DashboardWorld:
     org_id: str
 
 
+PHOTO = b"\xff\xd8\xff\xe0 a site photo"
+ACTION = "Start the Section 3 bridge works"
+
+
+def resign(phone: PhoneBatch, body: dict) -> dict:
+    """The approval again, over the batch's sentences as they now stand (the phone signs last)."""
+    payload = approval_payload(phone.mission, phone.draft, body["sentences"], phone.by, phone.at)
+    signature = phone.approval_key.sign(payload, ec.ECDSA(hashes.SHA256()))
+    body["approval"] = body["approval"] | {"payload": b64(payload), "signature": b64(signature)}
+    return body
+
+
 def report_batch(phone: PhoneBatch) -> tuple[SyncBatch, bytes]:
-    """The phone's batch with a walk item (its file holds the sample point) and a red flag fact."""
+    """The phone's batch: the pack (1), the finished walk (2, its file holds the sample point), a
+    site photo (3). Facts: a red flag on the pack, an agreed action from the pack, and the walk's
+    check of that action with its photo; one sentence each, the red flag's strictly confidential."""
     walk = canonical(WALK)
+    actions = hashlib.sha256(kandor_files()["sections/agreed-actions.json"]).hexdigest()
+    kinds = {1: ("pack", b"file 1"), 2: ("walk", walk), 3: ("photo", PHOTO)}
     records: list[Record] = []
     for seq in range(1, 4):
         prev = link(records[-1]) if records else GENESIS_HASH
-        changes = {"kind": "walk", "contentHash": hashlib.sha256(walk).hexdigest()}
-        fields = item(seq, prev, missionId=phone.mission, **(changes if seq == 2 else {}))
+        kind, data = kinds[seq]
+        fields = item(seq, prev, missionId=phone.mission, kind=kind,
+                      contentHash=hashlib.sha256(data).hexdigest())  # fmt: skip
         records.append(signed(phone.device_key, canonical(fields)))
     head = {"count": 3, "headHash": link(records[-1]), "missionId": phone.mission}
     body = phone.body()
     body["evidence"] = [signed_item(r) for r in records]
     body["head"] = signed_item(signed(phone.device_key, canonical(head)))
-    body["facts"][0] = body["facts"][0] | {"ruleId": "red-flag", "name": "flag:MC-01:0",
-                                           "classification": "strictly_confidential"}  # fmt: skip
-    return SyncBatch.model_validate(body), walk
+    facts = body["facts"]
+    facts[0] |= {
+        "ruleId": "red-flag",
+        "name": "flag:MC-01:0",
+        "value": "flag",
+        "classification": "strictly_confidential",
+        "sources": [{"seq": 1, "region": f"sections/contracts.json#/contracts/0 sha256:{actions}"}],
+    }
+    facts[1] |= {
+        "ruleId": "pack-record",
+        "name": "pack:sections/agreed-actions.json#/actions/0",
+        "value": ACTION,
+        "unit": None,
+        "sources": [
+            {"seq": 1, "region": f"sections/agreed-actions.json#/actions/0 sha256:{actions}"}
+        ],
+    }
+    facts[2] |= {
+        "ruleId": "walk-answer",
+        "name": "walk:action-Start the Se",
+        "unit": None,
+        "value": "seen: no; note: no works on site",
+        "sources": [{"seq": 2, "region": f"action:{ACTION}"}, {"seq": 3, "region": None}],
+    }
+    body["sentences"][0] |= {
+        "text": "The payment ratio rule flagged contract 1.",
+        "classification": "strictly_confidential",
+    }
+    body["sentences"][1] |= {
+        "section": "agreedActions",
+        "text": "Start the Section 3 bridge works.",
+    }
+    body["sentences"][2] |= {"section": "agreedActions", "text": "The site walk saw no works."}
+    return SyncBatch.model_validate(resign(phone, body)), walk
 
 
 def dashboard_world(sync: bool = True) -> Generator[DashboardWorld]:
@@ -86,6 +135,7 @@ def dashboard_world(sync: bool = True) -> Generator[DashboardWorld]:
                            approved_by="this-phone", approved_at=1_794_268_800.0,
                            key=str(uuid.uuid4()), now=1_794_270_000.0)  # fmt: skip
                 store.add_file("officer-7", ROADS, 2, walk, 1_794_270_001.0)
+                store.add_file("officer-7", ROADS, 3, PHOTO, 1_794_270_002.0)
             yield DashboardWorld(pool, admin, org_id)
     finally:
         drop_organization(admin_url(), org_id)

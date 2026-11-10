@@ -11,7 +11,9 @@ import psycopg
 from psycopg_pool import ConnectionPool
 
 from missioncopilot_backend.db import dashboard_project as page
+from missioncopilot_backend.db import dashboard_report as paper
 from missioncopilot_backend.db.session import as_manager
+from missioncopilot_backend.db.sync import read_report
 
 Status = Literal["received", "sent_back", "endorsed", "in_field"]
 ORDER: dict[str, int] = {"received": 0, "sent_back": 1, "in_field": 2, "endorsed": 3}
@@ -137,3 +139,27 @@ class DashboardData:
                 ratings=page.ratings(rated), ratings_as_of=page.day(rated.get("asOf")),
                 reports=page.reports(conn, mission_id, row.status),
             )  # fmt: skip
+
+    def report(self, manager_id: str, mission_id: str) -> "paper.ReportView | None":
+        """The approved report of one mission, rebuilt for the report page, or None (#177)."""
+        with as_manager(self._pool, manager_id) as conn:
+            found = conn.execute(
+                "SELECT title FROM missions WHERE id = %s", [mission_id]
+            ).fetchone()
+            stored = read_report(conn, mission_id) if found else None
+            if found is None or stored is None:
+                return None
+            known = paper.facts(conn, mission_id)
+            rated = _section(conn, mission_id, "sections/ratings.json")
+            return paper.ReportView(
+                row=self._row(conn, mission_id, found[0]),
+                ratings=page.ratings(rated), ratings_as_of=page.day(rated.get("asOf")),
+                actions=paper.seen_for(_section(conn, mission_id, "sections/agreed-actions.json"),
+                                       list(known.values())),
+                lines=paper.lines(stored, known), stored=stored,
+            )  # fmt: skip
+
+    def evidence_file(self, manager_id: str, mission_id: str, seq: int) -> "paper.KeptFile | None":
+        """A file the phone sent for the report's proof, or None (#177, step 8.7.2)."""
+        with as_manager(self._pool, manager_id) as conn:
+            return paper.kept_file(conn, mission_id, seq)

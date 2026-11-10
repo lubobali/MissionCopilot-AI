@@ -214,6 +214,7 @@ def _parser() -> argparse.ArgumentParser:
     invite.add_argument("user_id")
     invite.add_argument("--name", required=True)
     invite.add_argument("--base", required=True, help="the dashboard address, https://...")
+    invite.add_argument("--confidential", action="store_true", help="may read red flags (#177)")
     for name in ("approve-device", "revoke-device"):
         phone = commands.add_parser(name)
         phone.add_argument("device_id")
@@ -250,8 +251,9 @@ def _database_command(args: argparse.Namespace, env: Mapping[str, str]) -> None:
         _devices(args, admin_url, address_dir)
     elif args.command == "invite-manager":
         link, expires = admin_dashboard.invite_manager(
-            admin_url, address_dir, args.org_id, args.user_id, args.name, args.base
-        )
+            admin_url, address_dir, args.org_id, args.user_id, args.name, args.base,
+            confidential=args.confidential,
+        )  # fmt: skip
         print(
             f"OK: invite for {args.name}: {link}\nIt works once, for 15 minutes (until {expires})."
         )
