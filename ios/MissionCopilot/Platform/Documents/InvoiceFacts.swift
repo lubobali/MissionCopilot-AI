@@ -12,6 +12,21 @@ struct InvoiceFacts: Codable, Equatable, Sendable {
     let kmTotal: Int
     let bridgeStatus: String
 
+    /// #159: the invoice number is the one string the model writes that the officer sees. Under the grammar the
+    /// model can eat or add a space next to a digit ("No14", " 14 "), so code removes a leading "Invoice", "No."
+    /// or "#" and every space; the characters of the number itself are kept as written.
+    func tidied() -> InvoiceFacts {
+        var number = invoiceNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        number = number.replacingOccurrences(of: #"^(?i:invoice)\s*"#, with: "", options: .regularExpression)
+        // "No." or "#" only when a digit follows: "NOV-2026" is a number, not "No" and "V-2026"
+        number = number.replacingOccurrences(of: #"^(?:(?i:no)\.?|n°|#)\s*(?=\d)"#, with: "",
+                                             options: .regularExpression)
+        number = number.filter { !$0.isWhitespace }
+        return InvoiceFacts(invoiceNumber: number.isEmpty ? invoiceNumber : number, invoiceDate: invoiceDate,
+                            amountDue: amountDue, cumulativePaid: cumulativePaid, contractValue: contractValue,
+                            kmCompleted: kmCompleted, kmTotal: kmTotal, bridgeStatus: bridgeStatus)
+    }
+
     static let fields = ["invoiceNumber", "invoiceDate", "amountDue", "cumulativePaid", "contractValue",
                          "kmCompleted", "kmTotal", "bridgeStatus"]
 
@@ -80,7 +95,7 @@ enum ScanExtraction {
         let source = source(pages)
         guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return .toOfficer(.noText) }
         switch await model.run(task(source)) {
-        case .answered(let facts): return .read(facts)
+        case .answered(let facts): return .read(facts.tidied())
         case .stopped: return .toOfficer(.stopped)
         case .refused(.inputTooLong(let characters)): return .toOfficer(.tooLong(characters: characters))
         case .refused(.unavailable(let why)): return .toOfficer(.unavailable(why))

@@ -57,6 +57,34 @@ struct ScanExtractionTests {
         #expect(asked.first?.schema == InvoiceFacts.schema)
     }
 
+    /// #159: under the grammar the model sometimes eats or adds a space next to a number ("No14", " 14 "). The
+    /// invoice number is the one model-written string the officer sees, so code tidies it before it is grounded,
+    /// checked against the bank's table and shown: the prefix and spaces go, the number itself stays.
+    @Test(arguments: [("No14", "14"), (" 14 ", "14"), ("No. 14", "14"), ("Invoice No.14", "14"), ("#14", "14"),
+                      ("1 4", "14"), ("INV-14", "INV-14"), ("inv 2026-014", "inv2026-014"),
+                      ("NOV-2026", "NOV-2026")])
+    func theInvoiceNumberIsTidiedByCode(said: String, kept: String) async throws {
+        let answer = Self.answer.replacingOccurrences(of: #""invoiceNumber":"14""#,
+                                                       with: #""invoiceNumber":"\#(said)""#)
+
+        let outcome = await ScanExtraction.extract([Self.invoice, Self.report],
+                                                   model: FieldModel(engine: FakeEngine(answer: answer)))
+
+        guard case .read(let facts) = outcome else { Issue.record("not read: \(outcome)"); return }
+        #expect(facts.invoiceNumber == kept)
+    }
+
+    @Test func aTidiedNumberStillGroundsOnThePage() async throws {
+        let answer = Self.answer.replacingOccurrences(of: #""invoiceNumber":"14""#, with: #""invoiceNumber":"No14""#)
+        let outcome = await ScanExtraction.extract([Self.invoice, Self.report],
+                                                   model: FieldModel(engine: FakeEngine(answer: answer)))
+        guard case .read(let facts) = outcome else { Issue.record("not read"); return }
+
+        let printed = FactGrounding.printedForms(facts).first { $0.0 == "invoiceNumber" }?.1 ?? []
+        let page = Self.invoice.transcript
+        #expect(printed.contains { page.range(of: $0, options: .regularExpression) != nil })
+    }
+
     @Test func tooMuchTextGoesToTheOfficerAndNeverReachesTheModel() async {
         let engine = FakeEngine(answer: Self.answer)
         let huge = PageReading(transcript: String(repeating: "x", count: FieldModel.maxInputCharacters),
