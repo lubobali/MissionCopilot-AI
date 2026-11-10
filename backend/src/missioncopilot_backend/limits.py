@@ -9,6 +9,7 @@ the phone's address in its place before this runs (missioncopilot_backend.uvicor
 process keeps its own counts; a real deployment also limits at the proxy."""
 
 import math
+import re
 import time
 from collections import OrderedDict
 from collections.abc import Callable
@@ -82,6 +83,17 @@ class DeviceLimits:
         self.spells = BlockedSpells()
 
 
+# #172: the routes that take more than the default body, and how much (the rest keep the default).
+LARGER_BODIES = (
+    (re.compile(r"^/v1/missions/[^/]+/sync$"), 4 * 1_048_576),
+    (re.compile(r"^/v1/missions/[^/]+/evidence/[0-9]+/file$"), 16 * 1_048_576),
+)
+
+
+def body_limit(path: str, default: int) -> int:
+    return next((size for pattern, size in LARGER_BODIES if pattern.match(path)), default)
+
+
 class LimitsMiddleware:
     def __init__(
         self,
@@ -112,18 +124,19 @@ class LimitsMiddleware:
             return
         self._spells.ends(address)
         declared = dict(scope["headers"]).get(b"content-length")
-        if declared is not None and (not declared.isdigit() or int(declared) > self.max_body_bytes):
+        limit = body_limit(scope.get("path", ""), self.max_body_bytes)
+        if declared is not None and (not declared.isdigit() or int(declared) > limit):
             await self._record("body_too_large", address)
             await problem(413 if declared.isdigit() else 400)(scope, receive, send)
             return
-        await self.app(scope, self._counting(receive, address), send)
+        await self.app(scope, self._counting(receive, address, limit), send)
 
     async def _record(self, kind: Kind, address: str) -> None:
         """The audit write is a database call: in the thread pool, never on the event loop (S1)."""
         if self.audit is not None:
             await run_in_threadpool(self.audit.record, kind, client=address)
 
-    def _counting(self, receive: Receive, address: str) -> Receive:
+    def _counting(self, receive: Receive, address: str, limit: int) -> Receive:
         received = 0
 
         async def counted() -> Message:
@@ -131,7 +144,7 @@ class LimitsMiddleware:
             message = await receive()
             if message["type"] == "http.request":
                 received += len(message.get("body", b""))
-                if received > self.max_body_bytes:
+                if received > limit:
                     await self._record("body_too_large", address)
                     raise HTTPException(413)  # becomes a Problem through the error handlers
             return message

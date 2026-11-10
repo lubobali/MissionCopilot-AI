@@ -28,6 +28,7 @@ Kind = Literal[
     "device_revoked",
     "device_auth_failed",
     "approval_key_added",
+    "mission_synced",
     "shred_order_sent",
     "pack_downloaded",
 ]
