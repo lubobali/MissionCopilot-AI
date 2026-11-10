@@ -322,3 +322,48 @@ stories, 3 pull requests (#165 to #167) plus this review, proven on the iPhone i
 **Open:** #168 Face ID again before destroying a mission; #169 the cancel on the iPhone in the Phase 9 run;
 #148 the pack brings its own words (now also the walk's French titles and the invoice's field names).
 **Next:** Iteration 8, sync and the manager dashboard.
+
+## Iteration 8 · Sync and dashboard (done Nov 10 2026)
+**Done:** the approved report leaves the phone and the server checks every signature before it keeps
+anything; managers sign in with a passkey and review it on a dashboard in the bank's own reading order (the
+portfolio, the project, the aide-memoire with every sentence's proof, the audit trail); they endorse it with
+Touch ID or send it back with a note, and the officer answers with version 2. Eleven stories (#171 to #180,
+#193), PRs #181 to #196, proven end to end on production
+([field proof](../field-proof.md#field-proof-phase-8-on-production-180)).
+
+| Story | Result |
+|---|---|
+| #171 Approval keys | The phone's Face ID approval key kept by the server per phone, append-only |
+| #172 Sync | One batch, every check first (chain, no rollback, the approval over exactly these sentences, lineage), stored in one transaction, idempotent |
+| #173 Send | Only an approved report, once, with one key; the review says exactly what goes; waits offline and goes by itself |
+| #174 Passkey sign-in | Touch ID on the Mac, one-time invites, `__Host-` session, Origin check on every POST, the dashboard's own content policy |
+| #175 to #177 Dashboard | Portfolio (risk radar), project page, report page (proof drawer, verified badge re-checked on every load, red flags only for the `confidential` role, print view) |
+| #178 Endorse, send back, trail | Endorse with the manager's own passkey over a challenge naming the report version; send back with a note; versions; separation of duties in Postgres; "Chain intact" only when the log verifies |
+| #179 Deploy | Staging, then production, by image digest, backup first, by the server session |
+| #193 The phone's side | The decision read on the next contact; version 2; the walk photo sent; the phone named |
+| #180 Phase 8 proof | The run on production, the rows, this review |
+
+**Measured:**
+- Tests: 2,801 (backend 1,082, scripts 432, main app 1,152, encryption lab 50, document lab 62, speech lab
+  23), up from 2,554; the backend from 868.
+- Threat model: 76 built, 2 planned, 5 accepted (was 65, 10, 5), plus 8 privacy risks (4 built, 3 planned, 1
+  accepted). MASVS unchanged: 14 built, 1 spike, 2 planned, 5 accepted, 2 not applicable. Self-assessed,
+  **not independently audited**.
+- Mutation checks on every story; each survivor closed by a new test or by removing dead code.
+
+**Learned:**
+- **Staging first catches what tests cannot.** The blocked recordings, the wrong passkey offered and the raw
+  values were all found by clicking the real pages, not by the suites.
+- **Know which server a phone talks to.** The production app had never been enrolled; the run started with
+  a one-time code. Check the enrollment before any demo.
+- **Stacked pull requests need care at merge.** Deleting a merged base closed the next one, and keeping "our"
+  side in merges brought back two old copies of functions; after each merge, compare the tree with the reviewed
+  code and run the full suites.
+- **Seed demo data without touching the phone's mission.** A republished pack would have shown "a newer pack"
+  on the officer's report; the extra projects are published once, never the roads pack.
+
+**Open:** #169 the Face ID cancel on the phone (Phase 10 recording); #184 422 before the device check; the
+retention clock, purge after sync and encryption of backups (Phase 9); the sample point shows a real location
+in a recording (use a test location for the video).
+**Next:** Iteration 9 hardening, then Iteration 10, the demo recorded on production on a fresh mission, with
+Ask the mission shown offline.
