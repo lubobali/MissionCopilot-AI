@@ -7,7 +7,7 @@ import mimetypes
 from html import escape
 from importlib.resources import files
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
+from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -81,19 +81,6 @@ def invite_page(code: str) -> HTMLResponse:
         "Create your passkey", "One touch on your Mac's Touch ID makes a passkey for this "
         "dashboard. It never leaves your Mac.", "Create your passkey", "register", extra),
         cover=True)  # fmt: skip
-
-
-def reader(request: Request, org_id: str):
-    """The organization's dashboard reads: a test may set app.state.dashboard_reader; the server
-    opens the organization's own database (db/dashboard_data.py)."""
-    made = getattr(request.app.state, "dashboard_reader", None)
-    if made is not None:
-        return made(org_id)
-    databases = request.app.state.databases
-    found = databases.dashboard_for(org_id) if databases is not None else None
-    if found is None:
-        raise HTTPException(404)
-    return found
 
 
 @router.get("", response_model=None)
