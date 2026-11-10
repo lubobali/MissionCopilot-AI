@@ -100,3 +100,33 @@ def test_with_no_dashboard_address_there_are_no_pages():
     client = local_client(create_app(Settings(environment="test")))
 
     assert client.get("/dashboard/sign-in").status_code == 404
+
+
+def test_dashboard_pages_send_their_origin_to_this_site_only(world):
+    """Found on staging (#174): with Referrer-Policy no-referrer a browser sends Origin: null on a
+    plain form POST (the Sign out button), so the Origin check refused it (403). Dashboard pages say
+    same-origin: the browser sends the origin to this site and nothing to any other."""
+    client, _ = world
+
+    assert client.get("/dashboard/sign-in").headers["referrer-policy"] == "same-origin"
+    assert client.get("/v1/health").headers["referrer-policy"] == "no-referrer", "the API keeps it"
+
+
+@pytest.mark.parametrize(("path", "kind"), [("fonts/Fraunces-latin-400.woff2", "font/woff2"),
+                                            ("logo.png", "image/png")])  # fmt: skip
+def test_fonts_and_the_logo_have_their_own_types(world, path, kind):
+    """Found on staging: a slim server image has no woff2 type: fonts went out as octet-stream."""
+    client, _ = world
+
+    assert client.get(f"/dashboard/static/{path}").headers["content-type"] == kind
+
+
+def test_the_brand_is_the_apps_logo_trail_and_airplane(world):
+    client, _ = world
+
+    page = client.get("/dashboard/sign-in").text
+
+    assert (
+        '<img class="logo" src="/dashboard/static/logo.png" alt="" width="36" height="38">' in page
+    )
+    assert 'class="trail"' in page and 'class="plane"' in page
