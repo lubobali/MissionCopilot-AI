@@ -78,3 +78,39 @@ report was approved; it is proven in the Phase 9 run (#169).
 - 77 sentences: one per scanned fact, the same note from several debriefs, every rating (7.2.7).
 - Walk answers raw: choice codes, ISO dates, the location's numbers, "Evidence:1" (7.2.8).
 - The report page froze over a second with no spinner; it is built off the main thread now, like Ask (7.3.6).
+
+# Field proof: Phase 8 on production (#180)
+
+The whole chain on production (mc.lubot.ai), run by Lubo on Nov 10 2026: the officer on his iPhone 13 Pro Max
+(the Release app, enrolled that day as "Lubo's iPhone"), the manager in Chrome on his Mac (signed in with a
+passkey, Touch ID). A clean mission made for it: "Kandor Rural Roads, Package 1: November 2026 mission"
+(fictional data). Times are the phone's (Central time); the screenshots stay private.
+
+## The run
+
+| Step | What it showed | Time |
+|---|---|---|
+| 1 | The phone enrolled on production with a one-time code, approved by the operator; the clean mission listed, its pack downloaded: "Ready for offline", version 1; English and French speech installed | 2:25 to 2:31 PM |
+| 2 | Site walk: three agreed actions checked (not started, in progress, could not check) with notes, six checklist answers, the sample point's location and photo; finished and locked | 2:37 PM |
+| 3 | Invoice 14 scanned twice: the first "cropped wrong", kept as evidence but not read; the second read (31 lines, 1 table). The assistant read 8 facts; the code found 3 not on the page (road built, road length, bridge), the officer corrected them, marked "not on the page" | 2:39 to 2:43 PM |
+| 4 | Debrief, 18 seconds: one action note and two numbers, each confirmed and linked to the recording | 2:44 to 2:45 PM |
+| 5 | The report written by code: 26 sentences, each with its proof; saved; approved with Face ID; "It cannot change." | 2:47 PM |
+| 6 | Send: "26 sentences, 33 facts, 6 signed evidence items and 5 files … nothing else leaves this iPhone"; "Received by the server" | 2:48 PM |
+| 7 | Dashboard: the mission "Received, to review", 3 red flags; the report with "Signed with Face ID on the officer's iPhone · verified by the server · Approved by Lubo's iPhone"; proofs opened | 2:49 to 2:50 PM |
+| 8 | The manager sent it back: "correct the end date" | 2:50 PM |
+| 9 | The phone, on its next look at the list: "Sent back by your manager" on the mission, the note at the top of its report | 2:51 PM |
+| 10 | Version 2: a sentence edited (still with its proof), saved, approved with Face ID, sent and received | 2:58 PM |
+| 11 | Dashboard: "Version 2"; endorsed with Touch ID; "Endorsed with Touch ID by Lubo Bali", with "Version 1 sent back … 'correct the end date'" kept; the phone then showed "Endorsed by your manager" | 2:58 PM |
+| 12 | The audit trail: every step in time order, "Chain intact" (54 log entries checked again) | 2:50 PM |
+
+The Face ID cancel (#169) was not tried in this run: the report was approved on the first prompt. It goes in
+the Phase 10 recording.
+
+## Found by the run and on staging the same day, each fixed test first
+- The recordings did not play on the dashboard: its content policy had no `media-src` (#192).
+- Endorse offered every passkey of the site, the wrong one too: now only the manager's own (#192).
+- "this-phone" and raw values (`{"byWhen":…}`, `evidence:1`) in the proofs: plain words, the phone's
+  enrollment label (#192, #194).
+- A walk photo answer did not send its photo (#194); the officer had no sign of a send back outside the report
+  page (#195).
+- The phone had been talking to staging only: the production app was enrolled for the run (an operator code).
