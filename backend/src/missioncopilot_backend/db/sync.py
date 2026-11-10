@@ -183,3 +183,30 @@ class PostgresSync:
                  receipt.item_count, now],
             )  # fmt: skip
         return receipt
+
+    def content_hash(self, user_id: str, mission_id: str, seq: int) -> str | None:
+        """The SHA-256 the phone signed for this item, if the item was received (#172, 8.2.4)."""
+        with as_user(self._pool, user_id) as conn:
+            row = conn.execute(
+                "SELECT content_hash FROM evidence WHERE mission_id = %s AND seq = %s",
+                [mission_id, seq],
+            ).fetchone()
+        return row[0] if row else None
+
+    def add_file(self, user_id: str, mission_id: str, seq: int, data: bytes, now: float) -> bool:
+        """Keeps the file; False when it was kept before. Check its hash first (content_hash)."""
+        with as_user(self._pool, user_id) as conn:
+            row = conn.execute(
+                "INSERT INTO evidence_files VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING"
+                " RETURNING seq",
+                [mission_id, seq, data, now],
+            ).fetchone()
+        return row is not None
+
+    def file(self, user_id: str, mission_id: str, seq: int) -> bytes | None:
+        with as_user(self._pool, user_id) as conn:
+            row = conn.execute(
+                "SELECT data FROM evidence_files WHERE mission_id = %s AND seq = %s",
+                [mission_id, seq],
+            ).fetchone()
+        return bytes(row[0]) if row else None

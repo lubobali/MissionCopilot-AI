@@ -4,11 +4,13 @@ stores the batch in one transaction, and answers with a receipt. The same Idempo
 same approved draft under a new key (a retry after a lost answer), answers the first receipt: safe
 to send again."""
 
+import hashlib
 import uuid
 from datetime import UTC, datetime
 
 import psycopg
 from fastapi import Depends, Header, HTTPException, Request, Response
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -102,6 +104,38 @@ def sync_mission(
         return SyncReceipt.of(won, again=True)
     audit(request, "mission_synced", device.org_id, user, subject=missionId)
     return SyncReceipt.of(receipt, again=False)
+
+
+class EvidenceFile(BaseModel):
+    seq: int
+    sha256: str
+
+
+@router.post(
+    "/missions/{missionId}/evidence/{seq}/file", status_code=201, response_model=EvidenceFile
+)
+async def add_evidence_file(
+    missionId: str,
+    seq: int,
+    request: Request,
+    response: Response,
+    device: DevicePrincipal = Depends(require_device),
+) -> EvidenceFile | JSONResponse:
+    """The file behind a received evidence item (#172, 8.2.4): kept only when its SHA-256 is the
+    contentHash the phone signed. The same file again answers 200."""
+    data = await request.body()
+    store = await run_in_threadpool(_sync_store, request, device, missionId)
+    signed = await run_in_threadpool(store.content_hash, device.user_id, missionId, seq)
+    if signed is None:
+        raise NOT_FOUND
+    if hashlib.sha256(data).hexdigest() != signed:
+        return problem(422, "file:not_the_signed_one")
+    devices: DeviceStore = request.app.state.devices
+    if not await run_in_threadpool(
+        store.add_file, device.user_id, missionId, seq, data, devices.now()
+    ):
+        response.status_code = 200
+    return EvidenceFile(seq=seq, sha256=signed)
 
 
 def sync_routes() -> list:
