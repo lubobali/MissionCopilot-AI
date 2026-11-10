@@ -55,7 +55,7 @@ struct EncryptedStoreTests {
                 "v7-append-only", "v8-audit", "v9-pack-files", "v10-mission-lives", "v11-site-walk",
                 "v12-action-photo", "v13-red-flags", "v14-scans", "v15-page-readings",
                 "v16-debriefs", "v17-debrief-transcripts", "v18-ask-answers", "v19-pack-signature",
-                "v20-report-drafts", "v21-report-approvals"])
+                "v20-report-drafts", "v21-report-approvals", "v22-report-sends"])
     }
 
     @Test func aShredFromBeforeMissionLivesStaysAShredAfterTheUpgrade() throws {
