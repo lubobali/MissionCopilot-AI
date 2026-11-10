@@ -11,6 +11,9 @@ from missioncopilot_backend.app_version import AppVersionMiddleware
 from missioncopilot_backend.approval_keys import ApprovalKeys, ApprovalKeyStore
 from missioncopilot_backend.audit import AuditLog, AuditStore
 from missioncopilot_backend.auth import TokenVerifier
+from missioncopilot_backend.dashboard_auth import DashboardMemory, DashboardStore
+from missioncopilot_backend.dashboard_pages import install_dashboard_pages
+from missioncopilot_backend.dashboard_routes import dashboard_routes
 from missioncopilot_backend.device_routes import device_routes
 from missioncopilot_backend.devices import CodeStore, DeviceRegistry, DeviceStore, EnrollmentCodes
 from missioncopilot_backend.errors import install_error_handlers
@@ -52,6 +55,7 @@ def create_app(
     enrollment_codes: CodeStore | None = None,
     devices: DeviceStore | None = None,
     approval_keys: ApprovalKeyStore | None = None,
+    dashboard: DashboardStore | None = None,
     signing_key: ec.EllipticCurvePrivateKey | None = None,
     lifespan: Lifespan | None = None,
     ready: Callable[[], bool] | None = None,
@@ -72,6 +76,8 @@ def create_app(
     app.state.enrollment_codes = enrollment_codes or EnrollmentCodes()
     app.state.devices = devices or DeviceRegistry()
     app.state.approval_keys = approval_keys or ApprovalKeys()  # #171
+    app.state.dashboard = dashboard or DashboardMemory()  # #174
+    app.state.settings = settings
     app.state.device_limits = DeviceLimits(
         RateLimiter(settings.device_rate_limit_per_minute, clock=clock)
     )
@@ -102,6 +108,7 @@ def create_app(
     app.include_router(v1)
     for router in device_routes():
         app.include_router(router)
-    for router in [*mission_routes(), *pack_routes(), *sync_routes()]:
+    for router in [*mission_routes(), *pack_routes(), *sync_routes(), *dashboard_routes()]:
         app.include_router(router)
+    install_dashboard_pages(app)  # #174: the pages and their static files
     return app

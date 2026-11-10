@@ -20,6 +20,7 @@ from psycopg_pool import ConnectionPool
 
 from missioncopilot_backend.approval_keys import ApprovalKey, KeyTaken, key_id
 from missioncopilot_backend.db.audit_log import PostgresAuditLog
+from missioncopilot_backend.db.dashboard import PostgresDashboard
 from missioncopilot_backend.db.migrations import load, migrate
 from missioncopilot_backend.db.pools import open_pool
 from missioncopilot_backend.devices import CODE_LIFETIME_SECONDS, Device, EnrollmentGrant
@@ -206,6 +207,7 @@ class Directory:
         self.codes = PostgresEnrollmentCodes(pool, clock)
         self.devices = PostgresDeviceRegistry(pool, clock)
         self.approval_keys = PostgresApprovalKeys(pool, clock)
+        self.dashboard = PostgresDashboard(pool, clock)  # #174
         self.audit = PostgresAuditLog(pool, clock)
 
     @classmethod

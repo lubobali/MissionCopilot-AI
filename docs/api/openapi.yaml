@@ -570,6 +570,113 @@ paths:
           $ref: "#/components/responses/ShredOrder"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /v1/dashboard/register/options:
+    post:
+      tags: [dashboard]
+      operationId: dashboardRegisterOptions
+      summary: Passkey options from a one-time invite (#174)
+      description: >
+        The dashboard's own pages call this (Origin must be the dashboard's, else 403). A session
+        is a __Host- cookie, Secure, HttpOnly, SameSite=Strict; the phone never uses cookies.
+      responses:
+        "200":
+          description: Done
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/dashboard/register/verify:
+    post:
+      tags: [dashboard]
+      operationId: dashboardRegisterVerify
+      summary: Keep the manager's new passkey and sign them in (#174)
+      description: >
+        The dashboard's own pages call this (Origin must be the dashboard's, else 403). A session
+        is a __Host- cookie, Secure, HttpOnly, SameSite=Strict; the phone never uses cookies.
+      responses:
+        "201":
+          description: Done
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/dashboard/sign-in/options:
+    post:
+      tags: [dashboard]
+      operationId: dashboardSignInOptions
+      summary: Passkey options to sign in (#174)
+      description: >
+        The dashboard's own pages call this (Origin must be the dashboard's, else 403). A session
+        is a __Host- cookie, Secure, HttpOnly, SameSite=Strict; the phone never uses cookies.
+      responses:
+        "200":
+          description: Done
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/dashboard/sign-in/verify:
+    post:
+      tags: [dashboard]
+      operationId: dashboardSignInVerify
+      summary: Sign in with a passkey (#174)
+      description: >
+        The dashboard's own pages call this (Origin must be the dashboard's, else 403). A session
+        is a __Host- cookie, Secure, HttpOnly, SameSite=Strict; the phone never uses cookies.
+      responses:
+        "200":
+          description: Done
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/dashboard/sign-out:
+    post:
+      tags: [dashboard]
+      operationId: dashboardSignOut
+      summary: End the session (#174)
+      description: >
+        The dashboard's own pages call this (Origin must be the dashboard's, else 403). A session
+        is a __Host- cookie, Secure, HttpOnly, SameSite=Strict; the phone never uses cookies.
+      responses:
+        "303":
+          description: Done
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/dashboard/me:
+    get:
+      tags: [dashboard]
+      operationId: dashboardMe
+      summary: The signed-in manager (#174)
+      responses:
+        "200":
+          description: Their name, organization, user id and roles, from the stored session
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/devices/me/approval-key:
     post:
       tags: [devices]

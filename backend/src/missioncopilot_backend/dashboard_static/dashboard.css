@@ -1,0 +1,106 @@
+/* MissionCopilot manager dashboard (#174, #175). Field Navy, the app's own colours, as OKLCH
+   tokens; Lubo's edge card (a slow light beam round a 1.5px rim, the face lit from the top);
+   light first, dark too; every motion off under prefers-reduced-motion. No other host. */
+
+@font-face { font-family: "Inter Tight"; src: url("fonts/InterTight-latin-wght400-600.woff2") format("woff2"); font-weight: 400 600; font-display: swap; }
+@font-face { font-family: "Fraunces"; src: url("fonts/Fraunces-latin-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("fonts/JetBrainsMono-latin-wght.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
+
+@property --spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+
+:root {
+  color-scheme: light dark;
+  --navy: oklch(0.27 0.08 255);          /* #002244, the app's text navy */
+  --navy-deep: oklch(0.166 0.026 269.4); /* #0a0e1a */
+  --navy-card: oklch(0.222 0.041 268.3); /* #131a2e */
+  --blue: oklch(0.52 0.15 248);          /* #0071BC, the app's accent */
+  --cyan: oklch(0.67 0.14 230);          /* #009FDA, decoration only */
+  --platinum: oklch(0.906 0.031 265.3);
+  --page: oklch(0.975 0.004 250);
+  --card: oklch(1 0 0);
+  --text: var(--navy);
+  --muted: oklch(0.5 0.03 255);
+  --line: oklch(0.92 0.01 255);
+  --success: oklch(0.5 0.12 150);
+  --warning: oklch(0.5 0.11 70);
+  --danger: oklch(0.5 0.17 27);
+  --radius: 1.5rem;
+  --sans: "Inter Tight", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --serif: "Fraunces", ui-serif, Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: var(--navy-deep);
+    --card: var(--navy-card);
+    --text: oklch(0.984 0.003 247.9);
+    --muted: oklch(0.711 0.035 256.8);
+    --line: oklch(0.288 0.052 265.1);
+    --blue: oklch(0.68 0.155 266);
+    --success: oklch(0.773 0.153 163.2);
+    --warning: oklch(0.837 0.164 84.4);
+    --danger: oklch(0.7 0.18 25);
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100dvh; background: var(--page); color: var(--text); font: 400 1rem/1.55 var(--sans); }
+h1 { font: 400 clamp(2rem, 4vw, 2.75rem)/1.1 var(--serif); letter-spacing: -0.01em; margin: 0.25rem 0 0.75rem; }
+.eyebrow { font: 600 0.72rem/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.lead { color: var(--muted); margin: 0 0 1.5rem; max-width: 34rem; }
+.fine { color: var(--muted); font-size: 0.8rem; margin: 1.25rem 0 0; }
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 1rem; top: 1rem; background: var(--card); padding: 0.5rem 1rem; border-radius: 999px; }
+:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+
+/* Buttons: navy pills, as on the bank's pages. */
+.pill { display: inline-flex; align-items: center; gap: 0.6rem; border: 0; border-radius: 999px; padding: 0.85rem 1.4rem; font: 600 1rem/1 var(--sans); cursor: pointer; }
+.pill svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.pill.primary { background: var(--blue); color: white; box-shadow: 0 8px 24px -10px var(--blue); }
+.pill.primary:hover { filter: brightness(1.08); }
+.pill.ghost { background: transparent; color: inherit; border: 1px solid var(--line); padding: 0.55rem 1rem; font-size: 0.9rem; }
+.pill[disabled] { opacity: 0.6; cursor: progress; }
+.status { min-height: 1.5rem; margin: 1rem 0 0; font-size: 0.9rem; }
+.status.problem { color: var(--danger); }
+
+/* The mark: Lubo's logo trail and the airplane. */
+.mark { width: 4.5rem; height: 2rem; overflow: visible; }
+.mark .trail { fill: none; stroke: var(--cyan); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 60; stroke-dashoffset: 0; opacity: 0.85; }
+.mark .plane { fill: var(--cyan); }
+
+/* The cover (sign-in, invite): a deep navy room with a slow aurora, one luxury card. */
+body.cover { display: grid; place-items: center; padding: 1.5rem; color-scheme: dark; --text: oklch(0.984 0.003 247.9); --muted: oklch(0.78 0.03 256); --card: var(--navy-card); --line: oklch(0.288 0.052 265.1); --blue: oklch(0.615 0.186 264.7); background: var(--navy-deep); overflow: hidden; }
+body.cover::before { content: ""; position: fixed; inset: -30%; z-index: -1; background:
+  radial-gradient(40% 35% at 30% 30%, oklch(0.615 0.186 264.7 / 0.28), transparent 70%),
+  radial-gradient(35% 30% at 70% 65%, oklch(0.754 0.139 232.7 / 0.22), transparent 70%),
+  radial-gradient(30% 30% at 55% 20%, oklch(0.72 0.14 292 / 0.14), transparent 70%); filter: blur(40px); }
+
+/* Lubo's edge card: a turning cone seen only through a 1.5px rim, the face lit from the top. */
+.edge-card { --from: oklch(0.3 0.093 264.9); --to: var(--navy-card); position: relative; isolation: isolate; overflow: hidden; border-radius: var(--radius); }
+.edge-card::before { content: ""; position: absolute; top: 50%; left: 50%; z-index: -2; width: 250%; aspect-ratio: 1; translate: -50% -50%; rotate: var(--spin);
+  background: conic-gradient(var(--line) 0 30%, var(--cyan) 42%, var(--platinum) 46%, var(--line) 56% 80%, var(--cyan) 92%, var(--platinum) 95%, var(--line) 100%); }
+.edge-card::after { content: ""; position: absolute; inset: 1.5px; z-index: -1; border-radius: calc(var(--radius) - 1.5px);
+  background: radial-gradient(ellipse 90% 75% at 50% 0%, var(--from), var(--to)); box-shadow: inset 0 1px 0 oklch(0.754 0.139 232.7 / 0.6); }
+
+.sign-card { width: min(30rem, 100%); padding: 2.5rem 2.25rem 2rem; text-align: left; }
+.sign-card .mark { margin-bottom: 1.25rem; }
+
+/* Home (until the portfolio, #175). */
+.top { display: flex; justify-content: space-between; align-items: center; padding: 1rem clamp(1rem, 4vw, 3rem); background: var(--navy); color: white; }
+.brand { display: flex; align-items: center; gap: 0.75rem; margin: 0; font: 600 1.05rem/1 var(--sans); }
+.top .pill.ghost { color: white; border-color: oklch(1 0 0 / 0.35); }
+.hello { padding: clamp(2rem, 6vw, 4rem) clamp(1rem, 4vw, 3rem); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .edge-card::before { animation: beam 16s linear infinite; }
+  body.cover::before { animation: aurora 24s ease-in-out infinite alternate; }
+  .mark .trail { animation: draw 1.6s ease-out both; }
+  .mark .plane { animation: fly 1.6s ease-out both; }
+  .sign-card { animation: rise 0.8s cubic-bezier(.2,.7,.2,1) both; }
+}
+@keyframes beam { to { --spin: 1turn; } }
+@keyframes aurora { to { transform: translate(4%, -3%) rotate(8deg) scale(1.08); } }
+@keyframes draw { from { stroke-dashoffset: 60; } }
+@keyframes fly { from { opacity: 0; transform: translate(-10px, 6px); } }
+@keyframes rise { from { opacity: 0; transform: translateY(14px) scale(0.98); } }

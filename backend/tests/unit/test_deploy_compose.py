@@ -176,3 +176,9 @@ def test_ci_waits_for_postgres_over_tcp_too():
 
     assert len(readiness) == 2
     assert all("-h 127.0.0.1" in line for line in readiness)
+
+
+def test_the_dashboard_lives_on_the_servers_own_https_host_name():
+    """#174: passkeys are bound to the host name, so the dashboard's address is that name, https."""
+    api = COMPOSE["services"]["api"]["environment"]
+    assert api["MISSIONCOPILOT_DASHBOARD_ORIGIN"] == "https://${MC_HOSTNAME:?}"
