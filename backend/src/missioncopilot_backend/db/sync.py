@@ -98,27 +98,6 @@ def _next_version(conn: psycopg.Connection, mission_id: str) -> int:
     return row[0] + 1
 
 
-def read_report(conn: psycopg.Connection, mission_id: str) -> StoredReport | None:
-    """The mission's approved report with its sentences in order, or None (any row-level role)."""
-    row = conn.execute(
-        "SELECT draft_id, language, approved_by, approved_at, approval_payload,"
-        " approval_signature, approval_key_id, device_id, received_at FROM reports"
-        " WHERE mission_id = %s",
-        [mission_id],
-    ).fetchone()
-    if row is None:
-        return None
-    lines = conn.execute(
-        "SELECT sentence_id, section, text, classification, fact_ids FROM report_sentences"
-        " WHERE mission_id = %s ORDER BY position",
-        [mission_id],
-    ).fetchall()
-    draft, language, by, at, payload, signature, key, device, received = row
-    sentences = [StoredSentence(i, sec, t, c, tuple(f)) for i, sec, t, c, f in lines]
-    return StoredReport(draft, language, by, at, bytes(payload), bytes(signature), key,
-                        str(device), received, sentences)  # fmt: skip
-
-
 class PostgresSync:
     def __init__(self, pool: ConnectionPool):
         self._pool = pool
