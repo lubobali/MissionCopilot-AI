@@ -344,7 +344,7 @@ Touch ID or send it back with a note, and the officer answers with version 2. El
 | #180 Phase 8 proof | The run on production, the rows, this review |
 
 **Measured:**
-- Tests: 2,799 (backend 1,082, scripts 430, main app 1,152, encryption lab 50, document lab 62, speech lab
+- Tests: 2,801 (backend 1,082, scripts 432, main app 1,152, encryption lab 50, document lab 62, speech lab
   23), up from 2,554; the backend from 868.
 - Threat model: 76 built, 2 planned, 5 accepted (was 65, 10, 5), plus 8 privacy risks (4 built, 3 planned, 1
   accepted). MASVS unchanged: 14 built, 1 spike, 2 planned, 5 accepted, 2 not applicable. Self-assessed,
