@@ -6,12 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 
 from missioncopilot_backend.approval_keys import ApprovalKeyStore
+from missioncopilot_backend.audit import AuditStore
 from missioncopilot_backend.dashboard_auth import DashboardUser
 from missioncopilot_backend.dashboard_layout import reader, shell
 from missioncopilot_backend.dashboard_project_page import render as render_project
 from missioncopilot_backend.dashboard_proof import CONFIDENTIAL_ROLE, sniff
 from missioncopilot_backend.dashboard_report_page import render as render_report
 from missioncopilot_backend.dashboard_routes import COOKIE, site
+from missioncopilot_backend.dashboard_trail_page import render as render_trail
 from missioncopilot_backend.sync_checks import verify_stored
 
 router = APIRouter(prefix="/dashboard/missions", dependencies=[Depends(site)])
@@ -27,7 +29,8 @@ def palette_for(title: str, mission_id: str) -> list[tuple[str, str, str]]:
     base = f"/dashboard/missions/{mission_id}"
     return [("All missions", "Page", "/dashboard"),
             (f"{title}: report", "Page", f"{base}/report"),
-            (f"{title}: project", "Page", f"{base}/project")]  # fmt: skip
+            (f"{title}: project", "Page", f"{base}/project"),
+            (f"{title}: audit trail", "Page", f"{base}/trail")]  # fmt: skip
 
 
 @router.get("/{missionId}", response_model=None)
@@ -68,6 +71,24 @@ def report(missionId: str, request: Request) -> Response:
     body = render_report(view, user.roles, verified)
     title = f"{view.row.title}: aide-memoire"
     return shell(title, user.name, body, palette_for(view.row.title, missionId), ("report",))
+
+
+@router.get("/{missionId}/trail", response_model=None)
+def trail(missionId: str, request: Request) -> Response:
+    """Every step of the report, and the audit log verified again on this load (#178)."""
+    user = signed_in(request)
+    if user is None:
+        return RedirectResponse(SIGN_IN, status_code=303)
+    found = reader(request, user.org_id).trail(user.user_id, missionId)
+    if found is None:
+        raise HTTPException(404)
+    log: AuditStore | None = getattr(request.app.state, "audit", None)
+    events = list(log.events()) if log else []
+    problems = log.verify() if log else ["no audit log on this server"]
+    mine = [e for e in events if e.org_id == user.org_id and e.subject == missionId]
+    body = render_trail(found, mine, problems, len(events))
+    title = f"{found.row.title}: audit trail"
+    return shell(title, user.name, body, palette_for(found.row.title, missionId), ("report",))
 
 
 @router.get("/{missionId}/evidence/{seq}", response_model=None)

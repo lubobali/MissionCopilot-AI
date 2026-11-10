@@ -82,13 +82,16 @@ class PostgresDashboard:
             return None
         return self.user(str(row[0]))
 
-    def new_challenge(self, purpose: Purpose, dashboard_user_id: str | None) -> bytes:
+    def new_challenge(
+        self, purpose: Purpose, dashboard_user_id: str | None, subject: str | None = None
+    ) -> bytes:
         challenge = secrets.token_bytes(32)
         with self._pool.connection() as conn:
             conn.execute(
-                "INSERT INTO webauthn_challenges VALUES (%s, %s, %s, %s)",
+                "INSERT INTO webauthn_challenges (digest, purpose, user_ref, expires_at, subject)"
+                " VALUES (%s, %s, %s, %s, %s)",
                 [digest(challenge), purpose, _uuid(dashboard_user_id),
-                 self._clock() + CHALLENGE_SECONDS],
+                 self._clock() + CHALLENGE_SECONDS, subject],
             )  # fmt: skip
         return challenge
 
@@ -96,12 +99,12 @@ class PostgresDashboard:
         with self._pool.connection() as conn:
             row = conn.execute(
                 "DELETE FROM webauthn_challenges WHERE digest = %s"
-                " RETURNING purpose, user_ref, expires_at",
+                " RETURNING purpose, user_ref, expires_at, subject",
                 [digest(challenge)],
             ).fetchone()
         if row is None or self._clock() >= row[2] or row[0] != purpose:
             return None
-        return Challenge(row[0], str(row[1]) if row[1] else None)
+        return Challenge(row[0], str(row[1]) if row[1] else None, row[3])
 
     def add_passkey(
         self, dashboard_user_id: str, credential_id: bytes, public_key: bytes, sign_count: int

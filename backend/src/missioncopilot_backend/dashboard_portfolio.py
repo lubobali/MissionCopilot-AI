@@ -23,6 +23,10 @@ def day(timestamp: float | None) -> str:
     return datetime.fromtimestamp(timestamp, UTC).strftime("%-d %b %Y") if timestamp else "Not yet"
 
 
+def moment(at: float) -> str:
+    return datetime.fromtimestamp(at, UTC).strftime("%-d %b %Y, %H:%M UTC")
+
+
 def status_pill(status: str) -> str:
     words, path = STATUS[status]
     return (f'<span class="status {status}"><svg viewBox="0 0 24 24" aria-hidden="true">'

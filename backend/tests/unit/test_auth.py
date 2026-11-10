@@ -41,6 +41,7 @@ PUBLIC_ROUTES |= {
     "/dashboard/missions/{missionId}",
     "/dashboard/missions/{missionId}/project",
     "/dashboard/missions/{missionId}/report",
+    "/dashboard/missions/{missionId}/trail",
     "/dashboard/missions/{missionId}/evidence/{seq}",  # the manager's session, 401 without
 }
 

@@ -101,9 +101,16 @@ def test_nothing_is_kept_when_one_row_fails(org):
     batch = PhoneBatch(ROADS).batch()
     save(org, batch)
     second = str(uuid.uuid4())
+    with psycopg.connect(org.admin) as conn:  # #178: sent back, so a next version may come
+        conn.execute(
+            "INSERT INTO report_reviews (mission_id, version, decision, note, reviewer_id,"
+            " reviewer_name, reviewed_at, approval_hash) VALUES (%s, 1, 'sent_back', 'Again.',"
+            " 'manager-1', 'Amina', 1.0, %s)",
+            [ROADS, "c" * 64],
+        )
 
     with pytest.raises(psycopg.Error):
-        save(org, batch, key=second)  # one report per mission: the whole second batch fails
+        save(org, batch, key=second)  # the same draft id again: the whole second batch fails
 
     assert org.sync.receipt("officer-7", ROADS, key=second) is None, "not even its receipt"
     assert len(org.sync.stored("officer-7", ROADS).records) == 3

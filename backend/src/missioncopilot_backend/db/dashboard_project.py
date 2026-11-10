@@ -128,9 +128,12 @@ def facts(project: dict) -> dict[str, str]:
 
 
 def reports(conn: psycopg.Connection, mission_id: str, status: str) -> list[ReportEntry]:
+    """Every version, newest first, each with its own decision (#178), else `status`."""
     rows = conn.execute(
-        "SELECT draft_id, approved_at, received_at FROM reports WHERE mission_id = %s"
-        " ORDER BY received_at DESC",
+        "SELECT r.draft_id, r.approved_at, r.received_at, v.decision FROM reports r"
+        " LEFT JOIN report_reviews v ON v.mission_id = r.mission_id AND v.version = r.version"
+        " WHERE r.mission_id = %s ORDER BY r.version DESC",
         [mission_id],
     ).fetchall()
-    return [ReportEntry(draft, status, approved, received) for draft, approved, received in rows]
+    return [ReportEntry(draft, decision or status, approved, received)
+            for draft, approved, received, decision in rows]  # fmt: skip

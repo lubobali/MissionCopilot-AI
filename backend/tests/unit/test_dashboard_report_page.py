@@ -167,6 +167,7 @@ def test_a_tampered_row_or_a_missing_key_is_not_verified():
 def test_a_print_button_and_the_print_look():
     html = page()
     assert 'data-action="print"' in html and "/dashboard/static/report.css" in html
+    assert f'href="/dashboard/missions/{ROADS.id}/trail"' in html  # #178
 
 
 def test_no_report_is_404_and_signed_out_goes_to_sign_in():

@@ -82,6 +82,19 @@ def test_a_challenge_works_once_for_its_purpose(world):
     assert store.take_challenge(old, "sign_in") is None, "expired"
 
 
+def test_an_endorse_challenge_names_what_it_endorses(world):
+    """#178: the mission, the version and the approval's hash; none for other challenges."""
+    store, _, _ = world
+    user = store.add_user("org-a", "manager-1", "Amina", ("manager",))
+    subject = "mission-1:2:" + "a" * 64
+
+    taken = store.take_challenge(store.new_challenge("endorse", user.id, subject), "endorse")
+    plain = store.take_challenge(store.new_challenge("sign_in", None), "sign_in")
+
+    assert taken is not None and (taken.user_id, taken.subject) == (user.id, subject)
+    assert plain is not None and plain.subject is None
+
+
 def test_a_challenge_remembers_who_it_was_for(world):
     store, _, _ = world
     user = store.add_user("org-a", "manager-1", "Amina", ("manager",))

@@ -5,18 +5,15 @@ order with every sentence numbered (the number opens its proof); the action plan
 walk saw. Strictly confidential sentences reach only the `confidential` role. A print view in CSS
 (report.css). Every value escaped."""
 
-from datetime import UTC, datetime
 from html import escape
 
+from missioncopilot_backend.dashboard_decision import panel
+from missioncopilot_backend.dashboard_portfolio import moment
 from missioncopilot_backend.dashboard_project_page import rating_row
 from missioncopilot_backend.dashboard_proof import may_see, proof
 from missioncopilot_backend.db.dashboard_report import SECTIONS, Action, Line, ReportView
 
 LANGUAGES = {"en": "English", "fr": "French"}
-
-
-def moment(at: float) -> str:
-    return datetime.fromtimestamp(at, UTC).strftime("%-d %b %Y, %H:%M UTC")
 
 
 def seal(view: ReportView, verified: bool) -> str:
@@ -93,7 +90,9 @@ def render(view: ReportView, roles: tuple[str, ...], verified: bool) -> str:
     <div><dt>Language</dt><dd>{LANGUAGES.get(stored.language, escape(stored.language))}</dd></div>
     <div><dt>Sentences</dt><dd>{len(view.lines)}, each with its proof</dd></div></dl>
   <p class="tools"><button class="pill" type="button" data-action="print">Print</button>
-    <a class="pill ghost" href="/dashboard/missions/{escape(row.id)}/project">Project page</a></p>
+    <a class="pill ghost" href="/dashboard/missions/{escape(row.id)}/project">Project page</a>
+    <a class="pill ghost" href="/dashboard/missions/{escape(row.id)}/trail">Audit trail</a></p>
+  {panel(view, verified)}
 </header>
 <section class="part"><h2 class="caps small">Ratings <b>now and before</b></h2>
   <table class="ratings"><thead><tr><th scope="col">Area</th><th scope="col">Before</th>

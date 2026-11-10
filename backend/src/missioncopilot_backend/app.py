@@ -13,6 +13,7 @@ from missioncopilot_backend.audit import AuditLog, AuditStore
 from missioncopilot_backend.auth import TokenVerifier
 from missioncopilot_backend.dashboard_auth import DashboardMemory, DashboardStore
 from missioncopilot_backend.dashboard_pages import install_dashboard_pages
+from missioncopilot_backend.dashboard_review_routes import review_routes
 from missioncopilot_backend.dashboard_routes import dashboard_routes
 from missioncopilot_backend.device_routes import device_routes
 from missioncopilot_backend.devices import CodeStore, DeviceRegistry, DeviceStore, EnrollmentCodes
@@ -108,7 +109,9 @@ def create_app(
     app.include_router(v1)
     for router in device_routes():
         app.include_router(router)
-    for router in [*mission_routes(), *pack_routes(), *sync_routes(), *dashboard_routes()]:
+    routers = [*mission_routes(), *pack_routes(), *sync_routes(), *dashboard_routes(),
+               *review_routes()]  # fmt: skip
+    for router in routers:
         app.include_router(router)
     install_dashboard_pages(app)  # #174: the pages and their static files
     return app
