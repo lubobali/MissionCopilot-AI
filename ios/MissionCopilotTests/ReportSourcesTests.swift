@@ -162,6 +162,24 @@ struct ReportSourcesTests {
         #expect(answer.sources == [FactSource(seq: walk, region: "question:bridge_started")])
     }
 
+    /// #193 (found on staging): a photo answer names its evidence item, and cites it, so its file is sent.
+    @Test func aPhotoAnswerCitesItsPhoto() async throws {
+        let (store, _) = try await AskOpeningTests.store()
+        try store.addEvidence(EvidenceChainTests.capture("site"), to: Self.mission, signer: SoftwareEvidenceSigner())
+        let photo = try store.evidence(in: Self.mission).count  // the photo just taken
+        try store.saveAnswer("evidence:\(photo)", to: "sample_photo", form: SiteWalkStoreTests.form,
+                             mission: Self.mission)
+        try store.finishWalk(form: SiteWalkStoreTests.form, version: "1", mission: Self.mission, flags: [])
+
+        let facts = try Self.write(store, [])
+
+        let answer = try #require(facts.first { $0.name == "walk:sample_photo" })
+        let walk = try store.walkEvidence(form: SiteWalkStoreTests.form, in: Self.mission,
+                                          signer: SoftwareEvidenceSigner())
+        #expect(answer.sources.sorted { $0.seq < $1.seq } == [FactSource(seq: photo, region: nil),
+                                                              FactSource(seq: walk, region: "question:sample_photo")])
+    }
+
     /// Each red flag with inputs becomes a red-flag fact citing its inputs' evidence, strictly confidential.
     @Test func redFlagsBecomeFactsCitingTheirInputs() async throws {
         let (store, flags) = try await Self.finished()

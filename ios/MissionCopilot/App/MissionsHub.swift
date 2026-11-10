@@ -99,6 +99,7 @@ extension Connection {
                     _ = await ReportSender(store: store, registration: registration).send(mission: mission,
                                                                                           client: client)
                 }
+                await ReportReviewReader(store: store).readAll(client: client)  // #193: the manager's decision
             }
             world.sendReport = { mission in  // #173: Send on the report page
                 guard let store = await MainActor.run(body: { missions() }) else { return .notQueued }

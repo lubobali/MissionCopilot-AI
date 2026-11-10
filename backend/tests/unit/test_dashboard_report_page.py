@@ -253,3 +253,15 @@ def test_an_answered_photo_shows_with_its_answer_or_says_it_stayed_on_the_phone(
     assert "The photo this answer names" in html
     away = dataclasses.replace(answer, sources=[WALK, dataclasses.replace(kept, has_file=False)])
     assert "The photo stays on the officer" in fact_html(away, ROADS.id)
+
+
+def test_the_approving_phone_is_named_by_its_enrollment_label():
+    """#193: the phone signs "this-phone"; the dashboard says the label it was enrolled with."""
+    from missioncopilot_backend.dashboard_portfolio import officer
+
+    assert officer("this-phone", "Lubo's iPhone") == "Lubo's iPhone"
+    assert (
+        officer("this-phone", "iPhone") == "the officer's iPhone"
+    )  # the default label says nothing
+    assert officer("this-phone", "") == "the officer's iPhone"
+    assert officer("Kofi Mensah", "Lubo's iPhone") == "Kofi Mensah"  # a signed name wins

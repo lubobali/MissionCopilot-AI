@@ -65,7 +65,9 @@ def report(missionId: str, request: Request) -> Response:
     keys: ApprovalKeyStore = request.app.state.approval_keys
     key = keys.find(view.stored.device_id, view.stored.approval_key_id)
     verified = verify_stored(view.stored, missionId, key)  # again on every load (8.7.3)
-    body = render_report(view, user.roles, verified)
+    device = request.app.state.devices.find(view.stored.device_id)  # #193: the phone's label
+    phone = device.label if device is not None and device.org_id == user.org_id else ""
+    body = render_report(view, user.roles, verified, phone)
     title = f"{view.row.title}: aide-memoire"
     return shell(title, user.name, body, palette_for(view.row.title, missionId), ("report",))
 

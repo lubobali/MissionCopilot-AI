@@ -24,10 +24,13 @@ def day(timestamp: float | None) -> str:
     return datetime.fromtimestamp(timestamp, UTC).strftime("%-d %b %Y") if timestamp else "Not yet"
 
 
-def officer(approved_by: str) -> str:
+def officer(approved_by: str, phone: str = "") -> str:
     """Who approved, in words: the phone signs its local profile ("this-phone") when it has no
-    officer's name, so that is said as the officer's iPhone, never as a raw id (Lubo, Nov 10)."""
-    return "the officer's iPhone" if approved_by in ("", "this-phone") else approved_by
+    officer's name, so that is said by the phone's enrollment label ("Lubo's iPhone", #193), or
+    as the officer's iPhone; never as a raw id (Lubo, Nov 10)."""
+    if approved_by not in ("", "this-phone"):
+        return approved_by
+    return phone if phone.strip() and phone.strip().lower() != "iphone" else "the officer's iPhone"
 
 
 def moment(at: float) -> str:

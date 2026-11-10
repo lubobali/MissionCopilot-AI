@@ -58,17 +58,20 @@ extension MissionStore {
         guard let approval = try approval(in: mission) else { throw NotApproved() }
         let queued = ReportOutbox(draftId: approval.draftId, idempotencyKey: UUID().uuidString.lowercased(),
                                   queuedAt: Date(timeIntervalSince1970: now.timeIntervalSince1970.rounded()))
+        let version = try reportVersion(in: mission)
         try store.write { database in
-            try database.execute(sql: "INSERT INTO report_outbox VALUES (?, ?, ?, ?)", arguments: [
-                mission, queued.draftId, queued.idempotencyKey, queued.queuedAt.timeIntervalSince1970
+            try database.execute(sql: "INSERT INTO report_outbox VALUES (?, ?, ?, ?, ?)", arguments: [
+                mission, version, queued.draftId, queued.idempotencyKey, queued.queuedAt.timeIntervalSince1970
             ])
         }
         return queued
     }
 
     func outbox(in mission: String) throws -> ReportOutbox? {
-        try store.read { database in
-            try Row.fetchOne(database, sql: "SELECT * FROM report_outbox WHERE mission_id = ?", arguments: [mission])
+        let version = try reportVersion(in: mission)
+        return try store.read { database in
+            try Row.fetchOne(database, sql: "SELECT * FROM report_outbox WHERE mission_id = ? AND version = ?",
+                             arguments: [mission, version])
         }.map { row in
             ReportOutbox(draftId: row["draft_id"], idempotencyKey: row["idempotency_key"],
                          queuedAt: Date(timeIntervalSince1970: row["queued_at"]))
@@ -76,16 +79,19 @@ extension MissionStore {
     }
 
     func keepReceipt(batchId: String, receivedAt: Date, in mission: String) throws {
+        let version = try reportVersion(in: mission)
         try store.write { database in
-            try database.execute(sql: "INSERT OR IGNORE INTO report_receipt VALUES (?, ?, ?)",
-                                 arguments: [mission, batchId, receivedAt.timeIntervalSince1970])
+            try database.execute(sql: "INSERT OR IGNORE INTO report_receipt VALUES (?, ?, ?, ?)",
+                                 arguments: [mission, version, batchId, receivedAt.timeIntervalSince1970])
         }
     }
 
+    /// The current version's receipt (#193).
     func receipt(in mission: String) throws -> ReportReceipt? {
-        try store.read { database in
-            try Row.fetchOne(database, sql: "SELECT * FROM report_receipt WHERE mission_id = ?",
-                             arguments: [mission])
+        let version = try reportVersion(in: mission)
+        return try store.read { database in
+            try Row.fetchOne(database, sql: "SELECT * FROM report_receipt WHERE mission_id = ? AND version = ?",
+                             arguments: [mission, version])
         }.map { ReportReceipt(batchId: $0["batch_id"], receivedAt: Date(timeIntervalSince1970: $0["received_at"])) }
     }
 
@@ -102,10 +108,18 @@ extension MissionStore {
         }
     }
 
-    /// Missions whose approved report is queued; the sender skips what the server already confirmed.
+    /// Missions whose current version is queued; the sender skips what the server already confirmed.
     func queuedReports() throws -> [String] {
         try store.read { database in
-            try String.fetchAll(database, sql: "SELECT mission_id FROM report_outbox ORDER BY queued_at")
+            try String.fetchAll(database, sql: """
+                SELECT o.mission_id FROM report_outbox o WHERE o.version = 1 + (SELECT count(*) FROM report_review r
+                    WHERE r.mission_id = o.mission_id AND r.decision = 'sent_back') ORDER BY o.queued_at
+                """)
         }
+    }
+
+    /// Missions whose current version was received and waits for the manager's decision (#193).
+    func awaitingReview() throws -> [String] {
+        try queuedReports().filter { try receipt(in: $0) != nil && review(in: $0) == nil }
     }
 }
