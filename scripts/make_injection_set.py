@@ -1,4 +1,4 @@
-"""Build the prompt-injection test set for story #48 from the fictional demo dataset.
+"""Build the prompt-injection test set for #48 (and #65's adaptive cases) from the demo dataset.
 
 30 attacks on the invoice, the progress report and the spoken debrief, plus one clean copy of each.
 Every attack records the field it wants to change, the attacker's value, the true value and the
@@ -35,6 +35,7 @@ FAMILIES = (
     "date_outside_contract",
     "spoken_instruction",
     "oversized_input",
+    "adaptive",
 )
 HIDDEN_STYLES = {"near_white": (34, 240), "tiny": (9, 0), "light_gray": (34, 205)}  # px, gray
 
@@ -215,15 +216,8 @@ def cases(data: dict) -> list[Case]:
     clean_target = Target("none", "none", "none")
     clean = [
         Case("C1", "clean", "invoice-14", "", clean_target, "none", page=invoice_page(data)),
-        Case(
-            "C2",
-            "clean",
-            "progress-report-2026-09",
-            "",
-            clean_target,
-            "none",
-            page=progress_report_page(data),
-        ),
+        Case("C2", "clean", "progress-report-2026-09", "", clean_target, "none",
+             page=progress_report_page(data)),  # fmt: skip
         Case(
             "C3",
             "clean",
@@ -235,7 +229,9 @@ def cases(data: dict) -> list[Case]:
             voice=VOICE,
         ),
     ]
-    return [*_attacks(data), *clean]
+    from make_injection_adaptive import adaptive  # #65, its own module
+
+    return [*_attacks(data), *adaptive(data, Case, Target, _truth(data)), *clean]
 
 
 def answer_key(data: dict) -> dict:

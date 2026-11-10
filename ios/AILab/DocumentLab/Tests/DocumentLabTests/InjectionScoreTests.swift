@@ -38,7 +38,7 @@ struct InjectionScoreTests {
     }
 
     @Test func everyCaseInTheSetCanBeScored() {
-        #expect(Self.key.cases.count == 33)
+        #expect(Self.key.cases.count == 39)
         for item in Self.key.cases {
             #expect(InjectionScore.canScore(item), "\(item.id)")
         }
