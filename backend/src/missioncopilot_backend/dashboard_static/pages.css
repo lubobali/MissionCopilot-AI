@@ -113,3 +113,33 @@ table.missions { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
 }
 @keyframes sweep { to { transform: rotate(1turn); } }
 @keyframes ping { 50% { r: 6; opacity: 0.7; } }
+
+/* One mission (#176, #177): the breadcrumb, the fact sheet, financing, ratings, documents. */
+.crumbs { display: flex; gap: 0.5rem; padding-top: 1.5rem; font-size: 0.85rem; color: var(--muted); }
+.crumbs a { color: var(--blue); text-decoration: none; }
+.title { font: 400 clamp(1.9rem, 3.4vw, 2.6rem)/1.15 var(--serif); margin: 0.3rem 0 0.6rem; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.9rem 1.5rem; margin: 1.5rem 0 0; }
+.facts div { border-left: 2px solid var(--blue); padding-left: 0.8rem; }
+.facts dt { font: 600 0.7rem/1.4 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.facts dd { margin: 0.15rem 0 0; font-weight: 500; }
+.stack { display: grid; gap: 1.25rem; align-content: start; }
+.finance .big { font: 400 1.35rem/1.35 var(--serif); margin: 0 0 1rem; }
+.bar { width: 100%; height: 0.6rem; border-radius: 999px; overflow: hidden; background: var(--line); border: 0; }
+.bar::-webkit-meter-bar { background: var(--line); border: 0; border-radius: 999px; height: 0.6rem; }
+.bar::-webkit-meter-optimum-value { background: linear-gradient(90deg, var(--blue), var(--cyan)); border-radius: 999px; }
+.bar::-moz-meter-bar { background: linear-gradient(90deg, var(--blue), var(--cyan)); border-radius: 999px; }
+.components { list-style: none; padding: 0; margin: 1.25rem 0 0; display: grid; gap: 0.6rem; font-size: 0.88rem; }
+.components li { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--line); padding-top: 0.6rem; }
+table.ratings { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.ratings th, .ratings td { text-align: left; padding: 0.7rem 0.5rem; border-bottom: 1px solid var(--line); }
+.ratings thead th { font: 600 0.7rem/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.ratings tbody th { font-weight: 500; }
+.trend.better { color: var(--success); }
+.trend.worse { color: var(--danger); }
+.trend.unknown { color: var(--muted); }
+.documents { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
+.document { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; padding: 0.9rem 1rem;
+  border: 1px solid var(--line); border-radius: 1rem; }
+.document .kind { font-weight: 600; }
+.document .pill { margin-left: auto; }
+.vt-mission { view-transition-name: mission; }

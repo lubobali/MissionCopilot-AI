@@ -7,11 +7,12 @@ import mimetypes
 from html import escape
 from importlib.resources import files
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
+from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from missioncopilot_backend.dashboard_layout import MEDALLION, shell
+from missioncopilot_backend.dashboard_layout import MEDALLION, reader, shell
+from missioncopilot_backend.dashboard_mission_pages import router as missions
 from missioncopilot_backend.dashboard_portfolio import render as render_portfolio
 from missioncopilot_backend.dashboard_routes import COOKIE, site
 
@@ -82,19 +83,6 @@ def invite_page(code: str) -> HTMLResponse:
         cover=True)  # fmt: skip
 
 
-def reader(request: Request, org_id: str):
-    """The organization's dashboard reads: a test may set app.state.dashboard_reader; the server
-    opens the organization's own database (db/dashboard_data.py)."""
-    made = getattr(request.app.state, "dashboard_reader", None)
-    if made is not None:
-        return made(org_id)
-    databases = request.app.state.databases
-    found = databases.dashboard_for(org_id) if databases is not None else None
-    if found is None:
-        raise HTTPException(404)
-    return found
-
-
 @router.get("", response_model=None)
 def home(request: Request) -> Response:
     token = request.cookies.get(COOKIE)
@@ -109,4 +97,5 @@ def home(request: Request) -> Response:
 
 def install_dashboard_pages(app: FastAPI) -> None:
     app.include_router(router)
+    app.include_router(missions)
     app.mount("/dashboard/static", StaticFiles(directory=str(STATIC)), name="dashboard-static")
