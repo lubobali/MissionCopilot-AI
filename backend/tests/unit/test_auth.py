@@ -31,6 +31,10 @@ PUBLIC_ROUTES |= {
     "/v1/dashboard/register/options", "/v1/dashboard/register/verify",
     "/v1/dashboard/sign-in/options", "/v1/dashboard/sign-in/verify", "/v1/dashboard/sign-out",
 }  # fmt: skip
+# The dashboard's HTML pages (#174) hold no data without a session: sign-in and the invite are
+# public by design, home and every later page send a caller with no session to sign-in
+# (test_dashboard_pages.py); their data comes only through the session.
+PUBLIC_ROUTES |= {"/dashboard", "/dashboard/sign-in", "/dashboard/invite/{code}"}
 
 
 def pem(key: ec.EllipticCurvePrivateKey) -> str:

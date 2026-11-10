@@ -42,6 +42,8 @@ def test_every_route_is_in_the_contract():
     spec = yaml.safe_load(SPEC_PATH.read_text(encoding="utf-8"))
     contract = {(method.upper(), path) for path, item in spec["paths"].items() for method in item}
     served = {(route.method, route.path) for route in served_routes(create_app(Settings()))}
+    # The dashboard's HTML pages and their files (#174) are not the API: no contract for them.
+    served = {(method, path) for method, path in served if not path.startswith("/dashboard")}
 
     assert ("GET", "/v1/health") in served, "the guard must see routes on included routers"
     assert served - contract == set()

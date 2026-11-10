@@ -13,6 +13,13 @@ ALWAYS = {
     "Cache-Control": "no-store",
 }
 CONTENT_POLICY = "default-src 'none'; frame-ancestors 'none'"
+# The manager dashboard's pages (#174): only this server's script, styles, fonts and images; no
+# inline code, no other host, no framing.
+DASHBOARD_POLICY = (
+    "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+    "font-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; "
+    "frame-ancestors 'none'"
+)
 HSTS = "max-age=63072000; includeSubDomains"  # two years, HTTPS only
 
 
@@ -32,7 +39,10 @@ class SecurityHeadersMiddleware:
                 headers = MutableHeaders(scope=message)
                 for name, value in ALWAYS.items():
                     headers[name] = value
-                if scope["path"] not in self.policy_exempt_paths:
+                path = scope["path"]
+                if path == "/dashboard" or path.startswith("/dashboard/"):
+                    headers["Content-Security-Policy"] = DASHBOARD_POLICY
+                elif path not in self.policy_exempt_paths:
                     headers["Content-Security-Policy"] = CONTENT_POLICY
                 if self.hsts:
                     headers["Strict-Transport-Security"] = HSTS
