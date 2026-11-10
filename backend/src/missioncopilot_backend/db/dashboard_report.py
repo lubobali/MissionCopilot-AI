@@ -20,6 +20,9 @@ if TYPE_CHECKING:
 CONFIDENTIAL = "strictly_confidential"
 SECTIONS = [("mission", "Mission"), ("project", "Project"), ("findings", "Main findings"),
             ("agreedActions", "Agreed actions"), ("nextSteps", "Next steps")]  # fmt: skip
+ANSWERED_FILE = re.compile(
+    r"^evidence:(\d+)$"
+)  # a walk answer that is a photo (ios SiteWalkPhotos)
 PACK_PLACE = re.compile(r"^([\w./-]+\.json)#(/\S*?)(?: sum)? sha256:([0-9a-f]{64})$")
 
 
@@ -161,7 +164,17 @@ def facts(conn: psycopg.Connection, mission_id: str) -> dict[str, ProofFact]:
         "SELECT id, name, value, unit, rule_id, classification FROM facts WHERE mission_id = %s",
         [mission_id],
     ).fetchall()
-    return {i: ProofFact(i, n, v, u, r, c, sources.get(i, [])) for i, n, v, u, r, c in rows}
+    out = {}
+    for i, n, v, u, r, c in rows:
+        found = sources.get(i, [])
+        named = ANSWERED_FILE.match(v)
+        if named and all(s.seq != int(named[1]) for s in found):
+            # a walk answer that is a photo names its evidence item: show it with the answer
+            seq = int(named[1])
+            kind, captured = evidence.get(seq, ("photo", None))
+            found = [*found, Source(seq, kind, captured, "answer", seq in kept, [])]
+        out[i] = ProofFact(i, n, v, u, r, c, found)
+    return out
 
 
 def lines(report: StoredReport, known: dict[str, ProofFact]) -> list[Line]:

@@ -4,16 +4,25 @@ question or the agreed action; a photo or scanned page shows the file; a debrief
 recording and names the words' place in the on-device transcript. Strictly confidential facts and
 files reach only the `confidential` role. Every value escaped."""
 
+import json
 import re
 from html import escape
 
-from missioncopilot_backend.db.dashboard_report import CONFIDENTIAL, Line, ProofFact, Source
+from missioncopilot_backend.db.dashboard_report import (
+    ANSWERED_FILE,
+    CONFIDENTIAL,
+    Line,
+    ProofFact,
+    Source,
+)
 
 CONFIDENTIAL_ROLE = "confidential"
 KINDS = {"pack": "Mission pack record", "walk": "Site walk", "photo": "Site photo",
          "scan": "Scanned page", "audio": "Debrief recording"}  # fmt: skip
 RULES = {"pack-record": "Read from the mission pack", "walk-answer": "Answered on the site walk",
+         "officer": "Confirmed by the officer",
          "red-flag": "Red-flag rule"}  # fmt: skip
+FLAT_RECORD = 80  # longer than this, a pack record's value is the record in one line
 TEXT_PLACE = re.compile(r"^(\S+) text (\d+)\+(\d+)$")
 TYPES = [(b"\xff\xd8\xff", "image/jpeg"), (b"\x89PNG\r\n\x1a\n", "image/png")]
 
@@ -40,8 +49,10 @@ def _record(value: object) -> str:
 
 def _place(source: Source) -> str:
     region = source.region or ""
+    if region == "answer":
+        return "The photo this answer names"
     if region.startswith("question:"):
-        return f"Question: {escape(region[9:])}"
+        return f"Question: {escape(words(region[9:]))}"
     if region.startswith("action:"):
         return f"Agreed action: {escape(region[7:])}"
     found = TEXT_PLACE.match(region)
@@ -63,6 +74,11 @@ def source_html(source: Source, mission_id: str) -> str:
         body = f'<img loading="lazy" src="{src}" alt="{label}, evidence item {source.seq}">'
     elif source.has_file and source.kind == "audio":
         body = f'<audio controls preload="none" src="{src}"></audio>'
+    elif source.region == "answer":
+        body = (
+            '<p class="note">The photo stays on the officer\'s iPhone: this report did not'
+            " send it.</p>"
+        )
     elif source.kind in ("photo", "scan", "audio"):
         body = '<p class="note">File not received yet.</p>'
     else:
@@ -74,11 +90,43 @@ def source_html(source: Source, mission_id: str) -> str:
             f'{f"<p class=where>{place}</p>" if place else ""}{body}</li>')  # fmt: skip
 
 
-def fact_html(fact: ProofFact, mission_id: str) -> str:
+def words(name: str) -> str:
+    """A fact's name in plain words: "debrief.action" is "Debrief action", "invoiceNumber" is
+    "Invoice number"; a pack field is a mission pack record; never a raw id (Lubo, Nov 10)."""
+    if name.startswith("pack:"):
+        return "Mission pack record"
+    if name.startswith("flag:"):
+        return f"Red flag {name.split(':')[1]}"
+    base = name.split(":", 1)[-1]
+    base = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", base)
+    base = re.sub(r"[._-]+", " ", base).strip().lower()
+    return base[:1].upper() + base[1:]
+
+
+def value_html(fact: ProofFact) -> str:
+    """The fact's value in words: an answered photo by its item, a JSON object as fields; a pack
+    record flattened into one long line is left out (its fields show below, from the cited file)."""
     unit = f" {escape(fact.unit)}" if fact.unit else ""
+    named = ANSWERED_FILE.match(fact.value)
+    if named:
+        return f'<p class="value">Photo taken (evidence item {named[1]})</p>'
+    flattened = fact.rule == "pack-record" and len(fact.value) > FLAT_RECORD
+    if flattened and any(source.records for source in fact.sources):
+        return ""  # the whole record in one line: its fields show below instead
+    try:
+        found = json.loads(fact.value)
+    except ValueError:
+        found = None
+    if isinstance(found, dict) and found:
+        return _record({words(str(k)): v for k, v in found.items()})
+    return f'<p class="value">{escape(fact.value)}{unit}</p>'
+
+
+def fact_html(fact: ProofFact, mission_id: str) -> str:
     sources = "".join(source_html(s, mission_id) for s in fact.sources)
-    return (f'<article class="fact"><p class="value">{escape(fact.value)}{unit}</p>'
-            f'<p class="rule">{escape(RULES.get(fact.rule, fact.rule))} · {escape(fact.name)}</p>'
+    rule = RULES.get(fact.rule, f"Rule {fact.rule}")
+    return (f'<article class="fact">{value_html(fact)}'
+            f'<p class="rule">{escape(rule)} · {escape(words(fact.name))}</p>'
             f'<ol class="sources">{sources}</ol></article>')  # fmt: skip
 
 

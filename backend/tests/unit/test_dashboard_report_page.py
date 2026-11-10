@@ -154,6 +154,14 @@ def test_the_badge_is_verified_with_the_kept_key():
     assert "verified by the server" in html and "Officer &lt;Kofi&gt;" in html
 
 
+def test_a_phone_with_no_officer_name_is_said_as_the_officers_iphone():
+    view = dataclasses.replace(
+        VIEW, stored=dataclasses.replace(VIEW.stored, approved_by="this-phone")
+    )
+    html = page(view=view)
+    assert "Approved by the officer&#x27;s iPhone" in html and "this-phone" not in html
+
+
 def test_a_tampered_row_or_a_missing_key_is_not_verified():
     first = dataclasses.replace(VIEW.stored.sentences[0], text="All works done.")
     tampered = dataclasses.replace(
@@ -213,3 +221,35 @@ def test_a_file_only_red_flags_cite_needs_the_confidential_role():
     cleared = client(roles=("manager", "confidential"))
     seen = cleared.get(f"/dashboard/missions/{ROADS.id}/evidence/4")
     assert seen.status_code == 200 and seen.headers["content-type"] == "image/png"
+
+
+def test_proofs_say_plain_words_not_raw_ids():
+    """Lubo, Nov 10, on staging: no `{"byWhen":...}`, `evidence:1` or `officer · debrief.action`."""
+    from missioncopilot_backend.dashboard_proof import fact_html, words
+
+    assert (
+        words("debrief.action") == "Debrief action" and words("invoiceNumber") == "Invoice number"
+    )
+    assert (
+        words("walk:sample_photo") == "Sample photo" and words("flag:MC-01:0") == "Red flag MC-01"
+    )
+    assert words("pack:sections/contracts.json#/contracts/0") == "Mission pack record"
+    debrief = ProofFact("f9", "debrief.action", '{"byWhen":"In two weeks","who":"Contractor"}',
+                        None, "officer", "official_use_only", [AUDIO])  # fmt: skip
+    html = fact_html(debrief, ROADS.id)
+    assert "Confirmed by the officer · Debrief action" in html
+    assert "<dt>By when</dt><dd>In two weeks</dd>" in html and "byWhen" not in html
+
+
+def test_an_answered_photo_shows_with_its_answer_or_says_it_stayed_on_the_phone():
+    from missioncopilot_backend.dashboard_proof import fact_html
+
+    kept = Source(3, "photo", None, "answer", True, [])
+    answer = ProofFact("f8", "walk:sample_photo", "evidence:3", None, "walk-answer",
+                       "official_use_only", [WALK, kept])  # fmt: skip
+    html = fact_html(answer, ROADS.id)
+    assert "Photo taken (evidence item 3)" in html and "evidence:3" not in html
+    assert f'src="/dashboard/missions/{ROADS.id}/evidence/3"' in html
+    assert "The photo this answer names" in html
+    away = dataclasses.replace(answer, sources=[WALK, dataclasses.replace(kept, has_file=False)])
+    assert "The photo stays on the officer" in fact_html(away, ROADS.id)

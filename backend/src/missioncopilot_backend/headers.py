@@ -17,8 +17,8 @@ CONTENT_POLICY = "default-src 'none'; frame-ancestors 'none'"
 # inline code, no other host, no framing.
 DASHBOARD_POLICY = (
     "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
-    "font-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; "
-    "frame-ancestors 'none'"
+    "font-src 'self'; media-src 'self'; connect-src 'self'; form-action 'self';"
+    " base-uri 'none'; frame-ancestors 'none'"
 )
 HSTS = "max-age=63072000; includeSubDomains"  # two years, HTTPS only
 

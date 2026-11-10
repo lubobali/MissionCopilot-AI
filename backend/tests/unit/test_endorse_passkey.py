@@ -36,6 +36,9 @@ def test_the_endorse_options_need_user_verification(world):  # noqa: F811
     options = json.loads(endorse_options(store, SITE, user, SUBJECT))
 
     assert options["userVerification"] == "required" and options["rpId"] == SITE.rp_id
+    own = [p.credential_id for p in store.passkeys_of(user.id)]
+    offered = [unb64url(c["id"]) for c in options["allowCredentials"]]
+    assert offered == own and len(own) == 1  # only this manager's passkey, never another's
 
 
 def test_the_managers_touch_id_endorses_and_the_assertion_is_kept(world):  # noqa: F811

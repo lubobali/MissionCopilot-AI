@@ -5,6 +5,7 @@ not the organization's, is none."""
 
 from collections.abc import Iterator
 
+import psycopg
 import pytest
 
 from missioncopilot_backend.db.dashboard_data import DashboardData
@@ -94,3 +95,24 @@ def test_the_trail_lists_every_version_and_decision(world):
     assert (
         DashboardData(world.pool).trail("manager-1", "6f1d2c3a-0000-4000-8000-000000000009") is None
     )
+
+
+def test_a_walk_answer_that_is_a_photo_brings_that_photo(world):
+    """The phone answers a photo question with "evidence:N"; the proof shows item N with it."""
+    from missioncopilot_backend.db.dashboard_report import facts
+
+    with psycopg.connect(world.admin) as conn:
+        conn.execute("ALTER TABLE facts DISABLE TRIGGER no_update_or_delete")
+        conn.execute("UPDATE facts SET value = 'evidence:3' WHERE id = 'fact-3'")
+        conn.execute("ALTER TABLE facts ENABLE TRIGGER no_update_or_delete")
+        found = facts(conn, ROADS)["fact-3"]
+
+    assert [(s.seq, s.region, s.has_file) for s in found.sources] == [
+        (2, f"action:{ACTION}", True), (3, None, True),
+    ]  # fmt: skip  # already cited: not twice
+    with psycopg.connect(world.admin) as conn:
+        conn.execute("ALTER TABLE facts DISABLE TRIGGER no_update_or_delete")
+        conn.execute("UPDATE facts SET value = 'evidence:1' WHERE id = 'fact-3'")
+        conn.execute("ALTER TABLE facts ENABLE TRIGGER no_update_or_delete")
+        found = facts(conn, ROADS)["fact-3"]
+    assert (found.sources[-1].seq, found.sources[-1].region) == (1, "answer")
