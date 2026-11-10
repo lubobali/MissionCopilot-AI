@@ -69,6 +69,20 @@ server {
         send_timeout 300s;
     }
 
+    # A synced report (#172): bigger than the 1m default; the app checks 4 MiB itself.
+    location ~ ^/v1/missions/[^/]+/sync$ {
+        proxy_pass http://127.0.0.1:{{PORT}};
+        client_max_body_size 4m;
+    }
+
+    # An evidence file (#172): a photo, scanned page or recording, up to 16 MiB; time for slow links.
+    location ~ ^/v1/missions/[^/]+/evidence/[0-9]+/file$ {
+        proxy_pass http://127.0.0.1:{{PORT}};
+        client_max_body_size 16m;
+        proxy_read_timeout 300s;
+        client_body_timeout 300s;
+    }
+
     location @mc_too_many {
         default_type application/problem+json;
         add_header Retry-After 1 always;

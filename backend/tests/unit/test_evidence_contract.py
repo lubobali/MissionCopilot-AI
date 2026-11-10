@@ -76,11 +76,12 @@ def test_evidence_is_the_signed_record_and_nothing_outside_it():
 def test_the_chain_head_travels_with_the_evidence():
     head = SCHEMAS["ChainHead"]
     head_payload = SCHEMAS["ChainHeadPayload"]
-    items = SCHEMAS["SyncBatch"]["properties"]["items"]["properties"]
+    batch = SCHEMAS["SyncBatch"]["properties"]  # the batch as built (#172)
 
     assert set(head["required"]) == {"payload", "signature"}
     assert set(head_payload["required"]) == {"count", "headHash", "missionId"}
-    assert items["evidenceHead"] == {"$ref": "#/components/schemas/ChainHead"}
+    assert batch["head"] == {"$ref": "#/components/schemas/ChainHead"}
+    assert batch["evidence"]["items"] == {"$ref": "#/components/schemas/Evidence"}
 
 
 def test_the_documented_example_is_a_valid_v2_payload():

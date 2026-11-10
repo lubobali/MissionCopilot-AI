@@ -20,6 +20,7 @@ from missioncopilot_backend.mission_routes import mission_routes
 from missioncopilot_backend.pack_routes import pack_routes
 from missioncopilot_backend.settings import Settings
 from missioncopilot_backend.shred_order import install_shred_orders
+from missioncopilot_backend.sync_routes import sync_routes
 from missioncopilot_backend.tenancy import OrgStores
 
 v1 = APIRouter(prefix="/v1")
@@ -101,6 +102,6 @@ def create_app(
     app.include_router(v1)
     for router in device_routes():
         app.include_router(router)
-    for router in [*mission_routes(), *pack_routes()]:
+    for router in [*mission_routes(), *pack_routes(), *sync_routes()]:
         app.include_router(router)
     return app

@@ -97,6 +97,11 @@ def check(c, hostname: str, phone: str) -> None:
     )
     status, _, _ = request("/v1/health", hostname, body=b"x" * (2 * 1024 * 1024))
     c.expect("through nginx: a 2 MiB body gets 413", status == 413, status)
+    sync = "/v1/missions/6f1d2c3a-0000-4000-8000-000000000001/sync"
+    status, _, _ = request(sync, hostname, body=b"x" * (2 * 1024 * 1024))
+    c.expect("through nginx: a 2 MiB synced report reaches the app (#172)", status != 413, status)
+    status, _, _ = request(sync, hostname, body=b"x" * (5 * 1024 * 1024))
+    c.expect("through nginx: a 5 MiB synced report gets 413", status == 413, status)
     flood = [request("/v1/health", hostname) for _ in range(80)]
     limited = [(h.get("retry-after"), h.get("content-type")) for s, h, _ in flood if s == 429]
     ours = ("1", "application/problem+json")

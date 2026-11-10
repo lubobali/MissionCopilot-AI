@@ -18,6 +18,7 @@ from psycopg.conninfo import make_conninfo
 from psycopg_pool import ConnectionPool
 
 from missioncopilot_backend.app import create_app
+from missioncopilot_backend.approval_keys import ApprovalKeyStore
 from missioncopilot_backend.db.directory import Directory
 from missioncopilot_backend.db.migrations import load
 from missioncopilot_backend.db.missions import ORG_MIGRATIONS, PostgresOrgDatabases
@@ -49,9 +50,11 @@ class Phone:
     key: ec.EllipticCurvePrivateKey
     seq: int = 0
 
-    def headers(self, path: str, at: float) -> dict[str, str]:
+    def headers(
+        self, path: str, at: float, method: str = "GET", body: bytes = b""
+    ) -> dict[str, str]:
         self.seq += 1
-        message = request_message("GET", path, self.id, self.seq, int(at), b"")
+        message = request_message(method, path, self.id, self.seq, int(at), body)
         signature = self.key.sign(message, ec.ECDSA(hashes.SHA256()))
         return {
             "X-Device-Id": self.id,
@@ -70,10 +73,16 @@ class World:
     phones: dict[str, Phone]
     manifest: bytes
     orgs: list[str]
+    approval_keys: ApprovalKeyStore
 
     def get(self, who: str, path: str, **headers: str):
         signed = self.phones[who].headers(path, self.clock.now)
         return self.client.get(path, headers=signed | headers)
+
+    def post(self, who: str, path: str, body: bytes, headers: dict[str, str] | None = None):
+        signed = self.phones[who].headers(path, self.clock.now, "POST", body)
+        sent = signed | {"Content-Type": "application/json"} | (headers or {})
+        return self.client.post(path, content=body, headers=sent)
 
     def file_path(self, path: str, mission: str = ROADS) -> str:
         sha = next(e["sha256"] for e in json.loads(self.manifest)["files"] if e["path"] == path)
@@ -135,10 +144,10 @@ def world() -> Generator[World]:
                     Settings(),
                     databases=PostgresOrgDatabases({orgs[0]: pool_a, orgs[1]: pool_b}),
                     audit=directory.audit, devices=directory.devices,
-                    signing_key=signing_key,
+                    approval_keys=directory.approval_keys, signing_key=signing_key,
                 )  # fmt: skip
                 yield World(local_client(app), clock, directory_url, signing_key, phones,
-                            published.manifest, orgs)  # fmt: skip
+                            published.manifest, orgs, directory.approval_keys)  # fmt: skip
     finally:
         for org_id in orgs:
             drop_organization(admin_url(), org_id)
