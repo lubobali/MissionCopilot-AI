@@ -101,6 +101,13 @@ struct MissionWorkspace: View {
                         .foregroundStyle(Color(.secondaryText))
                 }
             }
+            if row.sentBack {  // #195: the officer's next step, one tap away
+                NavigationLink(value: ReportLink(id: row.id)) {
+                    Label(MissionWords.sentBack + ". Open the report.", systemImage: "arrow.uturn.backward.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color(.warning))
+                }
+            }
             if row.canDownload {
                 Button(words.action(row), action: onDownload)
                     .buttonStyle(.fieldPrimary)

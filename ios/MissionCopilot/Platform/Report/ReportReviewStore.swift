@@ -127,4 +127,9 @@ extension MissionStore {
     func sentBack(in mission: String) throws -> ReportReview? {
         try reviews(in: mission).last { $0.decision == .sentBack }  // always the version before the current
     }
+
+    /// #195: sent back, and the next version is not received yet: the officer has to answer.
+    func needsResponse(in mission: String) throws -> Bool {
+        try sentBack(in: mission) != nil && receipt(in: mission) == nil
+    }
 }
