@@ -109,6 +109,11 @@ def test_a_changed_log_entry_breaks_the_chain():
     assert "Chain intact" not in html
 
 
+def test_the_one_way_back_goes_to_the_report():
+    html = client(TRAIL, AuditLog()).get(f"/dashboard/missions/{VIEW.row.id}/trail").text
+    assert f'class="back" href="/dashboard/missions/{VIEW.row.id}/report"' in html
+
+
 def test_an_unknown_mission_is_404():
     assert (
         client(None, AuditLog()).get(f"/dashboard/missions/{VIEW.row.id}/trail").status_code == 404

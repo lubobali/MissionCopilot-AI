@@ -27,6 +27,16 @@ HEAD = """<!doctype html>
 """
 
 
+def titled(title: str, back: str, back_to: str) -> str:
+    """The page title with the one way back: a round ‹ to the page one step up (Missions, then
+    project, then report). Never the browser's history, so it always goes to the same place."""
+    label = f"Back to {back_to}"
+    return (f'<div class="titled"><a class="back" href="{escape(back)}"'
+            f' aria-label="{escape(label)}" title="{escape(label)}">'
+            '<span aria-hidden="true">‹</span></a>'
+            f'<h1 class="title vt-mission">{escape(title)}</h1></div>')  # fmt: skip
+
+
 def head(title: str, inner: bool, styles: tuple[str, ...] = ()) -> str:
     names = ("pages", *styles) if inner else styles
     pages = "".join(f'<link rel="stylesheet" href="/dashboard/static/{n}.css">\n' for n in names)

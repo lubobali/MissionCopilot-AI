@@ -47,17 +47,27 @@ def risk(row: MissionRow) -> str:
     return f'<span class="risk"><b>{escape(now)}</b> {trend}</span>'
 
 
+def review_link(row: MissionRow) -> str:
+    """A received report's status opens the report itself; other statuses are words only."""
+    if row.status == "in_field":
+        return status_pill(row.status)
+    return (f'<a class="review-link" href="/dashboard/missions/{escape(row.id)}/report">'
+            f"{status_pill(row.status)}</a>")  # fmt: skip
+
+
 def row_html(row: MissionRow) -> str:
     ref = f'<span class="ref">{escape(row.project_ref)}</span>' if row.project_ref else ""
     flags = (
         f'<span class="flags">{row.red_flags} red flag{"s" if row.red_flags != 1 else ""}</span>'
     )
     return f"""<tr>
-  <td><a class="mission-link" href="/dashboard/missions/{escape(row.id)}">{escape(row.title)}</a>
+  <td><a class="mission-link" href="/dashboard/missions/{escape(row.id)}/project">{
+        escape(row.title)
+    }</a>
     {ref}
     {flags if row.red_flags else ""}</td>
   <td>{escape(row.country or "")}</td>
-  <td>{status_pill(row.status)}</td>
+  <td>{review_link(row)}</td>
   <td>{risk(row)}</td>
   <td class="num">{day(row.received_at)}</td>
 </tr>"""

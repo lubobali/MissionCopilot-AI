@@ -35,13 +35,10 @@ def palette_for(title: str, mission_id: str) -> list[tuple[str, str, str]]:
 
 @router.get("/{missionId}", response_model=None)
 def mission(missionId: str, request: Request) -> Response:
-    """From the portfolio: the report when one waits (#177), else the project page."""
-    user = signed_in(request)
-    if user is None:
+    """An old or typed link to a mission: always its project page, the mission's home."""
+    if signed_in(request) is None:
         return RedirectResponse(SIGN_IN, status_code=303)
-    waits = reader(request, user.org_id).report(user.user_id, missionId) is not None
-    page = "report" if waits else "project"
-    return RedirectResponse(f"/dashboard/missions/{missionId}/{page}", status_code=303)
+    return RedirectResponse(f"/dashboard/missions/{missionId}/project", status_code=303)
 
 
 @router.get("/{missionId}/project", response_model=None)

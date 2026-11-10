@@ -7,6 +7,7 @@ escaped."""
 from html import escape
 
 from missioncopilot_backend.audit import AuditEvent
+from missioncopilot_backend.dashboard_layout import titled
 from missioncopilot_backend.dashboard_portfolio import moment
 from missioncopilot_backend.db.dashboard_report import Trail
 
@@ -56,16 +57,11 @@ def render(trail: Trail, events: list[AuditEvent], problems: list[str], checked:
         )
         or '<li class="empty">Nothing yet: no report received.</li>'
     )
-    base = f"/dashboard/missions/{escape(row.id)}"
-    return f"""<nav class="crumbs" aria-label="You are here"><a href="/dashboard">Missions</a>
-  <span aria-hidden="true">/</span> <a href="{base}/project">{escape(row.title)}</a>
-  <span aria-hidden="true">/</span> <span>Audit trail</span></nav>
-<article class="paper">
+    return f"""<article class="paper">
 <header class="hero report-head">
   <p class="eyebrow">{escape(row.project_ref or "Mission")} · Audit trail</p>
-  <h1 class="title vt-mission">{escape(row.title)}</h1>
+  {titled(row.title, f"/dashboard/missions/{row.id}/report", "the report")}
   {chain(problems, checked)}
-  <p class="tools"><a class="pill ghost" href="{base}/report">The report</a></p>
 </header>
 <section class="part"><h2 class="caps small">Every <b>step</b></h2>
   <ol class="timeline">{items}</ol></section>

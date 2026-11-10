@@ -58,7 +58,9 @@ def test_the_bank_reading_order(page):
 
 
 def test_each_mission_is_a_row_with_words_not_only_colour(page):
-    assert 'href="/dashboard/missions/6f1d2c3a-0000-4000-8000-000000000001"' in page
+    mission = "/dashboard/missions/6f1d2c3a-0000-4000-8000-000000000001"
+    assert f'class="mission-link" href="{mission}/project"' in page  # the name: the project
+    assert f'class="review-link" href="{mission}/report"' in page  # to review: the report
     assert "KRRP-P1" in page and "Kandor" in page
     assert 'class="status received"' in page and "Received, to review" in page
     assert 'class="status in_field"' in page and "In the field" in page

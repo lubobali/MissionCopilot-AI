@@ -85,7 +85,7 @@ table.plan, .part table.ratings { width: 100%; border-collapse: collapse; font-s
   @page { margin: 2cm 2.2cm; }
   :root { color-scheme: light; --text: black; --muted: #444; --line: #bbb; --card: white; --page: white; }
   body.app { background: white; color: black; }
-  .band, .skip, .crumbs, .tools, .proof, #palette, .aurora { display: none !important; }
+  .band, .skip, .back, .tools, .proof, #palette, .aurora { display: none !important; }
   body.app main { padding: 0; max-width: none; }
   .paper { max-width: none; }
   .report-head { text-align: center; padding: 0 0 0.6cm; border-bottom: 2px solid black; }

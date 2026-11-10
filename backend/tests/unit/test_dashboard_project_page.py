@@ -48,7 +48,7 @@ def page() -> str:
 
 
 def test_a_fact_sheet_from_the_pack(page):
-    assert 'class="crumbs"' in page and 'href="/dashboard"' in page
+    assert 'class="back" href="/dashboard"' in page and 'aria-label="Back to missions"' in page
     assert "Kandor Rural Roads Project, Package 1" in page and "KRRP-P1" in page
     assert "Ministry &lt;of&gt; Works" in page and "Improve all-season road access." in page
 
@@ -68,7 +68,7 @@ def test_the_ratings_table_in_the_banks_words(page):
 def test_the_reports_listed_like_documents(page):
     assert "Mission <b>reports</b>" in page
     assert "Aide-memoire" in page and "Received, to review" in page
-    assert f'href="/dashboard/missions/{ROADS.id}"' in page
+    assert f'href="/dashboard/missions/{ROADS.id}/report"' in page
 
 
 def test_an_unknown_mission_is_404():

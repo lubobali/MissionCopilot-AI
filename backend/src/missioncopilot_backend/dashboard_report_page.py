@@ -8,6 +8,7 @@ walk saw. Strictly confidential sentences reach only the `confidential` role. A 
 from html import escape
 
 from missioncopilot_backend.dashboard_decision import panel
+from missioncopilot_backend.dashboard_layout import titled
 from missioncopilot_backend.dashboard_portfolio import moment
 from missioncopilot_backend.dashboard_project_page import rating_row
 from missioncopilot_backend.dashboard_proof import may_see, proof
@@ -76,14 +77,10 @@ def render(view: ReportView, roles: tuple[str, ...], verified: bool) -> str:
     proofs = "".join(proof(line, row.id, roles) for line in view.lines
                      if may_see(line.classification, roles))  # fmt: skip
     as_of = f" · as of {escape(view.ratings_as_of)}" if view.ratings_as_of else ""
-    return f"""<nav class="crumbs" aria-label="You are here"><a href="/dashboard">Missions</a>
-  <span aria-hidden="true">/</span> <a href="/dashboard/missions/{escape(row.id)}/project">{
-        escape(row.title)
-    }</a> <span aria-hidden="true">/</span> <span>Aide-memoire</span></nav>
-<article class="paper">
+    return f"""<article class="paper">
 <header class="hero report-head">
   <p class="eyebrow">{escape(row.project_ref or "Mission")} · Aide-memoire</p>
-  <h1 class="title vt-mission">{escape(row.title)}</h1>
+  {titled(row.title, f"/dashboard/missions/{row.id}/project", "the project")}
   {seal(view, verified)}
   <dl class="facts"><div><dt>Country</dt><dd>{escape(row.country or "")}</dd></div>
     <div><dt>Approved</dt><dd>{moment(stored.approved_at)}</dd></div>

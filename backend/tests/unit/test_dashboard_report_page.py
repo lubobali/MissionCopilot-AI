@@ -176,11 +176,17 @@ def test_no_report_is_404_and_signed_out_goes_to_sign_in():
     assert gone.status_code == 303 and gone.headers["location"] == "/dashboard/sign-in"
 
 
-def test_the_way_in_opens_the_report_when_one_waits():
-    opened = client().get(f"/dashboard/missions/{ROADS.id}")
-    assert opened.headers["location"] == f"/dashboard/missions/{ROADS.id}/report"
-    nothing = client(view=None).get(f"/dashboard/missions/{ROADS.id}")
-    assert nothing.headers["location"] == f"/dashboard/missions/{ROADS.id}/project"
+def test_a_mission_link_always_opens_its_project_page():
+    """Lubo, Nov 10: one fixed path (missions, project, report, trail), never "sometimes"."""
+    for view in (VIEW, None):
+        opened = client(view=view).get(f"/dashboard/missions/{ROADS.id}")
+        assert opened.headers["location"] == f"/dashboard/missions/{ROADS.id}/project"
+
+
+def test_the_one_way_back_goes_to_the_project():
+    html = page()
+    assert f'class="back" href="/dashboard/missions/{ROADS.id}/project"' in html
+    assert 'aria-label="Back to the project"' in html and 'class="crumbs"' not in html
 
 
 def test_a_kept_file_is_served_privately_with_its_sniffed_type():
