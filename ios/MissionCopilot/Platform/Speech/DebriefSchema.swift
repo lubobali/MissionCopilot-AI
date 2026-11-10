@@ -11,6 +11,7 @@ extension StoreSchema {
         registerReportSources(in: &migrator)
         registerReportApprovals(in: &migrator)
         registerReportSends(in: &migrator)
+        registerReportVersions(in: &migrator)  // #193
     }
 
     /// Report sources (#162): the server's signature over the pack's manifest, kept with the pack (sealed with

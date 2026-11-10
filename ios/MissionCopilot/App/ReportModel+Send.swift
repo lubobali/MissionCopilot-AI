@@ -41,4 +41,16 @@ extension ReportModel {
         if let receipt = try? store.receipt(in: mission) { return .received(receipt.receivedAt) }
         return (try? store.outbox(in: mission)) != nil ? .waiting : nil
     }
+
+    /// #193: what the manager decided, in words, at the top of the page; nil while nothing was decided.
+    var managerWords: String? {
+        if let review, review.decision == .endorsed {
+            return "Endorsed by your manager on "
+                + "\(review.reviewedAt.formatted(date: .abbreviated, time: .shortened)). It is final."
+        }
+        guard let sentBack, approved == nil else { return nil }
+        let note = sentBack.note.map { ": \u{201C}\($0)\u{201D}" } ?? "."
+        return "Sent back by your manager\(note) Change what is needed, save, then approve with Face ID and "
+            + "send version \(sentBack.version + 1)."
+    }
 }

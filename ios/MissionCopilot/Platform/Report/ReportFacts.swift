@@ -58,8 +58,12 @@ extension MissionStore {
     /// Each answer and agreed-action check of the finished walk, with its photo's evidence when it has one.
     private func walkAnswers(in mission: String, form: String, seq: Int) throws -> [FactInput] {
         let answers = try answers(form: form, mission: mission).sorted { $0.key < $1.key }.map { question, value in
-            FactInput(name: "walk:\(question)", value: value, unit: nil,
-                      sources: [FactSource(seq: seq, region: "question:\(question)")], rule: ReportRules.walkAnswer)
+            // #193: a photo answer ("evidence:N") cites its photo too, so the photo goes with the report
+            let photo = Int(value.hasPrefix("evidence:") ? value.dropFirst("evidence:".count) : "")
+                .map { [FactSource(seq: $0, region: nil)] } ?? []
+            return FactInput(name: "walk:\(question)", value: value, unit: nil,
+                             sources: [FactSource(seq: seq, region: "question:\(question)")] + photo,
+                             rule: ReportRules.walkAnswer)
         }
         let checks = try checks(mission: mission).sorted { $0.key < $1.key }.map { action, check in
             let words = ["seen: \(check.seen.rawValue)", check.note.map { "note: \($0)" }].compactMap { $0 }

@@ -61,6 +61,12 @@ struct ReportView: View {
                     .foregroundStyle(Color(.secondaryText))
             }
             .accessibilityElement(children: .combine)
+            if let words = model.managerWords {  // #193: the manager's decision
+                Label(words, systemImage: model.review?.decision == .endorsed ? "checkmark.seal.fill"
+                                                                                : "arrow.uturn.backward.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color(model.review?.decision == .endorsed ? .success : .warning))
+            }
             if !model.walkFinished {
                 Label("Finish the site walk to add what you saw.", systemImage: "figure.walk")
                     .font(.subheadline)

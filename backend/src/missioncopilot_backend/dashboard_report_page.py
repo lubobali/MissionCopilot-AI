@@ -17,9 +17,10 @@ from missioncopilot_backend.db.dashboard_report import SECTIONS, Action, Line, R
 LANGUAGES = {"en": "English", "fr": "French"}
 
 
-def seal(view: ReportView, verified: bool) -> str:
+def seal(view: ReportView, verified: bool, phone: str = "") -> str:
     stored = view.stored
-    who = (f"<small>Approved by {escape(officer(stored.approved_by))}, {moment(stored.approved_at)}"
+    by = escape(officer(stored.approved_by, phone))
+    who = (f"<small>Approved by {by}, {moment(stored.approved_at)}"
            f" · received {moment(stored.received_at)}</small>")  # fmt: skip
     if verified:
         return (f'<p class="seal ok"><span class="tick" aria-hidden="true">✓</span><span>'
@@ -71,7 +72,8 @@ def sections(view: ReportView, roles: tuple[str, ...]) -> str:
     return "".join(out)
 
 
-def render(view: ReportView, roles: tuple[str, ...], verified: bool) -> str:
+def render(view: ReportView, roles: tuple[str, ...], verified: bool, phone: str = "") -> str:
+    """`phone`: the approving phone's enrollment label, from the directory (#193)."""
     row, stored = view.row, view.stored
     ratings = "".join(rating_row(r) for r in view.ratings)
     proofs = "".join(proof(line, row.id, roles) for line in view.lines
@@ -81,7 +83,7 @@ def render(view: ReportView, roles: tuple[str, ...], verified: bool) -> str:
 <header class="hero report-head">
   <p class="eyebrow">{escape(row.project_ref or "Mission")} · Aide-memoire</p>
   {titled(row.title, f"/dashboard/missions/{row.id}/project", "the project")}
-  {seal(view, verified)}
+  {seal(view, verified, phone)}
   <dl class="facts"><div><dt>Country</dt><dd>{escape(row.country or "")}</dd></div>
     <div><dt>Approved</dt><dd>{moment(stored.approved_at)}</dd></div>
     <div><dt>Language</dt><dd>{LANGUAGES.get(stored.language, escape(stored.language))}</dd></div>

@@ -13,6 +13,8 @@ final class ReportModel {
     private(set) var lines: [ReportLine] = []
     private(set) var saved: ReportDraft?
     private(set) var approved: ReportApprovalRecord?
+    private(set) var review: ReportReview?  // #193: the manager's decision on this version
+    private(set) var sentBack: ReportReview?  // #193: why the version before was sent back
     var sending = false  // #173
     var sendOutcome: ReportSender.Outcome?
     private(set) var problem: String?
@@ -50,8 +52,11 @@ final class ReportModel {
             }.value
             (facts, sources, language, saved, approved) = (built.facts, built.sources, inputs.language, built.saved,
                                                            built.approved)
+            (review, sentBack) = (built.review, built.sentBack)
             walkFinished = walk.finished != nil
-            lines = built.approved != nil ? built.saved.map(Self.lines) ?? built.lines : built.lines
+            // Approved: the approved draft. Sent back: the sent draft, to change and approve again (#193).
+            let kept = built.approved != nil ? built.saved : built.sentBack != nil ? built.last : nil
+            lines = kept.map(Self.lines) ?? built.lines
             sendOutcome = sentBefore()
             stage = .ready
         } catch {
@@ -74,6 +79,9 @@ final class ReportModel {
         let lines: [ReportLine]
         let saved: ReportDraft?
         let approved: ReportApprovalRecord?
+        var last: ReportDraft?
+        var review: ReportReview?
+        var sentBack: ReportReview?
     }
 
     /// The report facts (written once), Ask's sources and the report by code, the latest draft and the approval.
@@ -85,10 +93,15 @@ final class ReportModel {
         let sources = MissionSources.build(SourceInputs(packFiles: inputs.files, facts: others,
                                                         walk: inputs.worded.walk, flags: inputs.worded.flags))
         let flagged = Set(MissionStore.numbered(inputs.flags).filter { $0.flag.outcome == .flag }.map(\.name))
+        let last = try store.latestDraft(in: mission)
+        let approved = try store.approval(in: mission)
+        // #193: after a send back, the draft that was sent is history: a new one must be saved and approved
+        let saved = try approved == nil && last.map { try store.isApprovedDraft($0.id) } == true ? nil : last
         return Built(facts: facts, sources: sources,
                      lines: ReportWriter.write(sources: sources, facts: facts, flagged: flagged,
                                                language: inputs.language),
-                     saved: try store.latestDraft(in: mission), approved: try store.approval(in: mission))
+                     saved: saved, approved: approved, last: last, review: try store.review(in: mission),
+                     sentBack: try store.sentBack(in: mission))
     }
 
     var unproven: Int { lines.filter { !$0.checked || $0.factIds.isEmpty }.count }
