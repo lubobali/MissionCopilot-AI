@@ -20,6 +20,10 @@ TEAM = "officer-9"  # fictional, no phone enrolled
 FRESH = "6f1d2c3a-0000-4000-8000-000000000008"
 FRESH_TITLE = "Kandor Rural Roads, Package 1: November 2026 mission"
 FRESH_TEAM = "officer-7"
+# A second clean one for the recorded demo (Phase 10): the November one holds the Phase 8 proof.
+VIDEO = "6f1d2c3a-0000-4000-8000-000000000009"
+VIDEO_TITLE = "Kandor Rural Roads, Package 1: December 2026 mission"
+CLEAN = ((FRESH, FRESH_TITLE), (VIDEO, VIDEO_TITLE))
 DATASET = files("missioncopilot_backend") / "data" / "kandor-rural-roads.json"
 P = ["Highly Unsatisfactory", "Unsatisfactory", "Moderately Unsatisfactory",
      "Moderately Satisfactory", "Satisfactory", "Highly Satisfactory"]  # fmt: skip
@@ -82,23 +86,24 @@ def _files(project: tuple) -> dict[str, bytes]:
             for name, body in sections.items()}  # fmt: skip
 
 
-def fresh_files() -> dict[str, bytes]:
+def fresh_files(title: str = FRESH_TITLE) -> dict[str, bytes]:
     """The roads dataset's pack, its project titled as this visit (so the dashboard tells them
     apart)."""
     made = pack_files(json.loads(DATASET.read_text(encoding="utf-8")))
     project = json.loads(made["sections/project.json"])
-    project["title"] = FRESH_TITLE
+    project["title"] = title
     made["sections/project.json"] = (json.dumps(project, indent=2, sort_keys=True,
                                                 ensure_ascii=False) + "\n").encode()  # fmt: skip
     return made
 
 
 def seed_portfolio(conn: psycopg.Connection) -> None:
-    """The five missions and their fictional team, and the clean mission; safe to run again."""
-    conn.execute("INSERT INTO missions (id, title) VALUES (%s, %s) ON CONFLICT DO NOTHING",
-                 [FRESH, FRESH_TITLE])  # fmt: skip
-    conn.execute("INSERT INTO mission_members VALUES (%s, %s) ON CONFLICT DO NOTHING",
-                 [FRESH, FRESH_TEAM])  # fmt: skip
+    """The five missions and their fictional team, and the clean missions; safe to run again."""
+    for clean, title in CLEAN:
+        conn.execute("INSERT INTO missions (id, title) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                     [clean, title])  # fmt: skip
+        conn.execute("INSERT INTO mission_members VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                     [clean, FRESH_TEAM])  # fmt: skip
     for project in PROJECTS:
         conn.execute("INSERT INTO missions (id, title) VALUES (%s, %s) ON CONFLICT DO NOTHING",
                      [mission_id(project[0]), project[2]])  # fmt: skip
@@ -112,10 +117,12 @@ def publish_portfolio(url: str, org_id: str, key: ec.EllipticCurvePrivateKey) ->
     with psycopg.connect(url) as conn:
         done = {row[0] for row in conn.execute("SELECT DISTINCT mission_id FROM packs")}
     published = 0
-    if FRESH not in done:
-        fresh = fresh_files()
+    for clean, title in CLEAN:
+        if clean in done:
+            continue
+        fresh = fresh_files(title)
         check_pack_files(fresh)
-        publish_pack(url, org_id, FRESH, fresh, key)
+        publish_pack(url, org_id, clean, fresh, key)
         published += 1
     for project in PROJECTS:
         if mission_id(project[0]) in done:
