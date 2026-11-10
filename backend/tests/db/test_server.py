@@ -234,7 +234,8 @@ def test_starting_never_runs_migrations_itself(world):
         build(world.env())
 
     with psycopg.connect(world.directory_url) as conn:
-        assert conn.execute("SELECT max(version) FROM schema_migrations").fetchone() == (1,)
+        missing = conn.execute("SELECT 1 FROM schema_migrations WHERE version = 2").fetchone()
+        assert missing is None, "starting did not put the deleted migration back"
 
 
 def test_migrating_again_after_the_check_brings_it_back(world):

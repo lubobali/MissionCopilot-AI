@@ -8,6 +8,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import Lifespan
 
 from missioncopilot_backend.app_version import AppVersionMiddleware
+from missioncopilot_backend.approval_keys import ApprovalKeys, ApprovalKeyStore
 from missioncopilot_backend.audit import AuditLog, AuditStore
 from missioncopilot_backend.auth import TokenVerifier
 from missioncopilot_backend.device_routes import device_routes
@@ -49,6 +50,7 @@ def create_app(
     audit: AuditStore | None = None,
     enrollment_codes: CodeStore | None = None,
     devices: DeviceStore | None = None,
+    approval_keys: ApprovalKeyStore | None = None,
     signing_key: ec.EllipticCurvePrivateKey | None = None,
     lifespan: Lifespan | None = None,
     ready: Callable[[], bool] | None = None,
@@ -68,6 +70,7 @@ def create_app(
     app.state.audit = audit = audit or AuditLog()
     app.state.enrollment_codes = enrollment_codes or EnrollmentCodes()
     app.state.devices = devices or DeviceRegistry()
+    app.state.approval_keys = approval_keys or ApprovalKeys()  # #171
     app.state.device_limits = DeviceLimits(
         RateLimiter(settings.device_rate_limit_per_minute, clock=clock)
     )
