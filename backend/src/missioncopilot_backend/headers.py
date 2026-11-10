@@ -42,6 +42,9 @@ class SecurityHeadersMiddleware:
                 path = scope["path"]
                 if path == "/dashboard" or path.startswith("/dashboard/"):
                     headers["Content-Security-Policy"] = DASHBOARD_POLICY
+                    # A form POST under no-referrer carries Origin: null (found on staging, #174);
+                    # same-origin sends the origin to this site only, nothing to any other.
+                    headers["Referrer-Policy"] = "same-origin"
                 elif path not in self.policy_exempt_paths:
                     headers["Content-Security-Policy"] = CONTENT_POLICY
                 if self.hsts:

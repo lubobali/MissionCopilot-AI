@@ -3,6 +3,7 @@ with this server's stylesheet, fonts and one script (WebAuthn needs the browser'
 navigator.credentials). Every value written into a page is escaped. The sign-in pages need no
 session; every other page does, and without one goes to sign-in."""
 
+import mimetypes
 from html import escape
 from importlib.resources import files
 
@@ -13,13 +14,18 @@ from fastapi.staticfiles import StaticFiles
 from missioncopilot_backend.dashboard_routes import COOKIE, site
 
 STATIC = files("missioncopilot_backend") / "dashboard_static"
-# The airplane is Material Symbols' "flight" (Apache-2.0), turned to fly up and right.
+mimetypes.add_type(
+    "font/woff2", ".woff2"
+)  # a slim server image has no type for it (found on staging)
+# The app's brand (BrandMedallion on the iPhone): Lubo's logo on a white tile, a glowing trail, and
+# the airplane (Material Symbols' "flight", Apache-2.0), in a glass pill.
 PLANE = (
-    '<svg class="mark" viewBox="0 0 72 32" aria-hidden="true"><path class="trail" '
-    'd="M2 27 C 20 31, 36 29, 50 18"/>'
-    '<g class="plane" transform="translate(48 2) rotate(45 12 12)">'
+    '<span class="medallion"><img class="logo" src="/dashboard/static/logo.png" alt="" width="36" '
+    'height="38"><svg class="mark" viewBox="0 0 72 32" aria-hidden="true"><path class="trail" '
+    'd="M2 22 C 20 30, 36 28, 50 16"/>'
+    '<g class="plane" transform="translate(48 0) rotate(45 12 12)">'
     '<path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22'
-    'l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></g></svg>'
+    'l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></g></svg></span>'
 )
 
 
