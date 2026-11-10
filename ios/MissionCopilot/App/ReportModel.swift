@@ -13,20 +13,25 @@ final class ReportModel {
     private(set) var lines: [ReportLine] = []
     private(set) var saved: ReportDraft?
     private(set) var approved: ReportApprovalRecord?
+    var sending = false  // #173
+    var sendOutcome: ReportSender.Outcome?
     private(set) var problem: String?
     private(set) var walkFinished = false
     private(set) var language = AnswerLanguage.english
     private var sources: [MissionSource] = []
     private var facts: [Fact] = []
     let mission: String
-    private let store: MissionStore
+    let store: MissionStore
     private let signer: any EvidenceSigner
     private let approvalSigner: any ApprovalSigner
+    let sendReport: (@Sendable (String) async -> ReportSender.Outcome)?
 
     init(mission: String, store: MissionStore,
          signer: any EvidenceSigner = SecureEnclaveEvidenceSigner(user: AppSession.localProfile),
-         approvalSigner: any ApprovalSigner = SecureEnclaveApprovalSigner(user: AppSession.localProfile)) {
+         approvalSigner: any ApprovalSigner = SecureEnclaveApprovalSigner(user: AppSession.localProfile),
+         send: (@Sendable (String) async -> ReportSender.Outcome)? = nil) {
         (self.mission, self.store, self.signer, self.approvalSigner) = (mission, store, signer, approvalSigner)
+        sendReport = send
     }
 
     /// The walk and its flags, the report facts, Ask's sources, then the report by code. #163, 7.3.6 (found on the
@@ -47,6 +52,7 @@ final class ReportModel {
                                                            built.approved)
             walkFinished = walk.finished != nil
             lines = built.approved != nil ? built.saved.map(Self.lines) ?? built.lines : built.lines
+            sendOutcome = sentBefore()
             stage = .ready
         } catch {
             stage = .cannotOpen

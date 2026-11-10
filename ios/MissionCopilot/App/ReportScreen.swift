@@ -34,7 +34,7 @@ struct ReportScreen: View {
                 cannotOpen = true
                 return
             }
-            let made = ReportModel(mission: id, store: store)
+            let made = ReportModel(mission: id, store: store, send: list.world.sendReport)
             model = made
             await made.load()
         }
@@ -47,6 +47,7 @@ struct ReportView: View {
     @State private var proof: ReportLine?
     @State private var adding: ReportSection?
     @State private var editing: ReportLine?
+    @State private var reviewing = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -94,10 +95,12 @@ struct ReportView: View {
                 Label(model.approvalHint, systemImage: "checkmark.seal.fill")
                     .font(.headline)
                     .foregroundStyle(Color(.success))
+                SendSection(model: model) { reviewing = true }
             }
         }
         .padding(16)
         .sheet(item: $proof) { line in ProofSheet(line: line, cards: model.proof(line)) }
+        .sheet(isPresented: $reviewing) { SendReview(model: model) { reviewing = false } }
         .sheet(item: $adding) { section in
             SentenceEditor(model: model, section: section, start: nil) { adding = nil }
         }

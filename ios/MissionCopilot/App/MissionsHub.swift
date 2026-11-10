@@ -100,6 +100,11 @@ extension Connection {
                                                                                           client: client)
                 }
             }
+            world.sendReport = { mission in  // #173: Send on the report page
+                guard let store = await MainActor.run(body: { missions() }) else { return .notQueued }
+                return await ReportSender(store: store, registration: registration).send(mission: mission,
+                                                                                         client: client)
+            }
             return .success(MissionListModel(world: world, missions: missions) { [weak hub] body in
                 let phone = ShredOrderAction.Phone(records: records, forgetKey: { try? signer.deleteKey() })
                 let result = ShredOrderAction.handle(body, phone: phone, missions: missions(),

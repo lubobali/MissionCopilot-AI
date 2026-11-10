@@ -82,6 +82,13 @@ extension ScreenshotTests {
             .frame(maxHeight: .infinity, alignment: .top).fieldScreen(), look: look, name: "report-approved")
     }
 
+    /// #173: the approved report with Send, and the review of exactly what goes.
+    @Test(arguments: [Look.light, .dark, .largestText])
+    func theSendReviewIsOnTheThemeBackground(look: Look) async throws {
+        let (model, _) = try await ReportModelSendTests.approved { _ in .waiting }
+        try check(SendReviewContent(model: model) {}.frame(height: 700), look: look, name: "report-send-review")
+    }
+
     /// #142, #152: the notes review, a sentence note confirmed, a sentence left to tag, and the heard numbers.
     @Test(arguments: [Look.light, .dark, .largestText])
     func theDebriefNotesAreOnTheThemeBackground(look: Look) async throws {
