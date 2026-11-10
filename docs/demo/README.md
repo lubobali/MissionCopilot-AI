@@ -34,4 +34,8 @@ instructions, hidden text (near-white, tiny, light gray), fake second values and
 fake approvals, dates outside the contract period (`pack.contractPeriod`), spoken instructions (stock
 macOS voice, never a real person's) and one oversized input. Payments are approved only in the app,
 by `pack.paymentApprover`, never by anything printed on a document.
+Six adaptive attacks (#65, X1 to X6) were written knowing these checks: a split instruction, a forged
+table row, an approval naming the real approver and a paraphrased hidden line are still caught; a forgery
+that agrees with every record (X1) and a wrong date inside the contract (X2) are not, by design: no reading
+of a page can tell them from true ones, so the officer and the manager's approval are the defense.
 Rebuild: `uv run --directory backend python ../scripts/make_injection_set.py`.
