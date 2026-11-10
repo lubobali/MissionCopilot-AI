@@ -22,7 +22,7 @@ struct ReportScreen: View {
                     .multilineTextAlignment(.center)
                     .padding(24)
             } else {
-                Loading(text: "Writing the report from this mission's records")
+                AskOpening(words: "Writing the report from this mission's records…")
             }
         }
         .fieldScreen()
@@ -36,7 +36,7 @@ struct ReportScreen: View {
             }
             let made = ReportModel(mission: id, store: store)
             model = made
-            made.load()
+            await made.load()
         }
     }
 }
@@ -71,13 +71,28 @@ struct ReportView: View {
                     .font(.subheadline)
                     .foregroundStyle(Color(.warning))
             }
-            Button("Save the draft", systemImage: "square.and.arrow.down", action: model.save)
+            if model.approved == nil {
+                Button("Save the draft", systemImage: "square.and.arrow.down", action: model.save)
+                    .buttonStyle(.fieldPrimary)
+                    .disabled(!model.canSave)
+                if let saved = model.saved {
+                    Label("Draft saved \(saved.createdAt.formatted(date: .abbreviated, time: .shortened)), "
+                          + "\(saved.sentences.count) sentences", systemImage: "checkmark.seal.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(Color(.success))
+                }
+                Button("Approve with Face ID", systemImage: "faceid") {
+                    Task { await model.approve() }
+                }
                 .buttonStyle(.fieldPrimary)
-                .disabled(!model.canSave)
-            if let saved = model.saved {
-                Label("Draft saved \(saved.createdAt.formatted(date: .abbreviated, time: .shortened)), "
-                      + "\(saved.sentences.count) sentences", systemImage: "checkmark.seal.fill")
-                    .font(.subheadline)
+                .disabled(!model.canApprove)
+                .accessibilityHint("Asks Face ID or your passcode, then signs the report on this iPhone")
+                Text(model.approvalHint)
+                    .font(.footnote)
+                    .foregroundStyle(Color(.secondaryText))
+            } else {
+                Label(model.approvalHint, systemImage: "checkmark.seal.fill")
+                    .font(.headline)
                     .foregroundStyle(Color(.success))
             }
         }
@@ -101,12 +116,14 @@ struct ReportView: View {
                 .accessibilityAddTraits(.isHeader)
             ForEach(lines) { line in
                 ReportSentence(line: line, number: (model.lines.firstIndex(of: line) ?? 0) + 1,
-                               onProof: { proof = line }, onEdit: { editing = line },
+                               locked: model.approved != nil, onProof: { proof = line }, onEdit: { editing = line },
                                onRemove: { model.remove(line.id) })
             }
-            Button("Add a sentence", systemImage: "plus") { adding = section }
-                .font(.subheadline)
-                .buttonStyle(.borderless)
+            if model.approved == nil {
+                Button("Add a sentence", systemImage: "plus") { adding = section }
+                    .font(.subheadline)
+                    .buttonStyle(.borderless)
+            }
         }
     }
 }

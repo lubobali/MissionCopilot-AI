@@ -17,6 +17,7 @@ extension MissionStore {
     @discardableResult
     func saveDraft(_ lines: [ReportLine], language: AnswerLanguage, in mission: String,
                    now: Date = Date()) throws -> ReportDraft {
+        if try approval(in: mission) != nil { throw ReportApproved() }  // #163: never drafted over
         if let unproven = lines.first(where: { $0.factIds.isEmpty || !$0.checked }) {
             throw NoProof(text: unproven.text)
         }

@@ -4,14 +4,18 @@ import SwiftUI
 /// like nothing happened, and Lubo tapped again).
 struct AskOpening: View {
     static let words = "Opening this mission's data…"
+    /// #163, 7.3.6: the report page opens with the same spinner and its own words.
+    var words = Self.words
 
     var body: some View {
         VStack(spacing: 14) {
             ProgressView()
                 .controlSize(.large)
-            Text(Self.words)
+            Text(words)
                 .font(.subheadline)
                 .foregroundStyle(Color(.secondaryText))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)  // #163: a long line wraps instead of touching the edges
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .combine)
