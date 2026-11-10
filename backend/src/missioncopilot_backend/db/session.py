@@ -16,3 +16,14 @@ def as_user(pool: ConnectionPool, user_id: str) -> Generator[psycopg.Connection]
     with pool.connection() as conn, conn.transaction():
         conn.execute("SELECT set_config('app.user_id', %s, true)", [user_id])
         yield conn
+
+
+@contextmanager
+def as_manager(pool: ConnectionPool, user_id: str) -> Generator[psycopg.Connection]:
+    """A connection in which Postgres knows the caller is a manager of this organization (#175):
+    read-only policies let them see every mission. Only for a person whose dashboard session has
+    the manager role; never from anything the browser sends."""
+    with pool.connection() as conn, conn.transaction():
+        conn.execute("SELECT set_config('app.user_id', %s, true)", [user_id])
+        conn.execute("SELECT set_config('app.role', 'manager', true)")
+        yield conn

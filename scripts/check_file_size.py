@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-CODE_SUFFIXES = {".py", ".swift", ".ts", ".tsx"}
+CODE_SUFFIXES = {".py", ".swift", ".ts", ".tsx", ".js", ".css"}  # .js, .css: the dashboard (#175)
 DEFAULT_LIMIT = 300
 
 
