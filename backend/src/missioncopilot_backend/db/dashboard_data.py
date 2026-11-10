@@ -10,6 +10,7 @@ from typing import Literal
 import psycopg
 from psycopg_pool import ConnectionPool
 
+from missioncopilot_backend.db import dashboard_project as page
 from missioncopilot_backend.db.session import as_manager
 
 Status = Literal["received", "sent_back", "endorsed", "in_field"]
@@ -116,3 +117,23 @@ class DashboardData:
             received_at=report[0] if report else None, approved_at=report[1] if report else None,
             points=_points(conn, mission_id),
         )  # fmt: skip
+
+    def project(self, manager_id: str, mission_id: str) -> "page.ProjectView | None":
+        """The project page's view of one mission of the organization, or None (#176)."""
+        with as_manager(self._pool, manager_id) as conn:
+            found = conn.execute(
+                "SELECT title FROM missions WHERE id = %s", [mission_id]
+            ).fetchone()
+            if found is None:
+                return None
+            row = self._row(conn, mission_id, found[0])
+            project = _section(conn, mission_id, "sections/project.json")
+            rated = _section(conn, mission_id, "sections/ratings.json")
+            return page.ProjectView(
+                row=row, facts=page.facts(project),
+                objective=str(project.get("developmentObjective", "")),
+                financing=page.financing(_section(conn, mission_id, "sections/financing.json")),
+                components=page.components(_section(conn, mission_id, "sections/components.json")),
+                ratings=page.ratings(rated), ratings_as_of=page.day(rated.get("asOf")),
+                reports=page.reports(conn, mission_id, row.status),
+            )  # fmt: skip

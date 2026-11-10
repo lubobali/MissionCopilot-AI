@@ -4,6 +4,7 @@ signed-in manager and sign out; then the page; and the Command-K palette. Every 
 
 from html import escape
 
+from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 MEDALLION = (
@@ -66,3 +67,16 @@ def shell(title: str, manager: str, body: str, palette: list[tuple[str, str, str
 </html>
 """
     )
+
+
+def reader(request: Request, org_id: str):
+    """The organization's dashboard reads: a test may set app.state.dashboard_reader; the server
+    opens the organization's own database (db/dashboard_data.py)."""
+    made = getattr(request.app.state, "dashboard_reader", None)
+    if made is not None:
+        return made(org_id)
+    databases = request.app.state.databases
+    found = databases.dashboard_for(org_id) if databases is not None else None
+    if found is None:
+        raise HTTPException(404)
+    return found
