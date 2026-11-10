@@ -232,7 +232,8 @@ def test_the_demo_can_go_into_another_organization_from_the_command_line(ops, ca
 
     out = capsys.readouterr().out
     assert f"OK: demo loaded into {e2e}" in out and f"published into {e2e}" in out
-    for org_id, expected in ((e2e, (2, 1)), (untouched, (0, 0))):  # (missions, packs)
+    # (missions, packs): roads and bridges, and the five portfolio projects with their packs
+    for org_id, expected in ((e2e, (7, 6)), (untouched, (0, 0))):
         database = make_conninfo(admin_url(), dbname=names_for(org_id)[0])
         with psycopg.connect(database) as conn:
             found = conn.execute(

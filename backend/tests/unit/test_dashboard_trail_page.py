@@ -93,6 +93,7 @@ def test_the_trail_lists_every_step_in_order_with_the_log():
     ]
     assert [html.index(words) for words in order] == sorted(html.index(w) for w in order)
     assert html.count("Report sent from the iPhone") == 1
+    assert "officer-7" not in html and "The officer&#x27;s iPhone" in html  # names, never ids
     assert "Check &lt;the&gt; bridge numbers." in html
     assert 'class="seal ok"' in html and "Chain intact" in html and "2 log entries" in html
 

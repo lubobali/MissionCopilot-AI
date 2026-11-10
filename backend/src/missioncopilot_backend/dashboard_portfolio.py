@@ -2,6 +2,7 @@
 numbers, the missions table (reports to review first) and the site visits radar. Status and risk say
 their words and carry an icon, never colour alone (WCAG 1.4.1); no coordinates are printed."""
 
+import math
 from datetime import UTC, datetime
 from html import escape
 
@@ -73,24 +74,39 @@ def row_html(row: MissionRow) -> str:
 </tr>"""
 
 
+RING = {"High": 24, "Substantial": 46, "Moderate": 66, "Low": 84}  # riskier: nearer the centre
+
+
 def radar(rows: list[MissionRow]) -> str:
-    points = [(row, point) for row in rows for point in row.points]
-    dots = "".join(f'<circle class="dot" cx="{100 + 18 * i}" cy="{100 - 12 * i}" r="4"/>'
-                   for i, _ in enumerate(points))  # fmt: skip
-    if points:
-        row, (_, _, accuracy) = points[0]
-        note = (f"{len(points)} sample point{'s' if len(points) != 1 else ''} · "
-                f"{escape(row.title)} · within {accuracy:.0f} m")  # fmt: skip
-    else:
-        note = "No site visit received yet"
+    """One dot per mission: its distance from the centre is its risk now (the bullseye is where to
+    look first), a report to review pulses, each dot opens its mission. No coordinates printed."""
+    blips = []
+    for i, row in enumerate(rows):
+        angle = math.tau * i / max(len(rows), 1) - math.pi / 2
+        r = RING.get(row.risk_now or "", 90)
+        x, y = 100 + r * math.cos(angle), 100 + r * math.sin(angle)
+        page = "report" if row.status != "in_field" else "project"
+        words = f"{row.title}: risk {row.risk_now or 'not rated'}, {STATUS[row.status][0]}"
+        link = f"/dashboard/missions/{escape(row.id)}/{page}"
+        blips.append(f'<a class="blip {row.status}" href="{link}"><title>{escape(words)}</title>'
+
+                     f'<circle cx="{x:.1f}" cy="{y:.1f}" r="5"/></a>')  # fmt: skip
+    points = sum(len(row.points) for row in rows)
+    note = (f"{len(rows)} mission{'s' if len(rows) != 1 else ''} · nearer the centre, higher risk"
+            f" · {points} site point{'s' if points != 1 else ''} received")  # fmt: skip
     return f"""<section class="card visits" aria-labelledby="visits">
-  <h2 id="visits" class="caps small">Site <b>visits</b></h2>
-  <svg class="radar" viewBox="0 0 200 200" role="img" aria-label="{note}">
-    <circle class="ring" cx="100" cy="100" r="90"/><circle class="ring" cx="100" cy="100" r="60"/>
-    <circle class="ring" cx="100" cy="100" r="30"/><path class="axis" d="M100 10v180M10 100h180"/>
-    <g class="sweep"><path d="M100 100 L100 10 A90 90 0 0 1 163.6 36.4 Z"/></g>{dots}
+  <h2 id="visits" class="caps small">Risk <b>radar</b></h2>
+  <svg class="radar" viewBox="0 0 200 200" role="img" aria-label="{escape(note)}">
+    <circle class="ring high" cx="100" cy="100" r="35"/>
+    <circle class="ring" cx="100" cy="100" r="56"/>
+    <circle class="ring" cx="100" cy="100" r="76"/><circle class="ring" cx="100" cy="100" r="94"/>
+    <path class="axis" d="M100 6v188M6 100h188"/>
+    <g class="sweep"><path d="M100 100 L100 6 A94 94 0 0 1 166.5 33.5 Z"/></g>{"".join(blips)}
   </svg>
-  <p class="note">{note}</p>
+  <p class="legend"><span class="key received"></span>To review
+    <span class="key in_field"></span>In the field <span class="key endorsed"></span>Endorsed
+    <span class="key sent_back"></span>Sent back</p>
+  <p class="note">{escape(note)}</p>
 </section>"""
 
 

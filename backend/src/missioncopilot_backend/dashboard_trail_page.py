@@ -18,6 +18,9 @@ LOGGED = {
     "report_sent_back": "Send back logged",
 }
 
+BY = {"pack_downloaded": "The officer's iPhone", "mission_synced": "The officer's iPhone",
+      "report_endorsed": "A manager", "report_sent_back": "A manager"}  # fmt: skip
+
 
 def steps(trail: Trail, events: list[AuditEvent]) -> list[tuple[float, str, str, str]]:
     """(when, kind, what, who), oldest first."""
@@ -31,9 +34,11 @@ def steps(trail: Trail, events: list[AuditEvent]) -> list[tuple[float, str, str,
         what = (f"Version {r.version} endorsed with Touch ID" if r.decision == "endorsed"
                 else f"Version {r.version} sent back: “{r.note}”")  # fmt: skip
         found.append((r.reviewed_at, r.decision, what, r.reviewer_name))
+    names = {r.reviewer_id: r.reviewer_name for r in trail.reviews}  # Lubo: names, never user ids
     for e in events:
         if e.kind in LOGGED:
-            found.append((e.at, "logged", f"{LOGGED[e.kind]} · log entry {e.seq}", e.actor or ""))
+            who = names.get(e.actor or "") or BY[e.kind]
+            found.append((e.at, "logged", f"{LOGGED[e.kind]} · log entry {e.seq}", who))
     return sorted(found, key=lambda step: step[0])
 
 

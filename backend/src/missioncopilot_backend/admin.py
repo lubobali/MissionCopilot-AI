@@ -4,12 +4,11 @@ Usage (uv run --directory backend missioncopilot-admin <command>):
   setup              the directory database and its own login (once)
   add-org <org id>   an organization's database, logins and address file
   migrate            every database up to the code's migrations (the server never does this itself)
-  seed-demo [--org ID]  the fictional Kandor demo (two missions and their teams) into kandor-works
-                        or another organization
+  seed-demo [--org ID]  the fictional Kandor demo (seven missions, their teams) into kandor-works
   make-signing-key   the server's key for packs and shred orders (once); prints its public half
-  publish-demo-pack [--checklist FORM.xlsx] [--org ID]  the Kandor roads pack, built from the
-                     demo dataset, with an admin's checklist if given, checked, signed, as the
-                     next version (into kandor-works or another organization)
+  publish-demo-pack [--checklist FORM.xlsx] [--org ID]  the Kandor roads pack from the dataset,
+                     with an admin's checklist if given, and the five other projects' packs
+                     (admin_portfolio.py); checked, signed, next version (kandor-works or --org)
   convert-checklist FORM.xlsx [--out FILE]   check an .xlsx form and write the pack's checklist JSON
                                              (no database; try a form before publishing it)
   issue-code <org> <user> [--label]  a one-time code for one person's phone (15 minutes)
@@ -44,6 +43,7 @@ from psycopg.conninfo import conninfo_to_dict, make_conninfo
 from missioncopilot_backend import admin_config, admin_dashboard, admin_devices
 from missioncopilot_backend.admin_common import AdminError, as_admin, directory_url
 from missioncopilot_backend.admin_config import DIRECTORY
+from missioncopilot_backend.admin_portfolio import publish_portfolio, seed_portfolio
 from missioncopilot_backend.checklist_xlsx import from_xlsx
 from missioncopilot_backend.db.directory import Directory
 from missioncopilot_backend.db.migrations import load, migrate
@@ -141,6 +141,7 @@ def seed_demo(admin_url: str, address_dir: Path, org_id: str = DEMO_ORG) -> None
                     "INSERT INTO mission_members VALUES (%s, %s) ON CONFLICT DO NOTHING",
                     [mission_id, user],
                 )
+        seed_portfolio(conn)  # Lubo, Nov 10: the rest of the fictional portfolio
 
 
 def make_signing_key(path: Path) -> tuple[str, str]:
@@ -164,6 +165,7 @@ def publish_demo_pack(
     url = make_conninfo(admin_url, dbname=database)
     files = pack_files(data, checklist)
     check_pack_files(files)
+    publish_portfolio(url, org_id, load_signing_key(key_path))  # the other five projects' packs
     return publish_pack(url, org_id, ROADS, files, load_signing_key(key_path))
 
 
@@ -254,9 +256,7 @@ def _database_command(args: argparse.Namespace, env: Mapping[str, str]) -> None:
             admin_url, address_dir, args.org_id, args.user_id, args.name, args.base,
             confidential=args.confidential,
         )  # fmt: skip
-        print(
-            f"OK: invite for {args.name}: {link}\nIt works once, for 15 minutes (until {expires})."
-        )
+        print(f"OK: invite for {args.name}: {link}\nIt works once, 15 minutes (until {expires}).")
     elif args.command == "setup":
         path = setup(admin_url, address_dir, directory)
         print(f"OK: directory set up; its address is in {path}")
