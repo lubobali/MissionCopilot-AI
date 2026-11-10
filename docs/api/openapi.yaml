@@ -505,6 +505,61 @@ paths:
           $ref: "#/components/responses/ShredOrder"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /v1/devices/me/approval-key:
+    post:
+      tags: [devices]
+      operationId: addApprovalKey
+      security:
+        - deviceSignature: []
+      summary: Keep the officer's Face ID approval key with this phone (#171)
+      description: >
+        The public half of the phone's approval key, a separate Secure Enclave key that asks Face ID
+        or the passcode for every report approval (#163). Kept with this phone, append-only, so a
+        sync can check an approval against it (#172). P-256 only, never the phone's own request key;
+        the same key again answers the same record; a key another phone holds is refused.
+      parameters:
+        - $ref: "#/components/parameters/AppBuild"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalKeyIn"
+      responses:
+        "201":
+          description: The key, kept
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalKey"
+        "200":
+          description: The same key, already kept
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalKey"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AppTooOld"
+        "409":
+          description: Another phone holds this key
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "410":
+          $ref: "#/components/responses/ShredOrder"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "422":
+          description: Not a P-256 public key, or the phone's own request key
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/devices/enroll:
     post:
       tags: [devices]
@@ -837,6 +892,27 @@ components:
                       expiresAt:
                         type: string
                         format: date-time
+    ApprovalKeyIn:
+      type: object
+      additionalProperties: false
+      required: [publicKeyDER]
+      properties:
+        publicKeyDER:
+          type: string
+          format: byte
+          maxLength: 400
+          description: SubjectPublicKeyInfo DER of a P-256 key, base64
+    ApprovalKey:
+      type: object
+      required: [keyId, addedAt]
+      properties:
+        keyId:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: SHA-256 of the DER, hex
+        addedAt:
+          type: string
+          format: date-time
     Device:
       type: object
       required: [id, userId, label, status, enrolledAt]

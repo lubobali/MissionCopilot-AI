@@ -4,13 +4,15 @@ import base64
 import binascii
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
+from missioncopilot_backend.approval_keys import ApprovalKeyStore, KeyTaken
 from missioncopilot_backend.auth import Principal, audit, require_role, secured_router
 from missioncopilot_backend.device_auth import DevicePrincipal, device_router, require_device
 from missioncopilot_backend.devices import CodeStore, Device, DeviceStore, enroll
 from missioncopilot_backend.models import StrictModel
+from missioncopilot_backend.signatures import load_p256_public_key
 
 
 class EnrollmentCodeRequest(StrictModel):
@@ -45,6 +47,15 @@ class DeviceOut(BaseModel):
             status=device.status,
             enrolledAt=_iso(device.enrolled_at),
         )
+
+
+class ApprovalKeyIn(StrictModel):
+    publicKeyDER: str = Field(min_length=1, max_length=400)
+
+
+class ApprovalKeyOut(BaseModel):
+    keyId: str
+    addedAt: str
 
 
 ENROLLMENT_FAILED = HTTPException(401)
@@ -146,6 +157,35 @@ def get_own_device(
     if device is None:  # removed between the signature check and now
         raise HTTPException(401)
     return DeviceOut.of(device)
+
+
+@phone.post("/devices/me/approval-key", status_code=201)
+def add_approval_key(
+    body: ApprovalKeyIn,
+    request: Request,
+    response: Response,
+    caller: DevicePrincipal = Depends(require_device),
+) -> ApprovalKeyOut:
+    """The phone's Face ID approval key (#171): kept with this phone so a sync can check its
+    approvals. P-256 only, never the phone's own request key (one key, one job); the same key again
+    answers the same record (200); another phone's key is refused (409)."""
+    key = _bytes(body.publicKeyDER)
+    devices: DeviceStore = request.app.state.devices
+    device = devices.find(caller.device_id)
+    usable = key is not None and load_p256_public_key(key) is not None
+    if not usable or device is None or key == device.public_key_der:
+        raise HTTPException(422)
+    keys: ApprovalKeyStore = request.app.state.approval_keys
+    known = len(keys.keys_of(caller.device_id))
+    try:
+        kept = keys.add(caller.device_id, key)
+    except KeyTaken:
+        raise HTTPException(409) from None
+    if len(keys.keys_of(caller.device_id)) == known:
+        response.status_code = 200  # already kept: safe to send again
+    else:
+        audit(request, "approval_key_added", caller.org_id, caller.user_id, subject=kept.key_id)
+    return ApprovalKeyOut(keyId=kept.key_id, addedAt=_iso(kept.added_at))
 
 
 def device_routes() -> list[APIRouter]:

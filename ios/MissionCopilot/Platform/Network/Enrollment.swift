@@ -66,6 +66,8 @@ struct Enroller: Sendable {
 struct DeviceRecord: Codable, Equatable, Sendable {
     let deviceId: String
     var approved: Bool
+    /// The Face ID approval key the server keeps for this phone (#171); nil until it is sent.
+    var approvalKeyId: String?
 }
 
 struct DeviceRecordStore: Sendable {

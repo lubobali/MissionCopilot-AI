@@ -32,7 +32,8 @@ final class MissionListModelTests {
     func model(now: Date = now, wait: @escaping @Sendable (Int) async -> Void = { _ in },
                jitter: @escaping @Sendable (Int) -> Int = { $0 },
                signer: EvidenceSigner = SoftwareEvidenceSigner(),
-               also: P256.Signing.PublicKey? = nil) throws -> MissionListModel {
+               also: P256.Signing.PublicKey? = nil,
+               register: @escaping @Sendable () async -> Void = {}) throws -> MissionListModel {
         let client = ServerClient(base: URL(string: "https://kandor-works.example.org")!,
                                   deviceId: "6f1d2c3a-1111-4000-8000-000000000007", signer: signer,
                                   counter: RequestCounter(items: KeychainItems(service: service), account: "phone"),
@@ -43,7 +44,8 @@ final class MissionListModelTests {
         }
         let world = MissionListWorld(client: client, keys: pinned,
                                      stagingBase: base, schema: try PackSectionsTests.schema(), runways: [],
-                                     freeSpace: { 1 << 30 }, now: { now }, chunk: 256, wait: wait, jitter: jitter)
+                                     freeSpace: { 1 << 30 }, now: { now }, chunk: 256, wait: wait, jitter: jitter,
+                                     registerApprovalKey: register)
         let made = MissionListModel(world: world, missions: { [unowned self] in gate.isOpen ? store : nil },
                                     onShredOrder: { [unowned self] in shredOrders.append($0) })
         made.onChange = { [unowned self] in seen.append($0) }
@@ -61,6 +63,20 @@ final class MissionListModelTests {
     }
 
     // The list
+
+    /// #171: after the server answered the list (the phone is approved and online), the phone sends its Face ID
+    /// approval key; with no signal it does not try.
+    @Test(.needsRepoFiles) func theApprovalKeyIsSentAfterTheListComes() async throws {
+        let count = Counter()
+        let list = try model(register: { count.add() })
+
+        await list.refresh()
+        #expect(count.value == 1)
+
+        server.offline = true
+        await list.refresh()
+        #expect(count.value == 1, "no signal: not tried")
+    }
 
     @Test(.needsRepoFiles) func bothKandorMissionsAreListedAndOnlyRoadsCanBeDownloaded() async throws {
         let list = try model()
@@ -269,4 +285,12 @@ final class Gate: @unchecked Sendable {
         get { lock.withLock { open } }
         set { lock.withLock { open = newValue } }
     }
+}
+
+/// Counts calls from any thread.
+final class Counter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    var value: Int { lock.withLock { count } }
+    func add() { lock.withLock { count += 1 } }
 }

@@ -18,6 +18,7 @@ import psycopg
 from psycopg import sql
 from psycopg_pool import ConnectionPool
 
+from missioncopilot_backend.approval_keys import ApprovalKey, KeyTaken, key_id
 from missioncopilot_backend.db.audit_log import PostgresAuditLog
 from missioncopilot_backend.db.migrations import load, migrate
 from missioncopilot_backend.db.pools import open_pool
@@ -147,6 +148,56 @@ class PostgresDeviceRegistry:
         return row is not None
 
 
+class PostgresApprovalKeys:
+    """Approval keys in the directory (#171). The key id is the primary key, so two phones sending
+    the same key cannot both keep it, even if their requests race."""
+
+    def __init__(self, pool: ConnectionPool, clock: Callable[[], float]):
+        self._pool, self._clock = pool, clock
+
+    def add(self, device_id: str, public_key_der: bytes) -> ApprovalKey:
+        with self._pool.connection() as conn:
+            conn.execute(
+                "INSERT INTO device_approval_keys (key_id, device_id, public_key_der, added_at)"
+                " VALUES (%s, %s, %s, %s) ON CONFLICT (key_id) DO NOTHING",
+                [key_id(public_key_der), _uuid(device_id), public_key_der, self._clock()],
+            )
+        found = self._row(key_id(public_key_der))
+        if found is None or found.device_id != device_id:
+            raise KeyTaken
+        return found
+
+    def keys_of(self, device_id: str) -> list[ApprovalKey]:
+        device = _uuid(device_id)
+        if device is None:
+            return []
+        with self._pool.connection() as conn:
+            rows = conn.execute(
+                "SELECT key_id, device_id, public_key_der, added_at FROM device_approval_keys"
+                " WHERE device_id = %s ORDER BY added_at, key_id",
+                [device],
+            ).fetchall()
+        return [_approval_key(row) for row in rows]
+
+    def find(self, device_id: str, key: str) -> ApprovalKey | None:
+        found = self._row(key)
+        return found if found is not None and found.device_id == device_id else None
+
+    def _row(self, key: str) -> ApprovalKey | None:
+        with self._pool.connection() as conn:
+            row = conn.execute(
+                "SELECT key_id, device_id, public_key_der, added_at FROM device_approval_keys"
+                " WHERE key_id = %s",
+                [key],
+            ).fetchone()
+        return _approval_key(row) if row else None
+
+
+def _approval_key(row: tuple) -> ApprovalKey:
+    found, device_id, public_key_der, added_at = row
+    return ApprovalKey(found, str(device_id), bytes(public_key_der), added_at)
+
+
 class Directory:
     MIGRATIONS = MIGRATIONS
 
@@ -154,6 +205,7 @@ class Directory:
         self._pool = pool
         self.codes = PostgresEnrollmentCodes(pool, clock)
         self.devices = PostgresDeviceRegistry(pool, clock)
+        self.approval_keys = PostgresApprovalKeys(pool, clock)
         self.audit = PostgresAuditLog(pool, clock)
 
     @classmethod
