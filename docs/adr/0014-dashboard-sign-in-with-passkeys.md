@@ -45,6 +45,15 @@ because sign-in happens before the organization is known.
 - Without a Touch ID (a closed lid, an old Mac) the Mac asks its password instead (user
   verification still holds).
 
+## Note: Endorse and send back (#178, Nov 2026)
+- Endorse asks the passkey again with user verification required, over a challenge that names the
+  manager and the exact report (mission, version, SHA-256 of the officer's approval). The assertion
+  is kept with the decision, append-only; one final decision per version.
+- A manager may instead send the report back with a note; the officer's phone reads it on its next
+  contact (`GET /v1/missions/{id}/report/review`) and the next report arrives as a new version. The
+  phone side (showing the note, drafting again) is a follow-up story.
+- Separation of duties is enforced in Postgres: nobody on the mission's team can decide on it.
+
 ## Revisit when
 - The institution's single sign-on is available: sign in through it, and keep passkeys for Endorse.
 - More than one organization's managers use the same dashboard at once.

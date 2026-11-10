@@ -27,6 +27,16 @@ HEAD = """<!doctype html>
 """
 
 
+def titled(title: str, back: str, back_to: str = "") -> str:
+    """The page title with the way back: a round ‹. dashboard.js takes it to the page you came
+    from; without one (a new tab, a typed link) it goes to the page one step up (`back`)."""
+    label = "Back"
+    return (f'<div class="titled"><a class="back" href="{escape(back)}"'
+            f' aria-label="{escape(label)}" title="{escape(label)}">'
+            '<span aria-hidden="true">‹</span></a>'
+            f'<h1 class="title vt-mission">{escape(title)}</h1></div>')  # fmt: skip
+
+
 def head(title: str, inner: bool, styles: tuple[str, ...] = ()) -> str:
     names = ("pages", *styles) if inner else styles
     pages = "".join(f'<link rel="stylesheet" href="/dashboard/static/{n}.css">\n' for n in names)

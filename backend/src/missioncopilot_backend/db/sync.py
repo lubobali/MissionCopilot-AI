@@ -11,6 +11,7 @@ from typing import LiteralString
 import psycopg
 from psycopg_pool import ConnectionPool
 
+from missioncopilot_backend.db.reviews import Review, read_reviews
 from missioncopilot_backend.db.session import as_user
 from missioncopilot_backend.evidence import Record
 from missioncopilot_backend.sync_batch import SyncBatch, decode
@@ -53,27 +54,48 @@ class StoredReport:
     device_id: str
     received_at: float
     sentences: list[StoredSentence]
+    version: int = 1  # #178: a report sent back comes again as the next version
+
+
+class AlreadyReceived(Exception):
+    """The mission's newest report was not sent back: it stands, nothing replaces it (#178)."""
 
 
 def read_report(conn: psycopg.Connection, mission_id: str) -> StoredReport | None:
-    """The mission's approved report with its sentences in order, or None (any row-level role)."""
+    """The mission's newest approved report with its sentences in order, or None (any row-level
+    role)."""
     row = conn.execute(
         "SELECT draft_id, language, approved_by, approved_at, approval_payload,"
-        " approval_signature, approval_key_id, device_id, received_at FROM reports"
-        " WHERE mission_id = %s",
+        " approval_signature, approval_key_id, device_id, received_at, version FROM reports"
+        " WHERE mission_id = %s ORDER BY version DESC LIMIT 1",
         [mission_id],
     ).fetchone()
     if row is None:
         return None
+    draft, language, by, at, payload, signature, key, device, received, version = row
     lines = conn.execute(
         "SELECT sentence_id, section, text, classification, fact_ids FROM report_sentences"
-        " WHERE mission_id = %s ORDER BY position",
-        [mission_id],
+        " WHERE mission_id = %s AND version = %s ORDER BY position",
+        [mission_id, version],
     ).fetchall()
-    draft, language, by, at, payload, signature, key, device, received = row
     sentences = [StoredSentence(i, sec, t, c, tuple(f)) for i, sec, t, c, f in lines]
     return StoredReport(draft, language, by, at, bytes(payload), bytes(signature), key,
-                        str(device), received, sentences)  # fmt: skip
+                        str(device), received, sentences, version)  # fmt: skip
+
+
+def _next_version(conn: psycopg.Connection, mission_id: str) -> int:
+    """1 for a first report; N+1 when version N was sent back; else AlreadyReceived (#178)."""
+    row = conn.execute(
+        "SELECT r.version, v.decision FROM reports r LEFT JOIN report_reviews v"
+        " ON v.mission_id = r.mission_id AND v.version = r.version"
+        " WHERE r.mission_id = %s ORDER BY r.version DESC LIMIT 1",
+        [mission_id],
+    ).fetchone()
+    if row is None:
+        return 1
+    if row[1] != "sent_back":
+        raise AlreadyReceived
+    return row[0] + 1
 
 
 class PostgresSync:
@@ -119,6 +141,12 @@ class PostgresSync:
     def report(self, user_id: str, mission_id: str) -> StoredReport | None:
         with as_user(self._pool, user_id) as conn:
             return read_report(conn, mission_id)
+
+    def review(self, user_id: str, mission_id: str) -> "Review | None":
+        """The newest decision on the mission's report, for the officer's phone (#178, 8.8.0)."""
+        with as_user(self._pool, user_id) as conn:
+            found = read_reviews(conn, mission_id)
+        return found[-1] if found else None
 
     def save(
         self,
@@ -171,16 +199,17 @@ class PostgresSync:
                         "INSERT INTO fact_sources VALUES (%s, %s, %s, %s)",
                         [mission_id, fact.id, source.seq, source.region],
                     )
+            version = _next_version(conn, mission_id)
             conn.execute(
-                "INSERT INTO reports VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                "INSERT INTO reports VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                 [mission_id, batch.draftId, batch.language, approved_by, approved_at, approval[0],
-                 approval[1], batch.approval.keyId, uuid.UUID(device_id), now],
+                 approval[1], batch.approval.keyId, uuid.UUID(device_id), now, version],
             )  # fmt: skip
             for position, sentence in enumerate(batch.sentences):
                 conn.execute(
-                    "INSERT INTO report_sentences VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    "INSERT INTO report_sentences VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
                     [mission_id, position, sentence.id, sentence.section, sentence.text,
-                     sentence.classification, sentence.factIds],
+                     sentence.classification, sentence.factIds, version],
                 )  # fmt: skip
             receipt = Receipt(str(uuid.uuid4()), now, len(new) + facts + len(batch.sentences))
             conn.execute(

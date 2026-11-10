@@ -4,6 +4,7 @@ mission's reports listed like a documents list. Every value escaped."""
 
 from html import escape
 
+from missioncopilot_backend.dashboard_layout import titled
 from missioncopilot_backend.dashboard_portfolio import day, status_pill
 from missioncopilot_backend.db.dashboard_project import ProjectView, Rating
 
@@ -61,16 +62,15 @@ def render(view: ProjectView) -> str:
             f"""<li class="document"><span class="kind">Aide-memoire</span>
   <span class="num">Approved
   {day(r.approved_at)}, received {day(r.received_at)}</span>{status_pill(r.status)}
-  <a class="pill ghost" href="/dashboard/missions/{escape(row.id)}">Open the report</a></li>"""
+  <a class="pill ghost" href="/dashboard/missions/{escape(row.id)}/report">Open the report</a>
+  </li>"""
             for r in view.reports
         )
         or '<li class="empty">No report received yet.</li>'
     )
-    return f"""<nav class="crumbs" aria-label="You are here"><a href="/dashboard">Missions</a>
-  <span aria-hidden="true">/</span> <span>{escape(row.title)}</span></nav>
-<section class="hero">
+    return f"""<section class="hero">
   <p class="eyebrow">{escape(row.project_ref or "Mission")}</p>
-  <h1 class="title vt-mission">{escape(row.title)}</h1>
+  {titled(row.title, "/dashboard", "missions")}
   <p class="lead">{escape(view.objective)}</p>
   <dl class="facts">{facts}</dl>
 </section>

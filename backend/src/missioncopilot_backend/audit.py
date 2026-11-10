@@ -35,6 +35,8 @@ Kind = Literal[
     "dashboard_sign_in_failed",
     "shred_order_sent",
     "pack_downloaded",
+    "report_endorsed",
+    "report_sent_back",
 ]
 
 

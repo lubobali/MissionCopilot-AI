@@ -5,9 +5,12 @@ with a receipt. The same batch again answers the first receipt; a refused batch 
 import json
 import uuid
 
+import psycopg
 import pytest
+from psycopg.conninfo import make_conninfo
 
 from tests.db.phone_world import ROADS
+from tests.db.postgres import admin_url
 from tests.unit.sync_batches import PhoneBatch
 
 pytestmark = pytest.mark.db
@@ -104,3 +107,46 @@ def world_audit(world) -> list[str]:
 
     with Directory.open(world.directory_url, world.clock) as directory:
         return [event.kind for event in directory.audit.events()]
+
+
+def org_admin(world) -> str:
+    with psycopg.connect(world.directory_url) as conn:
+        row = conn.execute("SELECT database FROM organizations WHERE id = %s", [world.orgs[0]])
+        found = row.fetchone()
+    assert found is not None
+    return make_conninfo(admin_url(), dbname=found[0])
+
+
+def test_a_second_report_waits_for_a_send_back(world):
+    """#178: the received report stands; only a manager's send back opens the next version."""
+    batch = phone_batch(world)
+    first = batch.body()
+    assert send(world, first).status_code == 201
+    second = PhoneBatch(ROADS, device_key=batch.device_key, approval_key=batch.approval_key,
+                        draft="draft-2").body()  # fmt: skip
+
+    again = send(world, second | {"evidence": first["evidence"], "head": first["head"]})
+
+    assert again.status_code == 409 and again.json()["detail"] == "report:already_received"
+
+
+def test_the_phone_learns_the_managers_decision(world):
+    """#178, 8.8.0: on its next contact; 404 until a manager decides; only the mission's team."""
+    path = f"/v1/missions/{ROADS}/report/review"
+    assert send(world, phone_batch(world).body()).status_code == 201
+    assert world.get("officer-7", path).status_code == 404
+    with psycopg.connect(org_admin(world)) as conn:
+        conn.execute(
+            "INSERT INTO report_reviews (mission_id, version, decision, note, reviewer_id,"
+            " reviewer_name, reviewed_at, approval_hash) VALUES (%s, 1, 'sent_back',"
+            " 'Check the bridge numbers.', 'manager-1', 'Amina', 1794280000, %s)",
+            [ROADS, "c" * 64],
+        )
+
+    found = world.get("officer-7", path)
+
+    assert found.status_code == 200
+    assert found.json() == {"version": 1, "decision": "sent_back",
+                            "reviewedAt": "2026-11-10T03:06:40Z",
+                            "note": "Check the bridge numbers."}  # fmt: skip
+    assert world.get("officer-8", path).status_code == 404  # another team

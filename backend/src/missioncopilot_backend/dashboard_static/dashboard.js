@@ -146,3 +146,41 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener("click", (event) => {
   if (event.target.closest('button[data-action="print"]')) window.print();
 });
+
+// #178: Endorse with Touch ID. The server makes a challenge naming this manager and this report
+// (version and approval hash); user verification is required; then the page shows the decision.
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest('button[data-action="endorse"]');
+  if (!button) return;
+  const panel = button.closest(".decision");
+  if (!window.PublicKeyCredential) return say(panel, "This browser cannot use passkeys. Use Safari or Chrome.", true);
+  const base = `/v1/dashboard/missions/${encodeURIComponent(button.dataset.mission)}/endorse`;
+  button.disabled = true;
+  say(panel, "Waiting for Touch ID…");
+  try {
+    const options = await post(`${base}/options`);
+    const credential = await navigator.credentials.get({ publicKey: requestOptions(options) });
+    await post(base, { credential: asJSON(credential) });
+    say(panel, "Endorsed.");
+    location.reload();
+  } catch (error) {
+    const cancelled = error && error.name === "NotAllowedError";
+    say(panel, cancelled ? "Not endorsed: you cancelled, or the time ran out. Try again."
+      : "Not endorsed. Reload the page and try again.", true);
+    button.disabled = false;
+  }
+});
+
+// Lubo, Nov 10: the round ‹ goes back to the page you came from, like the browser's back. Only
+// when you did not come from another dashboard page (a new tab, a typed link) does it follow its
+// link, the page one step up.
+document.addEventListener("click", (event) => {
+  const back = event.target.closest("a.back");
+  if (!back) return;
+  const from = document.referrer;
+  const fromHere = from.startsWith(`${location.origin}/dashboard`) && from !== location.href;
+  if (fromHere && history.length > 1) {
+    event.preventDefault();
+    history.back();
+  }
+});

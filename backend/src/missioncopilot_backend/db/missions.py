@@ -8,6 +8,7 @@ from psycopg_pool import ConnectionPool
 
 from missioncopilot_backend.db.dashboard_data import DashboardData
 from missioncopilot_backend.db.packs import PostgresPacks
+from missioncopilot_backend.db.reviews import Reviews
 from missioncopilot_backend.db.session import as_user
 from missioncopilot_backend.db.sync import PostgresSync
 from missioncopilot_backend.tenancy import Mission
@@ -33,6 +34,10 @@ class PostgresOrgDatabases:
     def dashboard_for(self, org_id: str) -> DashboardData | None:  # #175
         pool = self.pools.get(org_id)
         return DashboardData(pool) if pool else None
+
+    def reviews_for(self, org_id: str) -> Reviews | None:  # #178
+        pool = self.pools.get(org_id)
+        return Reviews(pool) if pool else None
 
     def sync_for(self, org_id: str) -> PostgresSync | None:  # #172
         pool = self.pools.get(org_id)

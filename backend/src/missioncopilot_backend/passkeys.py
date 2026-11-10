@@ -29,6 +29,7 @@ from webauthn.helpers.structs import (
 )
 
 from missioncopilot_backend.dashboard_auth import DashboardStore, DashboardUser, Purpose
+from missioncopilot_backend.db.reviews import Assertion
 
 ES256 = [COSEAlgorithmIdentifier.ECDSA_SHA_256]
 
@@ -131,6 +132,12 @@ def verify_authentication(
     expected = _challenge(credential)
     if store.take_challenge(expected, purpose) is None:
         raise PasskeyRefused
+    return _verified(store, credential, site, expected, require_uv)
+
+
+def _verified(
+    store: DashboardStore, credential: dict[str, Any], site: Site, expected: bytes, require_uv: bool
+) -> DashboardUser:
     key = store.passkey(_bytes(credential.get("rawId")))
     user = store.user(key.user_id) if key else None
     if key is None or user is None:
@@ -148,3 +155,31 @@ def verify_authentication(
     if not store.raise_sign_count(key.credential_id, verified.new_sign_count):
         raise PasskeyRefused
     return user
+
+
+def endorse_options(store: DashboardStore, site: Site, user: DashboardUser, subject: str) -> str:
+    """Options to endorse one report (#178): the challenge names the manager and the report
+    (mission, version, approval hash); user verification required (Touch ID)."""
+    challenge = store.new_challenge("endorse", user.id, subject)
+    options = generate_authentication_options(
+        rp_id=site.rp_id, challenge=challenge, allow_credentials=[],
+        user_verification=UserVerificationRequirement.REQUIRED,
+    )  # fmt: skip
+    return options_to_json(options)
+
+
+def verify_endorsement(
+    store: DashboardStore, credential: dict[str, Any], site: Site, user: DashboardUser, subject: str
+) -> Assertion:
+    """The manager's own passkey answered a challenge made for this manager and this report, with
+    user verification; the assertion as it came, to keep with the endorsement."""
+    expected = _challenge(credential)
+    taken = store.take_challenge(expected, "endorse")
+    if taken is None or taken.user_id != user.id or taken.subject != subject:
+        raise PasskeyRefused
+    if _verified(store, credential, site, expected, require_uv=True).id != user.id:
+        raise PasskeyRefused  # another manager's passkey
+    answer = credential["response"]
+    raw = [credential.get("rawId"), answer.get("authenticatorData"), answer.get("clientDataJSON"),
+           answer.get("signature")]  # fmt: skip
+    return Assertion(*(_bytes(part) for part in raw))

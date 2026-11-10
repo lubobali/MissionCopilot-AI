@@ -44,6 +44,7 @@ class Passkey:
 class Challenge:
     purpose: Purpose
     user_id: str | None
+    subject: str | None = None  # what an endorsement endorses (#178)
 
 
 class DashboardStore(Protocol):
@@ -53,7 +54,9 @@ class DashboardStore(Protocol):
     def user(self, dashboard_user_id: str) -> DashboardUser | None: ...
     def issue_invite(self, dashboard_user_id: str) -> tuple[str, float]: ...
     def consume_invite(self, code: str) -> DashboardUser | None: ...
-    def new_challenge(self, purpose: Purpose, dashboard_user_id: str | None) -> bytes: ...
+    def new_challenge(
+        self, purpose: Purpose, dashboard_user_id: str | None, subject: str | None = None
+    ) -> bytes: ...
     def take_challenge(self, challenge: bytes, purpose: Purpose) -> Challenge | None: ...
     def add_passkey(
         self, dashboard_user_id: str, credential_id: bytes, public_key: bytes, sign_count: int
@@ -109,10 +112,13 @@ class DashboardMemory:
             return None
         return self._users.get(found[0])
 
-    def new_challenge(self, purpose: Purpose, dashboard_user_id: str | None) -> bytes:
+    def new_challenge(
+        self, purpose: Purpose, dashboard_user_id: str | None, subject: str | None = None
+    ) -> bytes:
         challenge = secrets.token_bytes(32)
         expires = self._clock() + CHALLENGE_SECONDS
-        self._challenges[digest(challenge)] = (Challenge(purpose, dashboard_user_id), expires)
+        made = Challenge(purpose, dashboard_user_id, subject)
+        self._challenges[digest(challenge)] = (made, expires)
         return challenge
 
     def take_challenge(self, challenge: bytes, purpose: Purpose) -> Challenge | None:

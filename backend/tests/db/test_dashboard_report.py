@@ -73,3 +73,24 @@ def test_a_kept_file_by_seq(world):
     assert not kept.confidential_only  # cited by a fact that is not strictly confidential
     assert data.evidence_file("manager-1", ROADS, 1) is None  # the pack's file is not kept
     assert data.evidence_file("manager-1", BRIDGES, 3) is None
+
+
+def test_the_trail_lists_every_version_and_decision(world):
+    from missioncopilot_backend.db.reviews import Reviews
+
+    Reviews(world.pool).decide(
+        "manager-1", "Amina", ROADS, 1, "sent_back", "Check it.", "c" * 64, 9.0
+    )
+
+    trail = DashboardData(world.pool).trail("manager-1", ROADS)
+
+    assert trail is not None
+    assert [(v.version, v.draft_id, v.approved_by) for v in trail.versions] == [
+        (1, "draft-1", "this-phone"),
+    ]  # fmt: skip
+    assert [(r.version, r.decision, r.note) for r in trail.reviews] == [
+        (1, "sent_back", "Check it.")
+    ]
+    assert (
+        DashboardData(world.pool).trail("manager-1", "6f1d2c3a-0000-4000-8000-000000000009") is None
+    )

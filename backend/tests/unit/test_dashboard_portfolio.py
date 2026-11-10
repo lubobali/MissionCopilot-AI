@@ -52,13 +52,15 @@ def test_the_bank_reading_order(page):
     for part in ('class="band"', '<h1 class="caps">Missions <b>to review</b></h1>',
                  'data-count="1"', "Reports to review", 'data-count="2"', "Red flags raised",
                  'data-count="0"', "Endorsed", 'class="missions"',
-                 "Site <b>visits</b>"):  # fmt: skip
+                 "Risk <b>radar</b>"):  # fmt: skip
         assert part in page, part
     assert page.index('class="stats"') < page.index('class="missions"')
 
 
 def test_each_mission_is_a_row_with_words_not_only_colour(page):
-    assert 'href="/dashboard/missions/6f1d2c3a-0000-4000-8000-000000000001"' in page
+    mission = "/dashboard/missions/6f1d2c3a-0000-4000-8000-000000000001"
+    assert f'class="mission-link" href="{mission}/project"' in page  # the name: the project
+    assert f'class="review-link" href="{mission}/report"' in page  # to review: the report
     assert "KRRP-P1" in page and "Kandor" in page
     assert 'class="status received"' in page and "Received, to review" in page
     assert 'class="status in_field"' in page and "In the field" in page
@@ -74,9 +76,26 @@ def test_the_brand_shines_like_the_iphone(page):
     assert 'class="medallion shine"' in page and 'src="/dashboard/static/logo.png"' in page
 
 
-def test_the_site_visits_radar_prints_no_coordinates(page):
-    assert 'class="radar"' in page and "1 sample point" in page and "within 7 m" in page
+def test_the_risk_radar_has_one_dot_per_mission_nearer_the_centre_when_riskier(page):
+    """Lubo, Nov 10: a real radar. Each mission a dot (a link), at a distance set by its risk now;
+    a report to review pulses. Still no coordinates printed."""
+    assert "Risk <b>radar</b>" in page and page.count('class="blip ') == 2
+    assert 'class="blip received"' in page and 'class="blip in_field"' in page
+    high = radius_of(page, "Kandor Rural Roads Project, Package 1")
+    unrated = radius_of(page, "Bridges &lt;&amp;&gt;")  # escaped; no rating: the outer edge
+    assert high < unrated
+    assert "2 missions" in page and "1 site point received" in page
     assert "41.86" not in page and "-87.71" not in page
+
+
+def radius_of(page: str, title: str) -> float:
+    import math
+    import re
+
+    found = re.search(r'<a class="blip [a-z_]+" href="[^"]+"><title>' + re.escape(title)
+                      + r'[^<]*</title><circle cx="([\d.]+)" cy="([\d.]+)"', page)  # fmt: skip
+    assert found, title
+    return math.hypot(float(found[1]) - 100, float(found[2]) - 100)
 
 
 def test_the_command_k_palette_lists_every_mission(page):

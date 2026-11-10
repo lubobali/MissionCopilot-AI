@@ -84,7 +84,18 @@ table.missions { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
 .radar .ring, .radar .axis { fill: none; stroke: var(--line); stroke-width: 1; }
 .radar .sweep path { fill: oklch(0.67 0.14 230 / 0.16); }
 .radar .sweep { transform-origin: 100px 100px; }
-.radar .dot { fill: var(--cyan); filter: drop-shadow(0 0 6px var(--cyan)); }
+.radar .ring.high { fill: color-mix(in srgb, var(--danger) 7%, transparent); }
+.blip circle { fill: var(--cyan); stroke: var(--card); stroke-width: 1.5; transition: r 0.2s; }
+.blip.received circle { fill: var(--blue); filter: drop-shadow(0 0 6px var(--blue)); }
+.blip.sent_back circle { fill: var(--warning); }
+.blip.endorsed circle { fill: var(--success); }
+.blip.in_field circle { fill: var(--muted); }
+.blip:hover circle, .blip:focus-visible circle { r: 7; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem; margin: 0 0 0.4rem;
+  font-size: 0.8rem; color: var(--muted); }
+.key { width: 0.6rem; height: 0.6rem; border-radius: 50%; display: inline-block; margin-left: 0.3rem; }
+.key.received { background: var(--blue); } .key.in_field { background: var(--muted); }
+.key.endorsed { background: var(--success); } .key.sent_back { background: var(--warning); }
 .note { font-size: 0.85rem; margin: auto 0 0; }
 
 /* Command-K: one calm dialog for every mission and page. */
@@ -103,7 +114,7 @@ table.missions { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
 @media (prefers-reduced-motion: no-preference) {
   .band::before { animation: aurora 28s ease-in-out infinite alternate; }
   .radar .sweep { animation: sweep 6s linear infinite; }
-  .radar .dot { animation: ping 2.4s ease-in-out infinite; }
+  .blip.received circle { animation: ping 2.4s ease-in-out infinite; }
   .hero, .stats > *, .split > * { animation: rise 0.7s cubic-bezier(.2,.7,.2,1) both; }
   .stats > :nth-child(2) { animation-delay: 0.06s; } .stats > :nth-child(3) { animation-delay: 0.12s; }
   .split > * { animation-delay: 0.18s; }
@@ -112,11 +123,19 @@ table.missions { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
   }
 }
 @keyframes sweep { to { transform: rotate(1turn); } }
-@keyframes ping { 50% { r: 6; opacity: 0.7; } }
+@keyframes ping { 50% { r: 7.5; opacity: 0.75; } }
 
 /* One mission (#176, #177): the breadcrumb, the fact sheet, financing, ratings, documents. */
-.crumbs { display: flex; gap: 0.5rem; padding-top: 1.5rem; font-size: 0.85rem; color: var(--muted); }
-.crumbs a { color: var(--blue); text-decoration: none; }
+/* One way back: a round ‹ left of the title, to the page one step up. */
+.titled { display: flex; align-items: center; gap: 0.9rem; }
+.titled .title { margin: 0.3rem 0 0.6rem; }
+.back { flex: none; display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--card); color: var(--blue); text-decoration: none;
+  font: 400 1.7rem/1 var(--sans); padding-bottom: 0.2rem; transition: background 0.2s, color 0.2s, transform 0.2s; }
+.back:hover, .back:focus-visible { background: var(--blue); color: white; transform: translateX(-2px); }
+.review-link { text-decoration: none; }
+.review-link .status { cursor: pointer; transition: box-shadow 0.2s; }
+.review-link:hover .status { box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 25%, transparent); }
 .title { font: 400 clamp(1.9rem, 3.4vw, 2.6rem)/1.15 var(--serif); margin: 0.3rem 0 0.6rem; }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.9rem 1.5rem; margin: 1.5rem 0 0; }
 .facts div { border-left: 2px solid var(--blue); padding-left: 0.8rem; }

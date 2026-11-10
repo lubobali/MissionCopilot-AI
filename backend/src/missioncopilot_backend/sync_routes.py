@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from missioncopilot_backend.approval_keys import ApprovalKeyStore
 from missioncopilot_backend.auth import audit
-from missioncopilot_backend.db.sync import PostgresSync, Receipt
+from missioncopilot_backend.db.sync import AlreadyReceived, PostgresSync, Receipt
 from missioncopilot_backend.device_auth import DevicePrincipal, device_router, require_device
 from missioncopilot_backend.devices import DeviceStore
 from missioncopilot_backend.errors import problem
@@ -96,6 +96,8 @@ def sync_mission(
         receipt = store.save(user, missionId, body, device_id=device.device_id,
                              approved_by=result.approved_by, approved_at=result.approved_at,
                              key=key, now=devices.now())  # fmt: skip
+    except AlreadyReceived:  # #178: the report stands unless a manager sent it back
+        return problem(409, "report:already_received")
     except psycopg.errors.UniqueViolation:  # the same batch raced in: answer the one that won
         won = store.receipt(user, missionId, draft_id=body.draftId)
         if won is None:
@@ -136,6 +138,26 @@ async def add_evidence_file(
     ):
         response.status_code = 200
     return EvidenceFile(seq=seq, sha256=signed)
+
+
+class ReportReview(BaseModel):
+    version: int
+    decision: str
+    note: str | None
+    reviewedAt: str
+
+
+@router.get("/missions/{missionId}/report/review", response_model=ReportReview)
+def report_review(
+    missionId: str, request: Request, device: DevicePrincipal = Depends(require_device)
+) -> ReportReview:
+    """The manager's newest decision, for the officer's phone on its next contact (#178)."""
+    found = _sync_store(request, device, missionId).review(device.user_id, missionId)
+    if found is None:
+        raise NOT_FOUND
+    at = datetime.fromtimestamp(found.reviewed_at, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return ReportReview(version=found.version, decision=found.decision, note=found.note,
+                        reviewedAt=at)  # fmt: skip
 
 
 def sync_routes() -> list:

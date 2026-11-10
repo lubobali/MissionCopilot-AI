@@ -12,6 +12,7 @@ from psycopg_pool import ConnectionPool
 
 from missioncopilot_backend.db import dashboard_project as page
 from missioncopilot_backend.db import dashboard_report as paper
+from missioncopilot_backend.db.reviews import read_reviews
 from missioncopilot_backend.db.session import as_manager
 from missioncopilot_backend.db.sync import read_report
 
@@ -101,10 +102,15 @@ class DashboardData:
         project = _section(conn, mission_id, "sections/project.json")
         risk = _section(conn, mission_id, "sections/ratings.json").get("overallRisk", {})
         report = conn.execute(
-            "SELECT received_at, approved_at FROM reports WHERE mission_id = %s", [mission_id]
+            "SELECT r.received_at, r.approved_at, v.decision FROM reports r"
+            " LEFT JOIN report_reviews v ON v.mission_id = r.mission_id AND v.version = r.version"
+            " WHERE r.mission_id = %s"
+            " ORDER BY r.version DESC LIMIT 1",
+            [mission_id],
         ).fetchone()
         counts = conn.execute(
-            "SELECT (SELECT count(*) FROM report_sentences WHERE mission_id = %s),"
+            "SELECT (SELECT count(*) FROM report_sentences s WHERE mission_id = %s AND version ="
+            " (SELECT max(version) FROM reports r WHERE r.mission_id = s.mission_id)),"
             " (SELECT count(*) FROM facts WHERE mission_id = %s AND rule_id = 'red-flag')",
             [mission_id, mission_id],
         ).fetchone()
@@ -112,7 +118,7 @@ class DashboardData:
         return MissionRow(
             id=mission_id, title=project.get("title") or title, country=project.get("country"),
             sector=project.get("sector"), project_ref=project.get("projectRef"),
-            status="received" if report else "in_field",
+            status=(report[2] or "received") if report else "in_field",
             risk_now=risk.get("current") if isinstance(risk, dict) else None,
             risk_before=risk.get("previous") if isinstance(risk, dict) else None,
             red_flags=flags, sentences=sentences,
@@ -157,7 +163,25 @@ class DashboardData:
                 actions=paper.seen_for(_section(conn, mission_id, "sections/agreed-actions.json"),
                                        list(known.values())),
                 lines=paper.lines(stored, known), stored=stored,
+                reviews=read_reviews(conn, mission_id),
+                on_team=conn.execute(
+                    "SELECT 1 FROM mission_members WHERE mission_id = %s AND user_id = %s",
+                    [mission_id, manager_id],
+                ).fetchone() is not None,
             )  # fmt: skip
+
+    def trail(self, manager_id: str, mission_id: str) -> "paper.Trail | None":
+        """Every version and decision of one mission's report (#178, step 8.8.3), or None."""
+        with as_manager(self._pool, manager_id) as conn:
+            found = conn.execute(
+                "SELECT title FROM missions WHERE id = %s", [mission_id]
+            ).fetchone()
+            if found is None:
+                return None
+            row = self._row(conn, mission_id, found[0])
+            return paper.Trail(
+                row, paper.versions(conn, mission_id), read_reviews(conn, mission_id)
+            )
 
     def evidence_file(self, manager_id: str, mission_id: str, seq: int) -> "paper.KeptFile | None":
         """A file the phone sent for the report's proof, or None (#177, step 8.7.2)."""

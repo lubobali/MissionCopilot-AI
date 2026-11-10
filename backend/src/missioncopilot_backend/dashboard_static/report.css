@@ -85,7 +85,7 @@ table.plan, .part table.ratings { width: 100%; border-collapse: collapse; font-s
   @page { margin: 2cm 2.2cm; }
   :root { color-scheme: light; --text: black; --muted: #444; --line: #bbb; --card: white; --page: white; }
   body.app { background: white; color: black; }
-  .band, .skip, .crumbs, .tools, .proof, #palette, .aurora { display: none !important; }
+  .band, .skip, .back, .tools, .proof, #palette, .aurora { display: none !important; }
   body.app main { padding: 0; max-width: none; }
   .paper { max-width: none; }
   .report-head { text-align: center; padding: 0 0 0.6cm; border-bottom: 2px solid black; }
@@ -104,4 +104,38 @@ table.plan, .part table.ratings { width: 100%; border-collapse: collapse; font-s
   .plan th, .plan td, .ratings th, .ratings td { border-bottom: 1px solid #999; }
   .trend { color: black !important; }
 }
-.tools .pill:first-child { background: var(--blue); color: white; border-color: transparent; }
+.tools .pill[data-action="print"] { background: var(--blue); color: white; border-color: transparent; }
+
+/* #178: the decision panel. Endorse is the one bright button; send back opens a short note. */
+.decision { margin: 1rem 0 0; padding: 1rem 1.2rem; border-radius: 1rem; border: 1px solid var(--line); background: var(--card); }
+.decision .eyebrow { margin: 0 0 0.4rem; }
+.decide { display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: flex-start; }
+.pill.endorse { color: white; border-color: transparent; background: linear-gradient(120deg, var(--blue), var(--cyan));
+  box-shadow: 0 8px 24px -12px var(--blue); }
+.send-back summary { list-style: none; cursor: pointer; }
+.send-back summary::-webkit-details-marker { display: none; }
+.send-back[open] { flex-basis: 100%; }
+.send-back form { display: grid; gap: 0.5rem; margin-top: 0.8rem; max-width: 36rem; }
+.send-back label { font: 600 0.72rem/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.send-back textarea { font: 400 0.95rem/1.5 var(--sans); padding: 0.7rem 0.9rem; border-radius: 0.8rem; resize: vertical;
+  border: 1px solid var(--line); background: var(--page); color: var(--text); }
+.send-back form .pill { justify-self: start; }
+.verdict { margin: 0; line-height: 1.5; }
+.verdict.endorsed b { color: var(--success); }
+.verdict.sent_back b { color: var(--warning); }
+.earlier { margin: 0.6rem 0 0; padding-left: 1.1rem; color: var(--muted); font-size: 0.88rem; }
+.decision .status:empty { display: none; }
+.decision .status.problem { color: var(--danger); }
+@media print { .decision .decide, .decision .tools, .decision .status { display: none !important; } }
+
+/* #178: the audit trail, a calm timeline: a thin rail, a dot per step, time in mono. */
+.timeline { list-style: none; margin: 0; padding: 0 0 0 1.4rem; border-left: 2px solid var(--line); display: grid; gap: 1.1rem; }
+.step { position: relative; }
+.step::before { content: ""; position: absolute; left: calc(-1.4rem - 7px); top: 0.3rem; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--card); border: 2px solid var(--blue); }
+.step.endorsed::before { background: var(--success); border-color: var(--success); }
+.step.sent_back::before { background: var(--warning); border-color: var(--warning); }
+.step.logged::before { border-color: var(--muted); }
+.step time { font: 500 0.75rem/1.3 var(--mono); color: var(--muted); }
+.step p { margin: 0.15rem 0 0; font: 400 1rem/1.5 var(--serif); }
+.step small { color: var(--muted); }

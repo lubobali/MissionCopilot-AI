@@ -5,12 +5,13 @@ the action plan is the pack's agreed actions with what the site walk saw."""
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import psycopg
 
 from missioncopilot_backend.db.dashboard_project import Rating, day
+from missioncopilot_backend.db.reviews import Review
 from missioncopilot_backend.db.sync import StoredReport
 
 if TYPE_CHECKING:
@@ -69,6 +70,13 @@ class ReportView:
     actions: list[Action]
     lines: list[Line]
     stored: StoredReport
+    reviews: list[Review] = field(default_factory=list)  # every version's decision (#178)
+    on_team: bool = False  # the manager is on the mission's team: may not decide
+
+    @property
+    def decision(self) -> Review | None:
+        """The decision on the newest version, if a manager made it."""
+        return next((r for r in self.reviews if r.version == self.stored.version), None)
 
 
 @dataclass(frozen=True)
@@ -178,3 +186,30 @@ def kept_file(conn: psycopg.Connection, mission_id: str, seq: int) -> KeptFile |
         [mission_id, seq, CONFIDENTIAL],
     ).fetchone()
     return KeptFile(row[0], bytes(row[1]), open_fact is None)
+
+
+@dataclass(frozen=True)
+class Version:
+    version: int
+    draft_id: str
+    approved_by: str
+    approved_at: float
+    received_at: float
+
+
+@dataclass(frozen=True)
+class Trail:
+    """Every version of a mission's report and every decision, for the audit trail page (#178)."""
+
+    row: "MissionRow"
+    versions: list[Version]
+    reviews: list[Review]
+
+
+def versions(conn: psycopg.Connection, mission_id: str) -> list[Version]:
+    rows = conn.execute(
+        "SELECT version, draft_id, approved_by, approved_at, received_at FROM reports"
+        " WHERE mission_id = %s ORDER BY version",
+        [mission_id],
+    ).fetchall()
+    return [Version(*row) for row in rows]

@@ -665,6 +665,118 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+  /v1/missions/{missionId}/report/review:
+    get:
+      tags: [review]
+      operationId: getReportReview
+      security:
+        - deviceSignature: []
+      summary: The manager's newest decision on this mission's report (#178)
+      description: >
+        On its next contact the officer's phone learns that the report was endorsed, or sent back
+        with a note (then the officer drafts again and sends the next version). 404 until a
+        manager decides. Only the mission's team.
+      parameters:
+        - $ref: "#/components/parameters/AppBuild"
+        - $ref: "#/components/parameters/MissionId"
+      responses:
+        "403":
+          $ref: "#/components/responses/AppTooOld"
+        "200":
+          description: The decision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportReview"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "410":
+          $ref: "#/components/responses/ShredOrder"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/dashboard/missions/{missionId}/endorse/options:
+    post:
+      tags: [dashboard]
+      operationId: dashboardEndorseOptions
+      summary: Passkey options to endorse the newest report, user verification required (#178)
+      description: >
+        The dashboard's own pages call this (Origin must be the dashboard's, else 403), with the
+        manager's session; another organization's mission is 404.
+      parameters:
+        - $ref: "#/components/parameters/MissionId"
+      responses:
+        "200":
+          description: Done
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Already decided, not the newest version, or not verified
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/dashboard/missions/{missionId}/endorse:
+    post:
+      tags: [dashboard]
+      operationId: dashboardEndorse
+      summary: Endorse the newest report with the manager's passkey (#178)
+      description: >
+        The dashboard's own pages call this (Origin must be the dashboard's, else 403), with the
+        manager's session; another organization's mission is 404.
+      parameters:
+        - $ref: "#/components/parameters/MissionId"
+      responses:
+        "201":
+          description: Done
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Already decided, not the newest version, or not verified
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/dashboard/missions/{missionId}/send-back:
+    post:
+      tags: [dashboard]
+      operationId: dashboardSendBack
+      summary: Send the newest report back to the officer with a note (#178)
+      description: >
+        The dashboard's own pages call this (Origin must be the dashboard's, else 403), with the
+        manager's session; another organization's mission is 404.
+      parameters:
+        - $ref: "#/components/parameters/MissionId"
+      responses:
+        "303":
+          description: Done
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Already decided, not the newest version, or not verified
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
   /v1/dashboard/me:
     get:
       tags: [dashboard]
@@ -1647,6 +1759,23 @@ components:
         sha256:
           type: string
           pattern: "^[0-9a-f]{64}$"
+    ReportReview:
+      type: object
+      additionalProperties: false
+      required: [version, decision, reviewedAt]
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        decision:
+          type: string
+          enum: [endorsed, sent_back]
+        note:
+          type: [string, "null"]
+          maxLength: 500
+        reviewedAt:
+          type: string
+          format: date-time
     SyncReceipt:
       type: object
       required: [batchId, receivedAt, itemCount]
