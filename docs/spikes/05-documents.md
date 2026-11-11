@@ -65,8 +65,25 @@ presented as checked.
 - **Privacy:** photos of a whole screen can capture unrelated personal content. Scan photos stay on the phone
   and out of the repo; a real-paper mode records counts only.
 
-## Not tested yet
-- **Printed paper** (texture, curl, shadows): no printer at hand. Tracked in #38 (Iteration 9, Hardening).
+## Printed paper (#38, Nov 11 2026)
+Lubo printed invoice 14 and the progress report and scanned them on his iPhone 13 Pro Max in airplane mode
+(results/documents-paper-iphone13promax.json; no photo or text leaves the phone, only counts).
+
+| Condition | Pages | Lines read | Table cells read |
+|---|---|---|---|
+| Flat, good light | invoice 1, report 1 | all | all |
+| At an angle (about 30 degrees) | invoice 3, report 2 | all | all |
+| Low light (main light off) | invoice 4, report 2 | all | all |
+| Creased (folded twice, opened) | invoice 2 | 17 of 18: one scan missed the project title line on a crease | all |
+
+- **15 of 16 pages read every line**, each page found by code, each in 0.2 to 0.6 s.
+- **Scan to facts on the paper photos:** 8 of 8 facts right, 8 of 8 grounded on their page, none wrong but
+  confident; MC-01 raised (85% paid against 50% built), the payment table adds up; the model took 3.8 s,
+  the phone stayed at thermal state 0 (nominal), the network path was offline.
+- The lab has no "creased" condition; those two scans are labelled "flat, good light" in the file:
+  scan-1794421407 (8 of 9 lines) and scan-1794421424 (9 of 9).
+- A crease can lose a line: in the app that line's facts are not grounded, so the officer is asked to
+  rescan or confirm (ADR 0005). Not tested: wet, torn or handwritten paper, carbon copies.
 
 ## Decision
 **GO, with changes for the production build:**
@@ -74,5 +91,5 @@ presented as checked.
 2. **Bad-crop warning:** if the scan contains text outside the detected page, ask for a retake.
 3. **Second opinion by code** for facts with a fixed printed pattern ("32 of 64 km", "USD 480,000"), compared
    with the model's value.
-4. **Real paper** test in Phase 9 (#38).
+4. **Real paper** test in Phase 9 (#38): done Nov 11, above.
 5. Prompt injection from scanned pages goes into the Phase 3 threat model.
