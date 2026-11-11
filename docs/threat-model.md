@@ -147,7 +147,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 | T36 | T | Unexpected fields change stored data (mass assignment) | Strict input: unknown fields rejected, a guard checks every request body; errors never echo input or leak a crash | built | `backend/tests/unit/test_errors_and_input.py` |
 | T37 | I | Routes exist that the contract does not describe | A test that every served route, routers included, is in the contract | built | `backend/tests/unit/test_app_surface.py` |
 | T38 | R | No record of security events | Append-only, hash-chained audit log; never tokens or bodies; kept in the directory database, where a trigger refuses any change or removal and the chain still names an entry changed behind it | built | `backend/tests/unit/test_audit.py`, `backend/tests/db/test_audit_log.py` |
-| T39 | I | A database backup is stolen | Per-organization keys, encrypted at rest | planned | Phase 9 |
+| T39 | I | A database backup is stolen | Backups are restic repositories, encrypted at rest (AES-256) with a password kept off the box, stored off the server (B2), restored into a throwaway Postgres every week; checked on production Nov 11 2026. One password per environment, not per organization | built | `scripts/mc_backup.py`, `scripts/test_mc_backup.py` |
 
 ### B7 Manager browser ↔ backend
 | ID | STRIDE | Threat | Control | Status | Test or phase |
