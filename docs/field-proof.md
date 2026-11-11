@@ -61,7 +61,7 @@ report is longer than a real one: the same records on a clean mission give 14 se
 | 7 | Reopened: a spinner, "Writing the report from this mission's records…", then "Approved · 51 sentences, each with its proof" | 5:31 PM |
 
 The cancel ("Not approved: you cancelled.") is covered by tests and was not tried on the phone before the
-report was approved; it is proven in the Phase 9 run (#169).
+report was approved; it is proven in the Phase 10 recording (#169).
 
 ## Traceability: each sentence back to its evidence
 
