@@ -38,11 +38,11 @@ import SwiftUI
             enroller: enroller, records: records,
             client: { deviceId in client(config, deviceId: deviceId, signer: signer) },
             onShredOrder: { body in
-                let phone = ShredOrderAction.Phone(records: records, forgetKey: { try? signer.deleteKey() })
+                let phone = ShredOrderAction.Phone(records: records, forgetKey: { PhoneKeys(user: user).forget() })
                 return ShredOrderAction.handle(body, phone: phone, missions: missions(), keys: config.pinnedKeys,
                                                now: Connection.serverNow())
             },
-            freshKey: { try? signer.deleteKey() })
+            freshKey: { PhoneKeys(user: user).forget() })
     }
 
     /// What a build without a usable server says.
