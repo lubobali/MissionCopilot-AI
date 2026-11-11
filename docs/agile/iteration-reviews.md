@@ -367,3 +367,31 @@ retention clock, purge after sync and encryption of backups (Phase 9); the sampl
 in a recording (use a test location for the video).
 **Next:** Iteration 9 hardening, then Iteration 10, the demo recorded on production on a fresh mission, with
 Ask the mission shown offline.
+
+## Iteration 9 · Hardening, light (done Nov 11 2026)
+Kept small on purpose (Lubo, Nov 10): the demo comes first. What makes the demo honest and safe was built and
+proven on the iPhone; the rest is written down as issues.
+
+| Story | Result |
+|---|---|
+| #159 Model text | The model's one free string (the invoice number) tidied by code; no model sentence on screen (PR #198) |
+| #65 Adaptive attacks | Six attacks written knowing the checks (PR #199); on the iPhone, 39 cases x 3 runs offline: without the checks 8 silent and 3 wrong, with them only X1 and X2 (a forgery consistent with every record, a wrong date inside the contract), by design, and none wrong (PR #202) |
+| #38 Printed paper | Flat, angled, low light, creased: 15 of 16 pages read every line, facts 8 of 8 grounded offline in 3.8 s (PR #202) |
+| T39 Backups | restic on B2, AES-256 at rest, password off the box, weekly restore into a throwaway Postgres; checked on production (PR #201) |
+| Video mission | A second clean mission for the recording, "December 2026", published once, live on production (PR #200) |
+
+**Measured:** threat model 77 built, 6 accepted, 0 planned (was 76, 5, 2), privacy risks 4 built, 2 planned
+(#203), 2 accepted; MASVS unchanged (14 built, 1 spike, 2 planned in #204, 5 accepted, 2 not applicable).
+Self-assessed, **not independently audited** (#66).
+
+**Learned:**
+- **Write the attacks that know the defense.** The first 30 attacks were met; the six written against the
+  checks found the real limit, a consistent forgery, and put the person back at the centre of the story.
+- **Paper was easier than feared.** Angle and low light cost nothing; only a crease lost one line, and the
+  grounding check would ask for a rescan.
+- **Ask before the run what the lab can label.** There was no "creased" condition; those two scans are
+  named in the write-up instead.
+
+**Moved out, not dropped:** #203 retention and purge after sync, #204 the privacy screen and server shred
+reports, #131 and #39 French content and voice (no French speaker for the demo), #184, #121, #148.
+**Next:** Iteration 10, the demo video on production, with the Face ID cancel (#169) and Ask offline.

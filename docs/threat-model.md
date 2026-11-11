@@ -167,7 +167,7 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 ### B8 Backend ↔ cloud AI
 | ID | STRIDE | Threat | Control | Status | Test or phase |
 |---|---|---|---|---|---|
-| T44 | I | Official Use Only data is sent to cloud AI | Label check before every call, a test for every label and task (ADR 0003); labels inherit the strictest source. No cloud AI is called from the phone yet (the model runs on the phone); the label rules are built | planned | Phase 9 (only if a cloud AI call is ever added) |
+| T44 | I | Official Use Only data is sent to cloud AI | Label check before every call, a test for every label and task (ADR 0003); labels inherit the strictest source. No cloud AI is called from the phone yet (the model runs on the phone); the label rules are built | accepted | Accepted: no cloud AI is called; every model runs on the phone (ADR 0004). A cloud call would need this check first (ADR 0003) |
 | T45 | I | The cloud provider keeps prompts | Only public data is ever sent; no cloud AI in the demo path | accepted | Accepted: public data only, nothing sensitive to keep |
 
 ### B9 Imports and supply chain
@@ -197,13 +197,13 @@ S spoofing, T tampering, R repudiation, I information disclosure, D denial of se
 
 | ID | LINDDUN | Threat | Control | Status | Test or phase |
 |---|---|---|---|---|---|
-| P01 | Linking | Evidence across missions traces a person's movements | Per-mission keys; only active missions on the phone, keys expire on a lease (spike, #49); purged after sync plus retention; the server keeps approved results only | planned | Phase 9 (purge after sync) |
+| P01 | Linking | Evidence across missions traces a person's movements | Per-mission keys; only active missions on the phone, keys expire on a lease (spike, #49); purged after sync plus retention; the server keeps approved results only | planned | #203 (purge after sync) |
 | P02 | Identifying | Voice and photos identify bystanders or informants | A consent line before every recording ("only myself, or people who agreed"); the microphone only while recording; the audio kept as sealed, signed evidence (decided B, #142), never leaving the phone unapproved, gone with its mission; photos only when the officer taps Take photo, no metadata kept | built | `ios/MissionCopilotTests/DebriefModelTests.swift`, `ios/MissionCopilotTests/DebriefStoreTests.swift`, `ios/MissionCopilotTests/SitePhotoTests.swift` |
 | P03 | Non-repudiation | **Signed evidence proves who sent it, which can hurt staff who were coerced** | Signatures prove the device, not free will (ADR 0009); ADR 0012 staff card: safety first, comply, no hidden wipe; the organization revokes the phone and the shred order destroys its missions | accepted | A named trade-off: accountability needs signed evidence, and the staff card plus the shred order limit the harm to coerced staff |
 | P04 | Detecting | A seized phone reveals that a mission exists | Encrypted database hides even table names; crypto-shred | built | `ios/MissionCopilotTests/EncryptedStoreTests.swift`, `ios/MissionCopilotTests/FieldShredTests.swift`, `docs/store-proof.md` (no table name in the phone's database bytes) |
-| P05 | Data disclosure | Official Use Only data reaches cloud AI | Same control as T44 | planned | Phase 9 (only if a cloud AI call is ever added) |
+| P05 | Data disclosure | Official Use Only data reaches cloud AI | Same control as T44 | accepted | Accepted: no cloud AI is called; every model runs on the phone (ADR 0004). A cloud call would need this check first (ADR 0003) |
 | P06 | Unawareness | The officer does not know what will be sent | The officer reads every sentence with its proof and approves it with Face ID on the phone (#163, built); before Send, the phone says exactly what goes (sentences, facts, evidence items, files, size) and that nothing else leaves it (#173) | built | `ios/MissionCopilotTests/ReportModelSendTests.swift` |
-| P07 | Non-compliance | Data kept longer than needed | Retention clock starts at server confirmation (30 days, set per organization), then crypto-shred; key lease as a backstop; every item's retention in docs/data-handling.md, checked by `scripts/test_check_data_handling.py` | planned | Phase 9 (retention clock from the receipt) |
+| P07 | Non-compliance | Data kept longer than needed | Retention clock starts at server confirmation (30 days, set per organization), then crypto-shred; key lease as a backstop; every item's retention in docs/data-handling.md, checked by `scripts/test_check_data_handling.py` | planned | #203 (retention clock from the receipt) |
 | P08 | Linking | Recording places on a site walk tracks the officer's movements | Location only when the officer taps Record location (asked then, while using the app), one reading per tap, never in the background; kept sealed in that one answer with the mission key, so a shred makes it unreadable (#129) | built | `ios/MissionCopilotTests/PlaceTests.swift`, `ios/MissionCopilotTests/SiteWalkStoreTests.swift` |
 
 ## 4. AI-specific mapping
