@@ -21,14 +21,14 @@ Watch it on the project page at [lubobali.com](https://lubobali.com).
 |---|---|---|---|
 | ![Red flags](docs/demo/screens/phone-red-flags.jpg) | ![Facts](docs/demo/screens/phone-facts.jpg) | ![Ask the mission](docs/demo/screens/phone-ask.jpg) | ![Approved with Face ID and received](docs/demo/screens/phone-approved.jpg) |
 
-**The manager's dashboard:** every sentence opens its proof, here the invoice the officer scanned on site.
+**The manager's dashboard:** every mission in one place, the reports to review, the red flags and a risk radar.
+
+![The manager's portfolio: missions to review, red flags, risk radar](docs/demo/screens/dashboard-portfolio.jpg)
+
+Every sentence of a report opens its proof, here the invoice the officer scanned on site.
 
 ![The report on the dashboard with the scanned invoice behind sentence 9](docs/demo/screens/dashboard-proof.jpg)
 
-<details><summary>The portfolio and the risk radar</summary>
-
-![The manager's portfolio](docs/demo/screens/dashboard-portfolio.jpg)
-</details>
 
 It fits any job done on site, away from the office: field supervision of development projects, home inspections,
 construction sites, insurance claims, property management, solar and utility work.
