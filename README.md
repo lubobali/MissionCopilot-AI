@@ -17,6 +17,19 @@ scan of printed paper, voice debrief, Ask the mission, the report approved with 
 then the manager's dashboard (Touch ID sign-in, the proof behind each sentence, the officer's own voice, endorse).
 Watch it on the project page at [lubobali.com](https://lubobali.com).
 
+| Red flags, by code | Facts, each on its page | Ask, offline | Approved and sent |
+|---|---|---|---|
+| ![Red flags](docs/demo/screens/phone-red-flags.jpg) | ![Facts](docs/demo/screens/phone-facts.jpg) | ![Ask the mission](docs/demo/screens/phone-ask.jpg) | ![Approved with Face ID and received](docs/demo/screens/phone-approved.jpg) |
+
+**The manager's dashboard:** every sentence opens its proof, here the invoice the officer scanned on site.
+
+![The report on the dashboard with the scanned invoice behind sentence 9](docs/demo/screens/dashboard-proof.jpg)
+
+<details><summary>The portfolio and the risk radar</summary>
+
+![The manager's portfolio](docs/demo/screens/dashboard-portfolio.jpg)
+</details>
+
 It fits any job done on site, away from the office: field supervision of development projects, home inspections,
 construction sites, insurance claims, property management, solar and utility work.
 
