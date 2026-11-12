@@ -23,7 +23,10 @@ FRESH_TEAM = "officer-7"
 # A second clean one for the recorded demo (Phase 10): the November one holds the Phase 8 proof.
 VIDEO = "6f1d2c3a-0000-4000-8000-000000000009"
 VIDEO_TITLE = "Kandor Rural Roads, Package 1: December 2026 mission"
-CLEAN = ((FRESH, FRESH_TITLE), (VIDEO, VIDEO_TITLE))
+# A third, Nov 11: the December run found a bug (#206) and its report stays, append-only.
+VIDEO_2 = "6f1d2c3a-0000-4000-8000-000000000010"
+VIDEO_2_TITLE = "Kandor Rural Roads, Package 1: January 2027 mission"
+CLEAN = ((FRESH, FRESH_TITLE), (VIDEO, VIDEO_TITLE), (VIDEO_2, VIDEO_2_TITLE))
 DATASET = files("missioncopilot_backend") / "data" / "kandor-rural-roads.json"
 P = ["Highly Unsatisfactory", "Unsatisfactory", "Moderately Unsatisfactory",
      "Moderately Satisfactory", "Satisfactory", "Highly Satisfactory"]  # fmt: skip

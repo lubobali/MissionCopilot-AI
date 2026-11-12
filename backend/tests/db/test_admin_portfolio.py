@@ -14,6 +14,8 @@ from missioncopilot_backend.admin_portfolio import (
     PROJECTS,
     TEAM,
     VIDEO,
+    VIDEO_2,
+    VIDEO_2_TITLE,
     VIDEO_TITLE,
     mission_id,
 )
@@ -41,8 +43,8 @@ def test_the_portfolio_has_seven_missions_and_the_officers_phones_see_only_their
     with ConnectionPool(make_conninfo(admin_url(), dbname=names_for(demo)[0]), open=True) as pool:
         portfolio = DashboardData(pool).portfolio("manager-1")
     rows = {row.id: row for row in portfolio.rows}
-    assert len(rows) == 9  # roads, bridges, five projects, the clean missions (#180, the video)
-    for clean, title in ((FRESH, FRESH_TITLE), (VIDEO, VIDEO_TITLE)):
+    assert len(rows) == 10  # roads, bridges, five projects, the clean missions (#180, two videos)
+    for clean, title in ((FRESH, FRESH_TITLE), (VIDEO, VIDEO_TITLE), (VIDEO_2, VIDEO_2_TITLE)):
         row = rows[clean]
         assert (row.title, row.status, row.project_ref) == (title, "in_field", "KRRP-P1")
     water = rows[mission_id("3")]
@@ -60,6 +62,6 @@ def test_the_portfolio_has_seven_missions_and_the_officers_phones_see_only_their
     with local_client(app):
         store = app.state.databases.for_org(demo)
         assert [m.id for m in store.for_user("officer-7")] == [
-            admin.ROADS, admin.BRIDGES, FRESH, VIDEO,
+            admin.ROADS, admin.BRIDGES, FRESH, VIDEO, VIDEO_2,
         ]  # fmt: skip
         assert len(store.for_user(TEAM)) == len(PROJECTS)
