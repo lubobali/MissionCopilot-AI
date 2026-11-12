@@ -23,7 +23,7 @@ Watch it on the project page at [lubobali.com](https://lubobali.com).
 
 **The manager's dashboard:** every mission in one place, the reports to review, the red flags and a risk radar.
 
-![The manager's portfolio: missions to review, red flags, risk radar](docs/demo/screens/dashboard-portfolio.jpg)
+![The manager's portfolio: missions to review, red flags, risk radar](docs/demo/screens/dashboard-main-page.jpg)
 
 Every sentence of a report opens its proof, here the invoice the officer scanned on site.
 
