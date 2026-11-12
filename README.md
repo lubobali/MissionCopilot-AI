@@ -7,7 +7,18 @@ Small, offline AI for evidence-first field supervision. It runs on the iPhone in
 keeps sensitive notes on the phone, links every fact to its evidence, and only shares a report
 after a human approves it. **An untraceable claim cannot be approved.**
 
-> Status: in development. Iterations 0 to 6 done (Nov 8 2026): the encrypted store, the mission pack and the offline field flows (site walk, red flags, document scan, voice debrief, Ask the mission) are built and proven on a real iPhone; the report (Iteration 7) is next. Portfolio project. Synthetic data only.
+> **Status: done (Nov 12 2026).** All 10 iterations built, from the encrypted store to the manager dashboard, and
+> the whole chain recorded on production with a real iPhone in airplane mode. Portfolio project, built in about two
+> weeks. Synthetic data only: Kandor is not a real country.
+
+## Demo
+An 8-minute video of the whole chain on production: the officer's iPhone offline (download, red flags, site walk,
+scan of printed paper, voice debrief, Ask the mission, the report approved with Face ID, sent when back online),
+then the manager's dashboard (Touch ID sign-in, the proof behind each sentence, the officer's own voice, endorse).
+Watch it on the project page at [lubobali.com](https://lubobali.com).
+
+It fits any job done on site, away from the office: field supervision of development projects, home inspections,
+construction sites, insurance claims, property management, solar and utility work.
 
 ## How this project is run
 
@@ -27,7 +38,7 @@ issue, with CI green.
 
 ### How CI runs (#127)
 - **iOS** ([ios.yml](.github/workflows/ios.yml)): the app job (SwiftLint, the Staging and Release
-  server check, build, then the 612 tests on a simulator) and the lab job (spikes 14 to 16) run side by
+  server check, build, then the app's tests on a simulator) and the lab job (spikes 14 to 16) run side by
   side. The labs run on every push to main, every Monday, on demand, and on any pull request that
   touches them ([scripts/ios_ci_paths.py](scripts/ios_ci_paths.py), our own `git diff`); one
   "iOS result" check passes only when every needed job did. Measured: a pull request waits about
@@ -39,18 +50,31 @@ issue, with CI green.
   minute and could be poisoned), workflows linted by zizmor.
 
 ## What it does
-Built so far (each part test-first, the store and the pack proven on an iPhone 13 Pro Max):
-- **Connect a phone**: a one-time code, a signing key born in the phone's Secure Enclave, a manager approves it.
-- **Download a mission pack**: signed by the organization's server, every file checked; it survives a cut
-  signal, the phone locking and a server restart, and an update fetches only the files that changed
-  ([pack proof](docs/pack-proof.md)).
-- **Before you go**: open a mission and the phone checks itself for the field: the pack, the AI model
-  (inside the app, checked against its signature), the speech languages the mission needs, free space;
-  what is missing says what to do while still online.
-- **Keep it on the phone, encrypted**: one key per mission, a 14-day lease, a hash-chained audit log, an app
-  lock; it works in airplane mode ([store proof](docs/store-proof.md)).
-- **Destroy it on order**: a revoked phone gets a signed shred order and the missions are destroyed.
-- Next: the field work itself (document scan, red flags, voice debrief, the checklist), then the report.
+Every part built test-first and proven on an iPhone 13 Pro Max, then on production ([field proof](docs/field-proof.md)).
+
+**On the phone, offline (the AI runs on the iPhone: no cloud, no data):**
+- **Connect a phone**: a one-time code, a signing key born in the Secure Enclave, a manager approves it.
+- **Download a mission pack**: signed by the server, every file checked, resumes after a cut signal
+  ([pack proof](docs/pack-proof.md)); kept encrypted, one key per mission ([store proof](docs/store-proof.md)).
+- **Red flags by code, not by AI**: for example "payments are 35 points ahead of the work built", each showing
+  the records it comes from ([rules](docs/rules/red-flag-rules.json)).
+- **Site walk**: a guided checklist, photos and location kept as signed evidence.
+- **Scan paper**: the invoice and the progress report read on the phone; every fact points to its place on the
+  page, and code catches a value the AI guessed. Printed paper, flat, tilted, low light, creased: 15 of 16
+  pages read every line ([documents spike](docs/spikes/05-documents.md)).
+- **Voice debrief**: notes written by code from the officer's own words, linked to the recording.
+- **Ask the mission**: answers written by code from the records, each citing its source; the AI only chooses.
+- **The report**: written by code, every sentence with its proof, approved with Face ID (a Secure Enclave
+  signature), unchangeable after; sent by itself when the phone is back online, only what the report cites.
+
+**On the server and the manager's dashboard:**
+- **Sync with every check first**: the approval signature, the evidence chain, the files' hashes.
+- **Dashboard**: passkey sign-in (Touch ID), portfolio and risk radar, the report with the proof behind each
+  sentence (photo, scanned page, recording), endorse with Touch ID or send back for version 2, and a
+  tamper-evident audit trail ("Chain intact").
+- **Prompt injection, tested**: 39 attack documents, 6 written knowing the defenses; on the iPhone, without the
+  checks 8 got through, with them 2, both forgeries no reading of paper can catch, which is why a person
+  approves every report ([injection spike](docs/spikes/08-prompt-injection.md)).
 
 ## Architecture
 **One-page summary: [docs/architecture-summary.md](docs/architecture-summary.md).** See [docs/architecture.md](docs/architecture.md): system context, containers, trust boundaries and the offline line. [docs/data-classification.md](docs/data-classification.md): labels, lifecycle and the data map. [docs/domain-model.md](docs/domain-model.md): the shared objects and their rules. Decisions in [docs/adr/](docs/adr/).
@@ -76,7 +100,9 @@ including a check you can repeat yourself, then built in the app and run on the 
 you can run).
 
 ## How to run
-(filled in as components ship)
+The backend: `uv run --directory backend pytest` (Postgres from `backend/compose.yaml`). The app: XcodeGen in
+`ios/`, then Xcode. Running it against a server needs a signed build and an enrolled phone
+([deploy/RUNBOOK.md](deploy/RUNBOOK.md)); running or copying it needs the author's written permission (see License).
 
 ## Tests
 Backend and tooling: `uv run --directory backend pytest`. iOS: Swift Testing on the simulator.

@@ -395,3 +395,24 @@ Self-assessed, **not independently audited** (#66).
 **Moved out, not dropped:** #203 retention and purge after sync, #204 the privacy screen and server shred
 reports, #131 and #39 French content and voice (no French speaker for the demo), #184, #121, #148.
 **Next:** Iteration 10, the demo video on production, with the Face ID cancel (#169) and Ask offline.
+
+## Iteration 10 · The demo (done Nov 12 2026)
+The whole chain recorded on production (mc.lubot.ai) with the Release app on an iPhone 13 Pro Max in airplane
+mode, then the manager's dashboard in Chrome on a Mac: an 8-minute video with subtitles, on the project page at
+lubobali.com. Fictional data; a fresh mission, "Kandor Rural Roads, Package 1: January 2027 mission" (PR #207).
+
+| Story | Result |
+|---|---|
+| Demo missions | A clean mission per recording, published once by seed-demo (PRs #200, #207); a sent report is never deleted, on production or anywhere: the audit log cannot forget it |
+| #206 Found by the recording | After a revoke and a new connection the phone kept its Face ID approval key, which the server keeps for the old phone, so the new phone's report waited forever. A shred order and a new connection now forget both keys; found, fixed test-first and installed within the hour |
+| The recording | Download, airplane mode, red flags, site walk, a two-page scan, a voice debrief, Ask, the report approved with Face ID and sent by itself when back online; the dashboard: Touch ID sign-in, the proof behind each sentence, the officer's own recording, endorse, the audit trail |
+
+**Learned:**
+- **Record on the real thing.** Two bugs only a real phone could show came out of the demo day: the approval key
+  above, and a debrief that made no sentence because none started with "Action", "Risk" or "Decision".
+- **Reset the phone, not the server.** Deleting a sent report would mean pausing append-only guards on
+  production and would still leave it in the audit trail; a fresh mission is the honest way.
+- **Only what the report cites leaves the phone.** A recording no sentence used stayed on the phone, as designed.
+
+**Open:** the backlog on the board (#203 retention, #204 privacy screen, #148 any sector, #131 and #39 French,
+#169 the Face ID cancel on camera, #184, #121, #133, #119, #66 an independent review).

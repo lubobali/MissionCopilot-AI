@@ -17,7 +17,7 @@ MODEL = Path("docs/threat-model.md")
 ROW = re.compile(r"^\|\s*([TP]\d{2})\s*\|")
 PHASE = re.compile(r"Phase (\d+)")
 ISSUE = re.compile(r"#\d+")
-LAST_FINISHED_PHASE = 9
+LAST_FINISHED_PHASE = 10
 PATH = re.compile(r"`([^`\s]+)`")
 
 
